@@ -20,6 +20,8 @@ import { DIAS_CORTOS, diasEnTexto, getPlan, guardarPlan, type MiPlan } from '@se
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 const VISTA = 'nawar.plan.ventana'
+const CAMPO =
+  'w-full h-11 rounded-lg border border-[#DDE3F0] px-3 text-[14.5px] text-[#0B1033] placeholder:text-[#9AA1BC] outline-none focus:border-[#0b2da0]'
 const HORAS = ['07:00', '08:00', '09:00', '12:00', '13:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00']
 
 export function usePlan() {
@@ -44,6 +46,10 @@ export function VentanaPlan({ inicial, onCerrar }: { inicial: MiPlan; onCerrar: 
   const [hora, setHora] = useState(p.hora || '20:00')
   const [minutos, setMinutos] = useState(p.minutos || 15)
   const [recordar, setRecordar] = useState(p.recordar)
+  const [deDonde, setDeDonde] = useState(p.de_donde || '')
+  const [viveEn, setViveEn] = useState(p.vive_en || '')
+  const [problema, setProblema] = useState(p.problema || '')
+  const [en4, setEn4] = useState(p.en_4_meses || '')
   const [ocupado, setOcupado] = useState(false)
   const [error, setError] = useState('')
   const elegido = inicial.opciones.objetivos.find((o) => o.id === objetivo)
@@ -52,7 +58,10 @@ export function VentanaPlan({ inicial, onCerrar }: { inicial: MiPlan; onCerrar: 
     setOcupado(true)
     setError('')
     try {
-      const d = await guardarPlan({ objetivo, objetivo_texto: texto, dias, hora, minutos, recordar }, token)
+      const d = await guardarPlan(
+        { objetivo, objetivo_texto: texto, dias, hora, minutos, recordar, de_donde: deDonde, vive_en: viveEn, problema, en_4_meses: en4 },
+        token,
+      )
       qc.setQueryData(['student', 'plan'], d)
       onCerrar()
     } catch (e: any) {
@@ -79,7 +88,7 @@ export function VentanaPlan({ inicial, onCerrar }: { inicial: MiPlan; onCerrar: 
               <h2 className="text-[21px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
                 Tu plan
               </h2>
-              <p className="mt-1 text-[14px] text-[#4A5272]">Dos preguntas. Las puedes cambiar cuando quieras.</p>
+              <p className="mt-1 text-[14px] text-[#4A5272]">Dos preguntas y, si quieres, unas pocas más para conocerte. Lo puedes cambiar cuando quieras.</p>
             </div>
             <button type="button" onClick={onCerrar} aria-label="Cerrar" className="shrink-0 p-1.5 -mr-1.5 text-[#6B7393] hover:text-[#0B1033]">
               <X size={20} />
@@ -155,6 +164,43 @@ export function VentanaPlan({ inicial, onCerrar }: { inicial: MiPlan; onCerrar: 
               Recuérdamelo por correo si ese día no he entrado
               <span className="block text-[13px] text-[#6B7393]">Solo tus días, a tu hora, y como mucho uno al día.</span>
             </span>
+          </label>
+
+          <p className="mt-7 text-[15px] font-semibold text-[#0B1033]">3. Para conocerte</p>
+          <p className="mt-0.5 text-[13.5px] text-[#6B7393]">
+            Opcional. Lo lee tu profe para ayudarte mejor, y dentro de unos meses lo miramos juntos para ver todo lo que has avanzado.
+          </p>
+          <div className="mt-2.5 grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="block text-[13px] font-semibold text-[#3B4262] mb-1.5">¿De dónde eres?</span>
+              <input value={deDonde} onChange={(e) => setDeDonde(e.target.value)} maxLength={80} placeholder="Colombia" className={CAMPO} />
+            </label>
+            <label className="block">
+              <span className="block text-[13px] font-semibold text-[#3B4262] mb-1.5">¿Dónde vives ahora?</span>
+              <input value={viveEn} onChange={(e) => setViveEn(e.target.value)} maxLength={80} placeholder="Rotterdam" className={CAMPO} />
+            </label>
+          </div>
+          <label className="mt-3 block">
+            <span className="block text-[13px] font-semibold text-[#3B4262] mb-1.5">¿Qué es lo que más te cuesta ahora del neerlandés?</span>
+            <textarea
+              value={problema}
+              onChange={(e) => setProblema(e.target.value)}
+              maxLength={400}
+              rows={2}
+              placeholder="Por ejemplo: entiendo algo leyendo, pero cuando me hablan me bloqueo"
+              className={`${CAMPO} h-auto py-2.5 resize-none leading-snug`}
+            />
+          </label>
+          <label className="mt-3 block">
+            <span className="block text-[13px] font-semibold text-[#3B4262] mb-1.5">Imagina que han pasado 4 meses. ¿Qué haces en neerlandés que hoy no puedes?</span>
+            <textarea
+              value={en4}
+              onChange={(e) => setEn4(e.target.value)}
+              maxLength={400}
+              rows={2}
+              placeholder="Por ejemplo: pedir cita en el médico yo sola, sin que me acompañe nadie"
+              className={`${CAMPO} h-auto py-2.5 resize-none leading-snug`}
+            />
           </label>
 
           {error ? <p className="mt-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-3 py-2.5 text-[13.5px]">{error}</p> : null}
@@ -241,7 +287,7 @@ export function PlanEnInicio({ soloAlumno = true }: { soloAlumno?: boolean }) {
           <p className="text-[16px] font-bold text-[#0B1033]" style={POPPINS}>
             ¿Para qué quieres el neerlandés?
           </p>
-          <p className="mt-0.5 text-[14px] text-[#4A5272]">Dinos tu objetivo y qué días vas a estudiar. Son dos preguntas.</p>
+          <p className="mt-0.5 text-[14px] text-[#4A5272]">Dinos tu objetivo y qué días vas a estudiar. Es un minuto.</p>
         </div>
         <button type="button" onClick={() => setAbierta(true)} className="shrink-0 self-start sm:self-auto h-10 px-4 rounded-lg bg-[#0b2da0] text-white text-[14px] font-semibold hover:bg-[#0a2690]">
           Hacer mi plan

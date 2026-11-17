@@ -13,6 +13,13 @@ Qué guarda (columna `student_progress.plan`, JSON en texto, sin tabla nueva):
   `minutos`: cuándo se ha propuesto estudiar.
 - `recordar`: si quiere que se le recuerde por correo.
 - `avisos`: los días en que se le mandó el recordatorio (los últimos 10).
+- «Para conocerte» (17/11/2026, opcional; usuario: "de dónde eres, cuál es tu
+  mayor problema ahora, cómo te ves en 4 meses… así luego es más fácil crear
+  testimonios"): `de_donde`, `vive_en`, `problema` y `en_4_meses`, con sus
+  palabras. `conocerte_at` es el día en que contestó por primera vez: es el
+  «antes» con el que se compara a los 4 meses. El profe y el administrador lo
+  ven en Progreso; el alumno lo cambia cuando quiera, pero esa fecha no se
+  mueve.
 
 El objetivo es SEMANAL, no una racha diaria: «3 días esta semana» aguanta una
 semana mala; una racha diaria se rompe el primer martes y la gente lo deja.
@@ -64,6 +71,9 @@ OBJETIVOS = [
 ]
 _IDS = {o["id"] for o in OBJETIVOS}
 MINUTOS = [10, 15, 20, 30, 45]
+# «Para conocerte»: el campo y lo largo que puede ser.
+CONOCERTE = ("de_donde", "vive_en", "problema", "en_4_meses")
+LARGO = {"de_donde": 80, "vive_en": 80, "problema": 400, "en_4_meses": 400}
 DIAS_TXT = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
 
@@ -86,6 +96,8 @@ def leer(crudo) -> dict:
         "minutos": d.get("minutos") if d.get("minutos") in MINUTOS else 15,
         "recordar": bool(d.get("recordar", True)),
         "guardado": str(d.get("guardado") or ""),
+        **{k: str(d.get(k) or "")[:LARGO[k]].strip() for k in CONOCERTE},
+        "conocerte_at": str(d.get("conocerte_at") or "")[:20],
         "avisos": [str(x)[:10] for x in (d.get("avisos") or []) if x][-10:],
     }
 
@@ -118,6 +130,12 @@ def limpiar(datos: dict, antes: dict, ahora: datetime) -> dict:
     nuevo["objetivo_texto"] = nuevo["objetivo_texto"].strip()
     nuevo["guardado"] = ahora.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     nuevo["avisos"] = antes.get("avisos") or []
+    # Una pantalla vieja que no manda estas preguntas no las borra.
+    for k in CONOCERTE:
+        if k not in datos:
+            nuevo[k] = antes.get(k) or ""
+    hay = any(nuevo[k] for k in CONOCERTE)
+    nuevo["conocerte_at"] = antes.get("conocerte_at") or (nuevo["guardado"][:10] if hay else "")
     return nuevo
 
 
@@ -221,13 +239,16 @@ async def planes_de(user_ids: list, db_session: AsyncSession) -> dict:
     out = {}
     for f in (await db_session.execute(select(StudentProgress).where(StudentProgress.user_id.in_(user_ids)))).scalars():
         p = leer(f.plan)
-        if rellenado(p):
+        conocerte = {k: p[k] for k in CONOCERTE if p[k]}
+        if rellenado(p) or conocerte:
             out[f.user_id] = {
                 "objetivo": nombre_objetivo(p),
                 "texto": p["objetivo_texto"],
-                "dias": dias_en_texto(p["dias"]),
+                "dias": dias_en_texto(p["dias"]) if p["dias"] else "",
                 "hora": p["hora"],
                 "minutos": p["minutos"],
+                "conocerte": conocerte,
+                "conocerte_at": p["conocerte_at"],
             }
     return out
 
@@ -264,7 +285,7 @@ async def resumen_panel(org_id: int, db_session: AsyncSession) -> dict:
     from src.services.panel.alumnos import listar_alumnos
 
     alumnos = (await listar_alumnos(org_id, db_session))["alumnos"]
-    con = [a for a in alumnos if a.get("plan")]
+    con = [a for a in alumnos if a.get("plan") and a["plan"].get("dias")]
     return {**await leer_ajuste(org_id, db_session), "alumnos": len(alumnos), "con_plan": len(con)}
 
 

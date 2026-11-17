@@ -20,7 +20,7 @@ import { getUriWithOrg } from '@services/config/config'
 import { cn } from '@/lib/utils'
 import { ACTIVO_SOBRE_MARCA, FONDO_MARCA } from '@/lib/nawar/marca'
 import { ArrowSquareOut, List, MagnifyingGlass, SignOut, X } from '@phosphor-icons/react'
-import { GRUPOS_DEL_PANEL, activo, buscarEnPanel, gruposDelCloser, type Item } from './NawarSidebar'
+import { GRUPOS_DEL_PANEL, activo, buscarEnPanel, conFavoritos, gruposDelCloser, useFavoritosPanel, type Item } from './NawarSidebar'
 
 export default function NawarMobileMenu() {
   const org = useOrg() as any
@@ -32,6 +32,7 @@ export default function NawarMobileMenu() {
   const [buscar, setBuscar] = useState('')
   const { isCloser } = useAdminStatus()
   const closerVeNumeros = useCloserVeNumeros(isCloser)
+  const [favoritos] = useFavoritosPanel()
 
   useEffect(() => setMounted(true), [])
   useEffect(() => {
@@ -42,10 +43,12 @@ export default function NawarMobileMenu() {
 
   if (!org || !session || !mounted) return null
 
-  const grupos = isCloser ? gruposDelCloser(closerVeNumeros) : GRUPOS_DEL_PANEL
+  const base = isCloser ? gruposDelCloser(closerVeNumeros) : GRUPOS_DEL_PANEL
+  // Los favoritos (17/11) salen debajo de Inicio, como en la barra del ordenador.
+  const grupos = conFavoritos(base, favoritos)
   // Los tres de la barra: lo que más se abre (Inicio, Matrículas, Llamadas).
-  const rapidos = grupos.flatMap((g) => g.items).slice(0, 3)
-  const encontrados = buscarEnPanel(grupos, buscar)
+  const rapidos = base.flatMap((g) => g.items).slice(0, 3)
+  const encontrados = buscarEnPanel(base, buscar)
 
   const salir = async () => {
     await signOut({ redirect: true, callbackUrl: getUriWithOrg(org?.slug, '/login') })

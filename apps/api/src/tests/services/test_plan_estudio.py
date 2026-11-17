@@ -69,3 +69,26 @@ def test_textos():
     assert P.dias_en_texto([6]) == "domingo"
     assert P.nombre_objetivo(_plan()) == "El médico y la farmacia"
     assert P.nombre_objetivo(_plan(objetivo="otro", objetivo_texto="Hablar con mi suegra")) == "Hablar con mi suegra"
+
+
+def test_para_conocerte_guarda_el_antes_y_no_lo_mueve():
+    """«Para conocerte» (17/11/2026): opcional, y la fecha del «antes» se queda."""
+    from datetime import datetime, timezone
+
+    from src.services.plan import plan as P
+
+    base = {"objetivo": "trabajo", "dias": [0, 2]}
+    primero = P.limpiar(
+        {**base, "de_donde": " Colombia ", "problema": "No entiendo cuando me hablan rápido", "en_4_meses": "Hablando con mi jefe"},
+        P.leer(""),
+        datetime(2026, 11, 17, 10, tzinfo=timezone.utc),
+    )
+    assert primero["de_donde"] == "Colombia"
+    assert primero["conocerte_at"] == "2026-11-17"
+    # Cambia sus respuestas un mes después: el «antes» no se mueve.
+    luego = P.limpiar({**base, "problema": "Ya lo entiendo mejor"}, P.leer(primero), datetime(2026, 12, 17, tzinfo=timezone.utc))
+    assert luego["conocerte_at"] == "2026-11-17"
+    # Lo que no manda la pantalla no se borra.
+    assert luego["de_donde"] == "Colombia" and luego["en_4_meses"] == "Hablando con mi jefe"
+    # Sin contestar nada, no hay fecha.
+    assert P.limpiar(base, P.leer(""), datetime(2026, 11, 17, tzinfo=timezone.utc))["conocerte_at"] == ""

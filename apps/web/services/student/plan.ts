@@ -13,6 +13,13 @@ export interface Plan {
   minutos: number
   recordar: boolean
   guardado: string
+  /** «Para conocerte» (opcional): con sus palabras. */
+  de_donde?: string
+  vive_en?: string
+  problema?: string
+  en_4_meses?: string
+  /** El día en que contestó por primera vez: el «antes». */
+  conocerte_at?: string
 }
 
 export interface MiPlan {

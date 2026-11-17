@@ -586,6 +586,33 @@ async def api_alumno_whatsapp(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+class EnlaceContrasena(BaseModel):
+    enviar: bool = True
+
+
+@router.post(
+    "/org/{org_id}/alumnos/{user_id}/enlace-contrasena",
+    summary="Un enlace nuevo de «crear contraseña» para un alumno (7 días), y si se pide, el correo (administradores).",
+)
+async def api_enlace_contrasena(
+    request: Request,
+    org_id: int,
+    user_id: int,
+    data: EnlaceContrasena,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel.enlace_contrasena import dar_enlace
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    try:
+        return await dar_enlace(org_id, user_id, data.enviar, db_session)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.get(
     "/org/{org_id}/camino",
     summary="El camino de 16 semanas de cada alumno: cuándo entró, en qué semana va y a cuántas clases en directo fue.",
