@@ -74,6 +74,21 @@ async def api_ejemplo():
     return FileResponse(EG.VIDEO_DE_EJEMPLO, media_type="video/mp4", headers={"Cache-Control": "public, max-age=3600"})
 
 
+@router.get("/diagnostico/{grabacion_id}", summary="Qué es el vídeo de una grabación y por qué podría no cargar (equipo).")
+async def api_diagnostico(
+    request: Request,
+    grabacion_id: str,
+    course: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    curso = await _del_equipo(request, course, current_user, db_session)
+    try:
+        return await EG.diagnostico(curso.course_uuid, grabacion_id)
+    except EG.GrabacionError as exc:
+        raise _error(exc) from exc
+
+
 @router.get(
     "/video/{grabacion_id}",
     summary="El vídeo de una grabación de la sala: redirige a un enlace fresco de Daily.",

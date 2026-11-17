@@ -609,3 +609,109 @@ async def marcar_vista(s: TareaSemana, user_id: int, db_session: AsyncSession) -
         db_session.add(s)
         await db_session.commit()
     return {"ok": True, "vista": True}
+
+
+# ── Por qué no carga una grabación (17/11/2026) ─────────────────────────────
+# El usuario: «la parte de cortar se queda cargando todo el tiempo, el vídeo
+# en negro». Desde el entorno de desarrollo Daily no se alcanza, así que la
+# escuela mira el archivo ELLA misma (pide su primer mega con un rango) y dice
+# qué es: si Daily deja pedir trozos (sin eso el navegador tiene que bajarlo
+# entero antes de enseñar nada), si es un mp4 con el índice («moov») al
+# principio o al final, si es otra cosa (HLS, WebM) y cuánto pesa.
+
+def leer_cajas(datos: bytes) -> list[str]:
+    """Las cajas de primer nivel de un mp4 que caben en `datos`, en orden.
+    Para en cuanto una caja se sale de lo leído (su tipo sí se apunta)."""
+    cajas: list[str] = []
+    i = 0
+    while i + 8 <= len(datos) and len(cajas) < 30:
+        tam = int.from_bytes(datos[i : i + 4], "big")
+        tipo = datos[i + 4 : i + 8].decode("latin-1", "replace")
+        if not re.fullmatch(r"[a-zA-Z0-9 ]{4}", tipo):
+            break
+        cajas.append(tipo)
+        if tam == 1 and i + 16 <= len(datos):
+            tam = int.from_bytes(datos[i + 8 : i + 16], "big")
+        elif tam == 0:
+            break
+        if tam < 8:
+            break
+        i += tam
+    return cajas
+
+
+def _mb(n: int) -> str:
+    return f"{n / 1_048_576:.0f} MB" if n >= 1_048_576 else f"{max(n, 0) / 1024:.0f} KB"
+
+
+def explicar_video(d: dict) -> str:
+    """El veredicto, en una frase, de lo que se ha visto del archivo."""
+    status = int(d.get("status") or 0)
+    if status not in (200, 206):
+        return f"Daily contesta {status or 'sin respuesta'} al pedir el vídeo: el enlace no sirve ahora mismo."
+    primeros: bytes = d.get("primeros") or b""
+    tam = int(d.get("tamano") or 0)
+    peso = f" ({_mb(tam)})" if tam else ""
+    if primeros[:7] == b"#EXTM3U":
+        return "No es un vídeo suelto sino una lista HLS (trozos): Chrome no la reproduce tal cual."
+    if primeros[:4] == b"\x1aE\xdf\xa3":
+        return f"Es un vídeo WebM{peso}: Chrome lo reproduce; Safari no."
+    if status == 200:
+        return (
+            f"Daily no deja pedir trozos del vídeo{peso}: el navegador tiene que bajarlo entero antes de "
+            "enseñar nada, y con una clase larga parece que se queda cargando."
+        )
+    cajas = d.get("cajas") or []
+    if "moov" in cajas and ("mdat" not in cajas or cajas.index("moov") < cajas.index("mdat")):
+        return f"El archivo está bien: mp4{peso} con el índice al principio. Si no carga, es el navegador o la red."
+    if "moof" in cajas:
+        return f"Es un mp4 en trozos{peso}: debería verse; si no, es el navegador."
+    if "mdat" in cajas:
+        return (
+            f"Es un mp4{peso} con el índice («moov») al FINAL del archivo: el navegador tiene que llegar hasta "
+            "el final antes de enseñar nada. Con una clase larga tarda mucho o no llega."
+        )
+    return f"No se reconoce el archivo{peso} (empieza por «{primeros[:12]!r}»)."
+
+
+async def diagnostico(course_uuid: str, grabacion_id: str) -> dict:
+    """Qué es el vídeo de una grabación y por qué podría no cargar (equipo)."""
+    import httpx
+
+    info = await _info(course_uuid, grabacion_id)
+    clave = str(info.get("s3key") or "")
+    out: dict[str, Any] = {
+        "estado": str(info.get("status") or ""),
+        "duracion": int(info.get("duration") or 0),
+        "archivo": clave.rsplit(".", 1)[-1].lower() if "." in clave else "",
+    }
+    olvidar_enlace(grabacion_id)
+    enlace = await enlace_video(course_uuid, grabacion_id)
+    if enlace.startswith("/"):
+        out.update(veredicto="Es el vídeo de ejemplo de la escuela de pruebas.", status=200)
+        return out
+    try:
+        async with httpx.AsyncClient(timeout=25, follow_redirects=True) as c:
+            r = await c.get(enlace, headers={"Range": "bytes=0-1048575"})
+    except Exception as exc:  # noqa: BLE001
+        out.update(status=0, veredicto=f"No se pudo pedir el vídeo a Daily: {exc}")
+        return out
+    rango = r.headers.get("content-range", "")
+    tam = 0
+    m = re.search(r"/(\d+)$", rango)
+    if m:
+        tam = int(m.group(1))
+    elif r.status_code == 200:
+        tam = int(r.headers.get("content-length") or 0)
+    primeros = r.content[:1_048_576]
+    d = {"status": r.status_code, "tamano": tam, "primeros": primeros, "cajas": leer_cajas(primeros)}
+    out.update(
+        status=r.status_code,
+        tipo=r.headers.get("content-type", ""),
+        acepta_rangos=r.status_code == 206,
+        tamano=tam,
+        cajas=d["cajas"][:12],
+        servidor=httpx.URL(str(r.url)).host,
+        veredicto=explicar_video(d),
+    )
+    return out

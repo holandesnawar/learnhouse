@@ -91,6 +91,22 @@ export const getEstudio = (courseUuid: string, token: string) => pedir<Estudio>(
 export const urlVideoSala = (courseUuid: string, grabacionId: string, intento = 0, otroGrupo = false) =>
   `${base()}/video/${encodeURIComponent(grabacionId)}?course=${sin(courseUuid)}${intento ? `&fresco=${intento}` : ''}${otroGrupo ? '&otro=1' : ''}`
 
+/** Qué es el vídeo de una grabación y por qué podría no cargar (17/11/2026, equipo). */
+export type DiagnosticoVideo = {
+  estado?: string
+  duracion?: number
+  archivo?: string
+  status?: number
+  tipo?: string
+  acepta_rangos?: boolean
+  tamano?: number
+  cajas?: string[]
+  servidor?: string
+  veredicto: string
+}
+export const diagnosticoVideo = (courseUuid: string, grabacionId: string, token: string) =>
+  pedir<DiagnosticoVideo>(`${base()}/diagnostico/${encodeURIComponent(grabacionId)}?course=${sin(courseUuid)}`, token)
+
 export const publicarGrabacion = (
   semanaId: number,
   datos: { partes: { id: string; trozos: Trozo[] }[]; titulo?: string },
