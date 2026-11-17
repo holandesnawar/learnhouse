@@ -662,10 +662,20 @@ def explicar_video(d: dict) -> str:
             "enseñar nada, y con una clase larga parece que se queda cargando."
         )
     cajas = d.get("cajas") or []
+    # Un mp4 EN TROZOS (17/11/2026, la grabación de 1 h 33 min y 3,4 GB del
+    # 16/11: «ftyp · moov · styp»). El «moov» de delante no tiene el índice de
+    # los fotogramas: solo dice la duración. Sin un índice de trozos («sidx»
+    # para todo el archivo o «mfra» al final), para saltar al minuto 6 el
+    # navegador tiene que bajar todo lo de antes, y con un archivo así de
+    # grande se queda la rueda girando. Antes esto salía como «está bien».
+    if "styp" in cajas or "moof" in cajas:
+        return (
+            f"Es un mp4 en trozos{peso} sin índice para saltar: el navegador solo puede ir a un minuto "
+            "cuando ya ha bajado todo lo de antes, y con una clase larga parece congelado. Se ve desde el "
+            "principio, pero saltar adelante tarda muchísimo. Puedes recortar igualmente con la línea de abajo."
+        )
     if "moov" in cajas and ("mdat" not in cajas or cajas.index("moov") < cajas.index("mdat")):
         return f"El archivo está bien: mp4{peso} con el índice al principio. Si no carga, es el navegador o la red."
-    if "moof" in cajas:
-        return f"Es un mp4 en trozos{peso}: debería verse; si no, es el navegador."
     if "mdat" in cajas:
         return (
             f"Es un mp4{peso} con el índice («moov») al FINAL del archivo: el navegador tiene que llegar hasta "

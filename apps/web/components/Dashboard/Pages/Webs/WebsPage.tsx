@@ -3,7 +3,9 @@
 /**
  * Webs — la web de la escuela, desde el panel.
  *
- * Tres pestañas:
+ * Pestañas:
+ * - Analítica (17/11/2026): visitas, leads, llamadas y ventas por canal,
+ *   fuente, campaña y anuncio (Panel/AnaliticaPanel.tsx).
  * - Enlaces: atajos (holandesnawar.com/ig → donde digas, con UTM y contador)
  *   y redirecciones de URLs viejas. Funcionan al momento, sin despliegue: la
  *   web pregunta a la escuela cuando le piden una ruta que no tiene.
@@ -34,6 +36,7 @@ import { AlertTriangle, Check, Copy, ExternalLink, Globe, Link2, Loader2, Pencil
 import toast from 'react-hot-toast'
 import UtmNotepad from './UtmNotepad'
 import PaginasPanel from '../Estadisticas/PaginasPanel'
+import AnaliticaPanel from '../Panel/AnaliticaPanel'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
 const INPUT =
@@ -45,15 +48,16 @@ const VACIO: WebLinkWrite = { slug: '', destination: '', kind: 'enlace', utm_sou
 
 export default function WebsPage() {
   // «Web» (08/11/2026): las páginas de la web van aquí, como primera pestaña.
-  const [tab, setTab] = useState<'web' | 'enlaces' | 'paginas' | 'utm'>('web')
+  // «Analítica» (17/11/2026) es la primera pestaña y la de serie.
+  const [tab, setTab] = useState<'analitica' | 'web' | 'enlaces' | 'paginas' | 'utm'>('analitica')
   // La barra lateral cambia el ?tab= con un Link de Next, que no vuelve a
   // montar la página: se relee cada poco (igual que en Estadísticas). Sin
   // esto, pulsar "Enlaces UTM" estando en esta página no hacía nada.
   useEffect(() => {
     const leer = () => {
       const t = new URLSearchParams(window.location.search).get('tab')
-      if (t === 'web' || t === 'enlaces' || t === 'paginas' || t === 'utm') setTab(t)
-      else if (!t) setTab('web')
+      if (t === 'web' || t === 'enlaces' || t === 'paginas' || t === 'utm' || t === 'analitica') setTab(t)
+      else if (!t) setTab('analitica')
     }
     leer()
     const id = window.setInterval(leer, 400)
@@ -64,8 +68,9 @@ export default function WebsPage() {
       <CabeceraPagina
         icono={<Globe size={20} />}
         titulo="Web"
-        descripcion="Las páginas de la web y lo que sabe quien llega de cada una, los enlaces cortos y redirecciones, y los enlaces con UTM."
+        descripcion="De dónde viene la gente de la web y en qué acaba (pago u orgánico, campaña, anuncio), las páginas, los enlaces cortos y los enlaces con UTM."
         pestanas={[
+          { id: 'analitica' as const, label: 'Analítica' },
           { id: 'web' as const, label: 'Páginas de la web' },
           { id: 'enlaces' as const, label: 'Enlaces y redirecciones' },
           { id: 'utm' as const, label: 'Enlaces UTM' },
@@ -77,11 +82,11 @@ export default function WebsPage() {
           onClick: () => {
             setTab(t.id)
             // Que la dirección siga a la pestaña, o el relector la devolvería.
-            window.history.replaceState(null, '', t.id === 'web' ? window.location.pathname : `?tab=${t.id}`)
+            window.history.replaceState(null, '', t.id === 'analitica' ? window.location.pathname : `?tab=${t.id}`)
           },
         }))}
       />
-      {tab === 'web' ? <PaginasPanel /> : tab === 'enlaces' ? <Enlaces /> : tab === 'paginas' ? <Paginas /> : <UtmNotepad />}
+      {tab === 'analitica' ? <AnaliticaPanel /> : tab === 'web' ? <PaginasPanel /> : tab === 'enlaces' ? <Enlaces /> : tab === 'paginas' ? <Paginas /> : <UtmNotepad />}
     </div>
   )
 }

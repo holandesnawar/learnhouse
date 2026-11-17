@@ -375,6 +375,36 @@ async def api_kpis(
 
 
 @router.get(
+    "/org/{org_id}/analitica",
+    summary="Analítica de las webs: visitas, leads, llamadas y ventas por canal, fuente, campaña y anuncio.",
+)
+async def api_analitica(
+    request: Request,
+    org_id: int,
+    desde: str = "",
+    hasta: str = "",
+    modelo: str = "ficha",
+    canal: str = "",
+    fuente: str = "",
+    campana: str = "",
+    anuncio: str = "",
+    bf_todo: str = "",
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.stats.analitica import analitica
+
+    # Solo administradores: lleva lo cobrado por campaña.
+    await _admin_org(request, org_id, current_user, db_session)
+    return await analitica(
+        org_id,
+        {"desde": desde, "hasta": hasta, "modelo": modelo, "canal": canal, "fuente": fuente,
+         "campana": campana, "anuncio": anuncio, "bf_todo": bf_todo},
+        db_session,
+    )
+
+
+@router.get(
     "/org/{org_id}/plazos",
     summary="Los planes de pago a plazos: en qué pago va cada uno, próximo cobro y fallos.",
 )

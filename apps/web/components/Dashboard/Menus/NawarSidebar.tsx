@@ -221,7 +221,7 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
         icon: I(Globe),
         tambien: ['/dash/estadisticas?tab=paginas'],
         es: (p) => p.includes('/dash/webs'),
-        claves: 'paginas landing embudo admision redirecciones utm enlaces cortos',
+        claves: 'analitica analytics google trafico visitas fuentes campañas anuncios paid organico paginas landing embudo admision redirecciones utm enlaces cortos black friday',
       },
     ],
   },

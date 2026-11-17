@@ -245,6 +245,30 @@ function EditorRecorteDentro({
     return () => window.clearTimeout(id)
   }, [parte?.id, intento])
 
+  // Se queda parado A MITAD (17/11/2026, captura del usuario: el vídeo con
+  // la duración ya puesta, en 0:05:54, y la rueda girando sin fin). El aviso
+  // de arriba solo saltaba si no llegaba ni la duración. Ahora, si lleva 15 s
+  // cargando sin avanzar, se vuelve a pedir el vídeo UNA vez en el mismo
+  // segundo; si sigue igual, sale el aviso con «Ver por qué».
+  const atascos = useRef(0)
+  useEffect(() => {
+    atascos.current = 0
+  }, [parte?.id])
+  useEffect(() => {
+    if (!cargando || error) return
+    const id = window.setTimeout(() => {
+      const v = video.current
+      if (!v || v.readyState >= 3) return
+      if (atascos.current < 1) {
+        atascos.current += 1
+        pendiente.current = v.currentTime > 0 ? v.currentTime : deGlobal(tramos, t).real
+        quiereSonar.current = !v.paused || sonando
+        setIntento((n) => n + 1)
+      } else setTarda(true)
+    }, 15000)
+    return () => window.clearTimeout(id)
+  }, [cargando, intento, error, parte?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function verPorQue() {
     if (!parte) return
     setMirando(true)
@@ -615,7 +639,11 @@ function EditorRecorteDentro({
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
                   <Loader2 size={26} className="animate-spin text-white/70" />
                   <p className="max-w-md text-[14px] text-white/90">
-                    {porQue ? porQue.veredicto : 'El vídeo está tardando mucho en cargar. Puedes recortar igualmente con la línea de abajo: los tiempos valen aunque no se vea.'}
+                    {porQue
+                      ? porQue.veredicto
+                      : (video.current?.readyState || 0) >= 1
+                        ? 'El vídeo se ha quedado parado en este punto. Puedes recortar igualmente con la línea de abajo: los tiempos valen aunque no se vea.'
+                        : 'El vídeo está tardando mucho en cargar. Puedes recortar igualmente con la línea de abajo: los tiempos valen aunque no se vea.'}
                   </p>
                   {porQue && porQue.tamano ? (
                     <p className="text-[12px] text-white/60">
