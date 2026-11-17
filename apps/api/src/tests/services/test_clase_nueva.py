@@ -86,6 +86,18 @@ async def test_repetir_y_tambien_en_el_otro_grupo(db, org):
     assert MP.leer((await T.tarea(r2["creadas"][0]["semana_id"], db)).material_profe)["profe"] == ""
 
 
+async def test_en_el_otro_grupo_no_se_crea_un_dia_pasado(db, org):
+    rood, blauw, _ = await _clases(db, org)
+    await CN.crear_clases(blauw, {"fecha": "2026-11-12", "tema": "Kleding"}, "Rida", True, db, hoy="2026-11-10")
+    # Blauw va los jueves. El martes 17, su jueves 19 aún no ha llegado: se crea.
+    r = await CN.crear_clases(rood, {"fecha": "2026-11-17", "tambien": True}, "Rida", True, db, hoy="2026-11-17")
+    assert [(c["course_uuid"], c["fecha"]) for c in r["creadas"]] == [("rood", "2026-11-17"), ("blauw", "2026-11-19")]
+    # El viernes 27, la del jueves 26 de blauw ya pasó: no se crea (saldría «Dada»).
+    r2 = await CN.crear_clases(rood, {"fecha": "2026-11-24", "tambien": True}, "Rida", True, db, hoy="2026-11-27")
+    assert [(c["course_uuid"], c["fecha"]) for c in r2["creadas"]] == [("rood", "2026-11-24")]
+    assert [(x["fecha"], x["motivo"]) for x in r2["saltadas"]] == [("2026-11-26", "pasada")]
+
+
 async def test_solo_en_clases_en_directo_y_con_dia(db, org):
     _, _, sc = await _clases(db, org)
     with pytest.raises(T.TareaError):

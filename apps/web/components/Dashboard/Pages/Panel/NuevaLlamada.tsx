@@ -21,6 +21,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
   cambiarHoraLlamada,
+  getAgenda,
   getEventosAgenda,
   getHuecos,
   getPorQueHoras,
@@ -33,6 +34,7 @@ import {
 import { CalendarClock, CalendarPlus, ExternalLink, Loader2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ZONA_ESCUELA, horaEscuela } from '@/lib/nawar/recordatorioLlamada'
+import { llamadaFuturaDe } from '@/lib/nawar/llamadaFutura'
 import { BOTON, BOTON_PRINCIPAL, META } from './ui'
 
 const CAMPO =
@@ -294,6 +296,18 @@ export default function NuevaLlamada({
   const [quien, setQuien] = useState('')
   const [ubicacion, setUbicacion] = useState('')
   const elegida = opciones?.opciones.find((o) => o.id === quien) || null
+  // Las llamadas que ya hay, para avisar si esta persona tiene una por
+  // delante (16/11). Solo al agendar una nueva; no bloquea.
+  const [citasAgenda, setCitasAgenda] = useState<Cita[]>([])
+  useEffect(() => {
+    if (cambiar || !org?.id || !accessToken) return
+    let vivo = true
+    getAgenda(org.id, accessToken).then((a) => vivo && setCitasAgenda(a?.citas || []))
+    return () => {
+      vivo = false
+    }
+  }, [cambiar, org?.id, accessToken])
+  const yaTiene = cambiar ? null : llamadaFuturaDe(citasAgenda, email)
   const evento = elegida && !(elegida.id === 'turnos') ? elegida.uri : ''
 
   useEffect(() => {
@@ -507,6 +521,11 @@ export default function NuevaLlamada({
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={CAMPO} />
               <span className={`${META} block mt-0.5`}>Ahí le llega el correo de Calendly con el enlace de la llamada.</span>
             </label>
+            {yaTiene ? (
+              <p className="text-[12.5px] text-[#8A6A2A] bg-[#FFFBF2] rounded-md px-3 py-2 !whitespace-normal">
+                Ya tiene una llamada el {diaYHora(yaTiene.inicio)}. Si es la misma, mejor «Cambiar hora» en esa llamada.
+              </p>
+            ) : null}
             <QuienYDonde
               opciones={opciones}
               quien={quien}

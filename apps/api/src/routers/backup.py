@@ -32,6 +32,7 @@ import hashlib
 import hmac
 import logging
 import os
+import asyncio
 import tarfile
 import tempfile
 from datetime import datetime, timezone
@@ -151,9 +152,16 @@ async def api_content_archive(
     tmp.close()
     ruta_tmp = Path(tmp.name)
 
-    try:
+    def _empaquetar() -> None:
         with tarfile.open(ruta_tmp, "w:gz") as tar:
             tar.add(str(CONTENT_DIR), arcname="content")
+
+    try:
+        # En un hilo: comprimir el volumen entero tarda (notas de voz, PDF), y
+        # hecho aquí mismo paraba la escuela para TODOS mientras duraba (un
+        # solo proceso, un solo bucle). La copia de las 04:30 dejaba la
+        # escuela sin responder esos segundos.
+        await asyncio.to_thread(_empaquetar)
     except Exception:
         ruta_tmp.unlink(missing_ok=True)
         logger.exception("No se pudo empaquetar el volumen de contenido")

@@ -189,6 +189,16 @@ def test_al_leer_la_agenda_no_se_toca_lo_que_decidio_el_equipo():
     # Cancelada o con un anfitrión que no es closer: nada.
     assert cambios_por_anfitrion([{**cita, "estado": "cancelada"}], {}, closer_de, ahora) == {}
     assert cambios_por_anfitrion([{**cita, "anfitrion_email": "otro@x.com"}], {}, closer_de, ahora) == {}
+    # 16/11: le QUITARON el closer a mano después de la reserva: no vuelve solo.
+    quitado = {"ana@x.com": {"closer_id": 0, "asignado_at": "2026-11-05T12:00:00+00:00"}}
+    assert cambios_por_anfitrion([cita], quitado, closer_de, ahora) == {}
+    # Pero si vuelve a reservar después de quitárselo, sí.
+    otra = {**cita, "reservada": "2026-11-05T15:00:00Z"}
+    assert cambios_por_anfitrion([otra], quitado, closer_de, ahora) == {"ana@x.com": belen}
+    # Una fila sin reparto (closer 0 y sin fecha) se rellena como siempre.
+    assert cambios_por_anfitrion([cita], {"ana@x.com": {"closer_id": 0, "asignado_at": ""}}, closer_de, ahora) == {
+        "ana@x.com": belen
+    }
 
 
 def test_dos_llamadas_del_mismo_closer_a_la_vez():

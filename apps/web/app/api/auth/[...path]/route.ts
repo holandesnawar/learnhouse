@@ -86,6 +86,9 @@ async function proxyRequest(
     pathSegments === 'refresh'
     && method === 'GET'
     && accessToken?.value
+    // ?force=1 (16/11/2026): la escuela pide un permiso nuevo de verdad, p. ej.
+    // tras un 401 con un permiso que aún no había caducado (revocado).
+    && !request.nextUrl.searchParams.has('force')
   ) {
     const expiryMs = decodeJwtExpiryMs(accessToken.value)
     if (expiryMs && expiryMs - Date.now() > REFRESH_FAST_PATH_HEADROOM_MS) {

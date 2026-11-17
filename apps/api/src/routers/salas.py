@@ -166,6 +166,12 @@ async def api_guardar(
         raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     if body.etiqueta is not None and not admin:
         raise HTTPException(status_code=403, detail="La etiqueta solo la cambia un administrador")
+    # La formación no es una clase en directo (16/11/2026): encenderle una sala
+    # la convertiría en una (y el equipo podría cambiar su contenido).
+    from src.services.courses.avance_modulos import FORMACION_UUID
+
+    if not admin and salas.uuid_curso(curso.course_uuid) == FORMACION_UUID:
+        raise HTTPException(status_code=403, detail="La formación no tiene sala: solo un administrador puede cambiar eso")
     try:
         return await salas.guardar_config(
             curso.org_id, curso.course_uuid, body.activo, body.grabar, db_session, grabadas=body.grabadas,

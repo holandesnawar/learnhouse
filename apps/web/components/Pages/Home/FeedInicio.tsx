@@ -11,13 +11,14 @@
  */
 import React from 'react'
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Heart, MessageCircle, Video, ArrowRight } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { getUriWithOrg } from '@services/config/config'
 import { getCommunities, type Community } from '@services/communities/communities'
-import { getDiscussions, type DiscussionWithAuthor } from '@services/communities/discussions'
+import { getDiscussions, toggleReaction, type DiscussionWithAuthor } from '@services/communities/discussions'
+import { EMOJI_ME_GUSTA, conMeGusta, meGusta, repartirFeed } from '@/lib/nawar/inicioFeed'
 import { hiloDe, sinTituloRepetido } from '@/lib/communities/delChat'
 import { getMiSemana, diaCorto, type MiSemana } from '@services/tareas/tareas'
 import { getUserAvatarMediaDirectory } from '@services/media/media'
@@ -120,8 +121,20 @@ function UnaSiguiente({ uuid, nombre, orgslug }: { uuid: string; nombre: string;
         </p>
         {detalle ? <p className="text-[13.5px] text-[#5B6382] truncate">{detalle}</p> : null}
       </Link>
-      <div className="shrink-0 flex items-center gap-3">
-        <span className="text-[13px] text-[#6B7393] hidden md:inline">¿Vienes?</span>
+      <div className="shrink-0 flex flex-wrap items-center gap-3">
+        {esHoy ? (
+          // El día de la clase, a la sala (desde el 12/11 «Entrar a la clase»
+          // lleva siempre a la sala, aunque aún esté apagada: allí espera).
+          // Si esta semana va a la clase del otro grupo, a la sala de esa.
+          <Link
+            href={getUriWithOrg(orgslug, `/sala/${String(semana.cambio?.course_uuid || uuid).replace(/^course_/, '')}`)}
+            className="inline-flex items-center h-9 px-4 rounded-lg bg-[#0b2da0] text-white text-[13.5px] font-semibold hover:bg-[#0a2690]"
+          >
+            Entrar a la clase
+          </Link>
+        ) : (
+          <span className="text-[13px] text-[#6B7393] hidden md:inline">¿Vienes?</span>
+        )}
         <Vienes semana={semana} courseUuid={uuid} segmento textos={['Asistiré', 'No puedo']} />
       </div>
     </div>
@@ -174,33 +187,31 @@ export function ProximaClase({ orgslug }: { orgslug: string }) {
         const a = ajustesDirecto(config, c.course_uuid)
         const r: any = a.banner || (c.course_uuid === CURSO_CLASE_SEMANAL_UUID ? config?.weekly_class_banner : null) || {}
         const porVenir = !!s.fecha && s.fecha >= hoy
-        const esHoy = s.fecha === hoy
         const linea = [s.fecha ? diaCorto(s.fecha) : '', String(r.schedule || '').trim(), r.teacher ? `con ${r.teacher}` : ''].filter(Boolean).join(' · ')
         const pasos = pasosDeSemana(s, c.course_uuid, ruta, hoy)
         const quedan = pasos.filter((p) => p.estado === 'pendiente').length
         return (
           <div key={c.course_uuid} className="mt-3 border-t border-[#EEF1F7] first:border-t-0">
-            <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-[12.5px] font-semibold text-[#0b2da0] first-letter:uppercase">
-                  {esHoy ? 'Hoy hay clase' : porVenir ? 'Tu próxima clase' : 'Clase de esta semana'}
-                  {linea ? <span className="text-[#8A91AD] font-medium"> · {linea}</span> : null}
-                </p>
-                <h3 className="mt-1 text-[19px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
-                  {s.tema || 'Clase de la semana'}
-                </h3>
-                <p className="mt-0.5 text-[13px] text-[#8A91AD]">
-                  {quedan ? `Te ${quedan === 1 ? 'queda 1 cosa' : `quedan ${quedan} cosas`} por hacer` : '¡Lo tienes todo hecho esta semana!'}
-                </p>
-              </div>
-              {esHoy ? (
-                <Link
-                  href={ruta(`/course/${c.course_uuid}`)}
-                  className="shrink-0 inline-flex items-center h-9 px-4 rounded-lg bg-[#0b2da0] text-white text-[13.5px] font-semibold hover:bg-[#0a2690]"
-                >
-                  Entrar a la clase
-                </Link>
-              ) : null}
+            <div className="px-5 pt-4 pb-3">
+              {porVenir ? (
+                // La fecha, el tema y «¿Vienes?» / «Entrar a la clase» ya salen
+                // justo encima, en «Tu próxima clase» (16/11/2026: salía dos
+                // veces seguida). Aquí, solo de qué clase son los pasos.
+                <p className="text-[12.5px] font-semibold text-[#0b2da0]">{c.curso || 'Tu clase'}</p>
+              ) : (
+                <>
+                  <p className="text-[12.5px] font-semibold text-[#0b2da0] first-letter:uppercase">
+                    Clase de esta semana
+                    {linea ? <span className="text-[#8A91AD] font-medium"> · {linea}</span> : null}
+                  </p>
+                  <h3 className="mt-1 text-[19px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
+                    {s.tema || 'Clase de la semana'}
+                  </h3>
+                </>
+              )}
+              <p className="mt-0.5 text-[13px] text-[#8A91AD]">
+                {quedan ? `Te ${quedan === 1 ? 'queda 1 cosa' : `quedan ${quedan} cosas`} por hacer` : '¡Lo tienes todo hecho esta semana!'}
+              </p>
             </div>
             <div className="pb-2">
               {pasos.map((p) => (
@@ -214,33 +225,98 @@ export function ProximaClase({ orgslug }: { orgslug: string }) {
   )
 }
 
-/** Lo destacado: lo fijado por el equipo y lo que más gustó en dos semanas. */
-export function DestacadosComunidad({ orgslug }: { orgslug: string }) {
+/**
+ * Los canales que ve el alumno. MISMA clave y misma petición que la barra
+ * lateral (`useCanales` de OrgSidebar): react-query la pide una sola vez.
+ */
+function useCanalesComunidad() {
   const org = useOrg() as any
   const session = useLHSession() as any
   const token: string = session?.data?.tokens?.access_token || ''
-  const { data } = useQuery<Entrada[]>({
-    queryKey: ['comunidad', 'destacados', org?.id],
+  return useQuery<Community[]>({
+    queryKey: ['comunidad', 'canales', org?.id],
     queryFn: async () => {
-      const canales: Community[] = ((await getCommunities(org.id, 1, 50, null, token)) || []).filter((c: Community) => c.kind === 'posts' && !esCanalEsencial(c.name))
+      const r = await getCommunities(org.id, 1, 50, null, token)
+      return Array.isArray(r) ? r : []
+    },
+    enabled: !!org?.id && !!token,
+    staleTime: 5 * 60_000,
+  })
+}
+
+const claveTablones = (orgId: unknown) => ['comunidad', 'tablones-inicio', orgId]
+
+/**
+ * Las publicaciones de los tablones, UNA lectura para «Destacado» y «Lo
+ * último» (16/11/2026: antes cada bloque pedía los canales y cada tablón por
+ * su cuenta, el doble de peticiones).
+ */
+function useTablonesInicio() {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const token: string = session?.data?.tokens?.access_token || ''
+  const { data: canales } = useCanalesComunidad()
+  const tablones = (canales || []).filter((c) => c.kind === 'posts' && !esCanalEsencial(c.name))
+  const q = useQuery<Entrada[]>({
+    queryKey: [...claveTablones(org?.id), tablones.map((c) => c.community_uuid).join(',')],
+    queryFn: async () => {
       const listas = await Promise.all(
-        canales.map((c) =>
+        tablones.map((c) =>
           getDiscussions(c.community_uuid, 'recent', 1, 15, null, token)
             .then((ds) => (ds || []).filter((d) => !hiloDe(d.content as any)).map((d) => ({ ...d, canal: c })))
             .catch(() => [] as Entrada[])
         )
       )
-      const hace = new Date(Date.now() - 14 * 864e5).toISOString()
-      const puntos = (d: Entrada) => (d.is_pinned ? 1000 : 0) + (d.upvote_count || 0) + (d.reactions || []).reduce((n, r) => n + r.count, 0)
-      return listas
-        .flat()
-        .filter((d) => d.is_pinned || (d.creation_date || '') >= hace)
-        .sort((a, b) => puntos(b) - puntos(a))
-        .slice(0, 2)
+      return listas.flat()
     },
-    enabled: !!org?.id && !!token,
+    enabled: !!org?.id && !!token && canales !== undefined,
     staleTime: 60_000,
   })
+  const reparto = React.useMemo(() => repartirFeed(q.data || []), [q.data])
+  return { ...q, canales: canales || [], tablones, ...reparto, cargando: canales === undefined || q.isLoading }
+}
+
+/** El corazón de una publicación: da o quita el ❤️ del tablón, con su cifra. */
+function MeGusta({ d }: { d: Entrada }) {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const token: string = session?.data?.tokens?.access_token || ''
+  const qc = useQueryClient()
+  const [ocupado, setOcupado] = React.useState(false)
+  const { total, mio } = meGusta(d)
+  const cambiar = (dar: boolean) =>
+    qc.setQueriesData<Entrada[]>({ queryKey: claveTablones(org?.id) }, (viejo) =>
+      viejo?.map((e) => (e.discussion_uuid === d.discussion_uuid ? { ...e, reactions: conMeGusta(e.reactions, dar) } : e))
+    )
+  const pulsar = async () => {
+    if (!token || ocupado) return
+    setOcupado(true)
+    const dar = !mio
+    cambiar(dar)
+    try {
+      await toggleReaction(d.discussion_uuid, EMOJI_ME_GUSTA, token)
+    } catch {
+      cambiar(!dar)
+    } finally {
+      setOcupado(false)
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={pulsar}
+      disabled={!token || ocupado}
+      aria-pressed={mio}
+      className={`inline-flex items-center gap-1.5 hover:text-[#0b2da0] ${mio ? 'text-[#0b2da0] font-semibold' : ''}`}
+    >
+      <Heart size={15} fill={mio ? 'currentColor' : 'none'} /> {total || 'Me gusta'}
+    </button>
+  )
+}
+
+/** Lo destacado: lo fijado por el equipo y lo que más gustó en dos semanas. */
+export function DestacadosComunidad({ orgslug }: { orgslug: string }) {
+  const { destacadas: data } = useTablonesInicio()
   if (!data?.length) return null
   const canalHref = (c: Community) => getUriWithOrg(orgslug, `/community/${c.community_uuid.replace('community_', '')}`)
   return (
@@ -267,7 +343,7 @@ export function DestacadosComunidad({ orgslug }: { orgslug: string }) {
                 <Avatar a={d.author} size={22} />
                 <span className="truncate">{autor}</span>
                 <span className="ml-auto inline-flex items-center gap-1">
-                  <Heart size={13} /> {(d.upvote_count || 0) + (d.reactions || []).reduce((n, r) => n + r.count, 0)}
+                  <Heart size={13} /> {meGusta(d).total}
                 </span>
               </span>
             </Link>
@@ -282,28 +358,10 @@ export function DestacadosComunidad({ orgslug }: { orgslug: string }) {
 
 type Entrada = DiscussionWithAuthor & { canal: Community }
 
+
 export function FeedComunidad({ orgslug }: { orgslug: string }) {
-  const org = useOrg() as any
-  const session = useLHSession() as any
-  const token: string = session?.data?.tokens?.access_token || ''
-  const { data, isLoading, refetch } = useQuery<{ entradas: Entrada[]; tablones: Community[]; canales: Community[] }>({
-    queryKey: ['comunidad', 'feed', org?.id],
-    queryFn: async () => {
-      const canales: Community[] = (await getCommunities(org.id, 1, 50, null, token)) || []
-      const tablones = canales.filter((c) => c.kind === 'posts' && !esCanalEsencial(c.name))
-      const listas = await Promise.all(
-        tablones.map((c) =>
-          getDiscussions(c.community_uuid, 'recent', 1, 8, null, token)
-            .then((ds) => (ds || []).filter((d) => !hiloDe(d.content as any)).map((d) => ({ ...d, canal: c })))
-            .catch(() => [] as Entrada[])
-        )
-      )
-      const entradas = listas.flat().sort((a, b) => (b.creation_date || '').localeCompare(a.creation_date || '')).slice(0, 12)
-      return { entradas, tablones, canales }
-    },
-    enabled: !!org?.id && !!token,
-    staleTime: 60_000,
-  })
+  const { ultimas, tablones, canales, cargando: isLoading, refetch } = useTablonesInicio()
+  const data = { entradas: ultimas, tablones, canales }
   const ruta = (p: string) => getUriWithOrg(orgslug, p)
   const canalHref = (c: Community) => ruta(`/community/${c.community_uuid.replace('community_', '')}`)
   const primero = data?.tablones?.[0]
@@ -352,7 +410,6 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
             const { text } = splitChannelEmoji(d.canal.name)
             const autor = [d.author?.first_name, d.author?.last_name].filter(Boolean).join(' ') || d.author?.username || 'Alguien'
             const cuerpo = sinTituloRepetido(d.title || '', textoPlano(d.content))
-            const reacciones = (d.reactions || []).reduce((n, r) => n + r.count, 0) + (d.upvote_count || 0)
             const href = `${canalHref(d.canal)}/discussion/${d.discussion_uuid.replace('discussion_', '')}`
             return (
               <article key={d.discussion_uuid} className={`${TARJETA} p-4 sm:p-5`}>
@@ -374,9 +431,7 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
                   {cuerpo ? <p className="mt-1 text-[14.5px] leading-relaxed text-[#2B3150] line-clamp-3 whitespace-pre-line">{cuerpo}</p> : null}
                 </Link>
                 <div className="mt-3 pt-3 border-t border-[#EEF1F7] flex items-center gap-5 text-[13px] text-[#6B7393]">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Heart size={15} /> {reacciones || 'Me gusta'}
-                  </span>
+                  <MeGusta d={d} />
                   <Link href={href} className="inline-flex items-center gap-1.5 hover:text-[#0b2da0]">
                     <MessageCircle size={15} /> Comentar
                   </Link>

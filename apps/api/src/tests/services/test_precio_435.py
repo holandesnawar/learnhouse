@@ -61,8 +61,11 @@ def test_el_precio_se_cambia_con_una_variable(monkeypatch):
 # ── abrir un enlace ────────────────────────────────────────────────────────
 
 
-async def _abrir(datos: dict, cuotas=None):
+async def _abrir(datos: dict, cuotas=None, ya_pago=False):
     llamadas = {}
+
+    async def pago(email, db):
+        return ya_pago
 
     async def checkout(pedido, db, precio_id="", precio_cents=0):
         llamadas["unico"] = precio_id
@@ -80,6 +83,7 @@ async def _abrir(datos: dict, cuotas=None):
         patch.object(Z, "abrir_plazos", plazos),
         patch.object(P, "_academy_url", lambda: "https://escuela.test"),
         patch.object(P, "_formacion_price_id", lambda: "price_397"),
+        patch.object(P, "ya_pago_la_formacion", pago),
     ]
     for p in parches:
         p.start()
@@ -126,8 +130,11 @@ def test_el_precio_del_panel_es_otro_price_del_mismo_producto(monkeypatch):
     assert P.precio_panel_cents() == 64900
 
 
-async def _crear_enlace(pedido: dict):
+async def _crear_enlace(pedido: dict, admin: bool = True):
     from src.routers import contactos as RC
+
+    async def es_admin(*a, **kw):
+        return admin
 
     firmado = {}
 
@@ -140,7 +147,7 @@ async def _crear_enlace(pedido: dict):
 
     usuario = SimpleNamespace(first_name="Diego", last_name="", username="diego", email="diego@x.com")
     config = SimpleNamespace(security_config=SimpleNamespace(auth_jwt_secret_key="s" * 40))
-    with patch.object(RC, "exigir_acceso", acceso), patch.object(E, "firmar", firmar), patch(
+    with patch.object(RC, "exigir_acceso", acceso), patch.object(RC, "_es_admin", es_admin), patch.object(E, "firmar", firmar), patch(
         "config.config.get_learnhouse_config", lambda: config
     ), patch.object(P, "_academy_url", lambda: "https://escuela.test"):
         respuesta = await RC.api_enlace_pago(
@@ -217,3 +224,44 @@ async def test_un_enlace_a_medida_mal_hecho_no_cobra():
     r, ll = await _abrir({"pl": "plazos", "pv": 3, "pt": 43500, "pn": 9})
     assert "plazos" not in ll and r.status_code == 400
     assert "no está bien hecho" in r.body.decode()
+
+
+# ── quien ya pagó no paga otra vez (16/11) ─────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_quien_ya_pago_no_ve_la_caja_sino_entrar_en_la_escuela():
+    r, ll = await _abrir({"pu": 59700}, ya_pago=True)
+    assert ll == {}  # ni sesión de pago ni plan
+    cuerpo = r.body.decode()
+    assert r.status_code == 200 and "Ya estás matriculado/a" in cuerpo
+    assert "https://escuela.test/login" in cuerpo
+    r, ll = await _abrir({"pl": "plazos", "pv": 3, "pt": 69000, "pn": 3}, ya_pago=True)
+    assert ll == {} and "Ya estás matriculado/a" in r.body.decode()
+
+
+@pytest.mark.asyncio
+async def test_ya_pago_la_formacion_solo_cuenta_lo_pagado(db):
+    from src.db.enrollment import Enrollment
+
+    db.add(Enrollment(email="Ana@X.com", first_name="Ana", last_name="", status="paid", created_at="2026-11-16"))
+    db.add(Enrollment(email="luis@x.com", first_name="Luis", last_name="", status="pending", created_at="2026-11-16"))
+    await db.commit()
+    assert await P.ya_pago_la_formacion("ana@x.com", db) is True
+    assert await P.ya_pago_la_formacion(" ANA@x.com ", db) is True
+    assert await P.ya_pago_la_formacion("luis@x.com", db) is False
+    assert await P.ya_pago_la_formacion("", db) is False
+
+
+@pytest.mark.asyncio
+async def test_un_closer_no_baja_de_100_euros_a_plazos_a_medida():
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as e:
+        await _crear_enlace({"plan": "plazos", "total_cents": 100, "cuotas": 2}, admin=False)
+    assert e.value.status_code == 400 and "100 €" in e.value.detail
+    r, firmado = await _crear_enlace({"plan": "plazos", "total_cents": 10000, "cuotas": 2}, admin=False)
+    assert firmado["pt"] == 10000
+    # El administrador, sin límite.
+    r, firmado = await _crear_enlace({"plan": "plazos", "total_cents": 100, "cuotas": 2}, admin=True)
+    assert firmado["pt"] == 100

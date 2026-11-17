@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 import { WEEKDAYS, nextBroadcastLabel } from '@/lib/course/weeklyClass'
 import { CURSO_CLASE_SEMANAL_UUID, ajustesDirecto } from '@/lib/nawar/cursos'
 import { getSala, guardarRecuadro, rutaSala } from '@services/salas/salas'
+import { useSemanasClase } from './SemanasClase'
 
 // Cada clase en directo tiene su recuadro (27/10/2026: la clase semanal se
 // parte en dos grupos, cada uno con su día y su profe). Se guarda por curso en
@@ -91,7 +92,11 @@ export default function WeeklyClassBanner({
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const proxima = nextBroadcastLabel(data.next_weekday, data.next_date, data.next_day.trim() || POR_CONFIRMAR)
+  // Las semanas ya creadas mandan sobre el recuadro (16/11/2026): la franja
+  // decía un día distinto del de las semanas o una fecha ya pasada.
+  const { data: datosSemanas } = useSemanasClase(curso)
+  const diasSemanas = (datosSemanas?.semanas || []).map((s) => s.fecha).filter(Boolean)
+  const proxima = nextBroadcastLabel(data.next_weekday, data.next_date, data.next_day.trim() || POR_CONFIRMAR, new Date(), diasSemanas)
 
   function startEdit() {
     setDraft(data)

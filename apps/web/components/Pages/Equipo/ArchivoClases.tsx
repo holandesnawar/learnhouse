@@ -15,7 +15,7 @@ import { Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getUriWithOrg } from '@services/config/config'
 import { abrirArchivoProfe } from '@services/tareas/tareas'
-import { clasesDadasPorProfe, diaLegible, porMeses, quienDa, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import { clasesDadasPorProfe, clasesSinDatos, diaLegible, porMeses, quienDa, tituloDeClase, type SemanaEquipo } from '@/lib/nawar/salaProfes'
 import FichaClase from './FichaClase'
 import type { ClaseEquipo } from './useClasesEquipo'
 import { POPPINS } from './estilo'
@@ -47,6 +47,8 @@ export default function ArchivoClases({
   const profeDe = useMemo(() => Object.fromEntries(clases.map((c) => [c.uuid, c.profe])), [clases])
   // «Quién ha dado qué» (12/11/2026): solo el administrador, para sus cuentas.
   const dadas = useMemo(() => (admin ? clasesDadasPorProfe(semanas, profeDe, hoy, 3) : []), [admin, semanas, profeDe, hoy])
+  // Las pasadas sin ningún dato de que se dieran (16/11/2026): aparte, para decidir.
+  const sinDatos = useMemo(() => (admin ? clasesSinDatos(semanas, hoy, 3) : []), [admin, semanas, hoy])
   const [clase, setClase] = useState('')
   const [que, setQue] = useState<Que>('todo')
   const [buscar, setBuscar] = useState('')
@@ -76,7 +78,7 @@ export default function ArchivoClases({
 
   return (
     <div className="space-y-4">
-      {dadas.length ? (
+      {dadas.length || sinDatos.length ? (
         <section className="rounded-2xl border border-[#E4E8F2] bg-white px-5 py-4">
           <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#0b2da0]">Quién ha dado qué</p>
           <div className="mt-2.5 grid gap-x-8 gap-y-4 sm:grid-cols-3">
@@ -99,7 +101,27 @@ export default function ArchivoClases({
               </div>
             ))}
           </div>
-          <p className="mt-3 text-[12.5px] text-[#6B7393]">Cuenta las clases ya dadas, por quién figura en cada una. Si una la dio otra persona, cámbialo en su ficha.</p>
+          <p className="mt-3 text-[12.5px] text-[#6B7393]">
+            Cuenta las clases ya dadas de las que hay algún dato (lista, grabación, pizarra o «Cómo fue la clase»), por quién figura en cada una. Si una la dio
+            otra persona, cámbialo en su ficha.
+          </p>
+          {sinDatos.length ? (
+            <div className="mt-3 border-t border-[#EEF1F7] pt-3">
+              <p className="text-[13px] font-semibold text-[#8A6A2A]">
+                Sin datos de que se diera · {sinDatos.length} {sinDatos.length === 1 ? 'clase' : 'clases'}
+              </p>
+              <p className="text-[12.5px] text-[#6B7393]">No cuentan arriba. Ábrelas para ver si se dieron o quitarlas.</p>
+              <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                {sinDatos.slice(0, 12).map((x) => (
+                  <li key={x.key}>
+                    <button onClick={() => setFicha(x.key)} className="text-[13px] text-[#0b2da0] hover:underline">
+                      {diaLegible(x.fecha)} · {tituloDeClase(x.tema, x.fecha)} <span className="text-[#6B7393]">({x.curso})</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </section>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">

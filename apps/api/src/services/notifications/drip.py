@@ -21,6 +21,7 @@ módulo, así que se le avisa alumno a alumno. Y a esos alumnos NO les llegan
 los avisos de las fechas fijas de la formación, que ya no son las suyas.
 """
 
+from src.services.email.utils import en_hilo
 import logging
 from datetime import datetime, timezone
 
@@ -168,7 +169,8 @@ async def avisar_modulos_abiertos_hoy(org_id: int, db_session: AsyncSession) -> 
 
             try:
                 with usar_textos(textos):
-                    send_module_unlocked_email(
+                    await en_hilo(
+                        send_module_unlocked_email,
                         email=email,
                         name=first_name or username or "alumno/a",
                         module_name=capitulo.name or "un módulo nuevo",
@@ -284,7 +286,8 @@ async def avisar_aperturas_por_avance(org_id: int, db_session: AsyncSession) -> 
         )
         try:
             with usar_textos(textos):
-                send_module_unlocked_email(
+                await en_hilo(
+                    send_module_unlocked_email,
                     email=email,
                     name=first_name or username or "alumno/a",
                     module_name=capitulo.name or "un módulo nuevo",

@@ -9,6 +9,7 @@ import { getCanonicalUrl, getOrgSeoConfig, buildPageTitle, buildBreadcrumbJsonLd
 import { getServerCanonicalUrl } from '@/lib/seo/utils.server'
 import { JsonLd } from '@components/SEO/JsonLd'
 import CommunityClient from './community'
+import { uuidCanal } from '@/lib/communities/uuidCanal'
 
 type MetadataProps = {
   params: Promise<{ orgslug: string; communityuuid: string }>
@@ -22,7 +23,7 @@ export async function generateMetadata(props: MetadataProps): Promise<Metadata> 
     tags: ['organizations'],
   })
 
-  const communityUuid = `community_${params.communityuuid}`
+  const communityUuid = uuidCanal(params.communityuuid)
   let community = null
   try {
     community = await getCommunity(communityUuid, { revalidate: 120, tags: ['communities'] })
@@ -84,7 +85,7 @@ const CommunityPage = async (params: any) => {
   const session = await getServerSession()
   const access_token = session?.tokens?.access_token
   const { orgslug, communityuuid } = await params.params
-  const communityUuid = `community_${communityuuid}`
+  const communityUuid = uuidCanal(communityuuid)
 
   const org = await getOrganizationContextInfo(orgslug, {
     revalidate: 120,
@@ -132,8 +133,8 @@ const CommunityPage = async (params: any) => {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-600">You don't have access</h1>
-          <p className="text-gray-400 mt-2">You do not have permission to view this community.</p>
+          <h1 className="text-2xl font-bold text-gray-600">No tienes acceso</h1>
+          <p className="text-gray-400 mt-2">No tienes permiso para ver este canal.</p>
         </div>
       </div>
     )

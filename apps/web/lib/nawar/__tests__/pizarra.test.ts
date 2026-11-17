@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { ajustarAlPdf, docInicial, hayAlgoEscrito, lineasDe, paraLosAlumnos, simplificar, tocaLinea, type DocPizarra } from '../pizarra'
+import { ajustarAlPdf, cajaDeLinea, docInicial, hayAlgoEscrito, lineasDe, moverTrazo, paraLosAlumnos, simplificar, tocaLinea, trazoEnPunto, type DocPizarra, type Trazo, type TrazoTexto } from '../pizarra'
 
 describe('la pizarra de clase', () => {
   test('sin nada guardado, una página por cada página del PDF', () => {
@@ -64,5 +64,45 @@ describe('la pizarra de clase', () => {
 
   test('las líneas de un texto son las que se escribieron con Intro', () => {
     expect(lineasDe('het huis\nde kamer')).toEqual(['het huis', 'de kamer'])
+  })
+})
+
+describe('mover lo escrito (16/11/2026)', () => {
+  const texto: TrazoTexto = { t: 'texto', x: 0.1, y: 0.1, texto: 'Hallo', color: '#000', tam: 0.026, estilo: 'texto' }
+  const linea: Trazo = { t: 'lapiz', color: '#000', grosor: 0.004, p: [0.5, 0.5, 0.6, 0.5] }
+  const rot: Trazo = { t: 'rotulador', color: '#ff0', grosor: 0.022, p: [0.5, 0.52, 0.6, 0.52] }
+  // La caja del texto la mide la pantalla; aquí, fija.
+  const caja = (t: TrazoTexto) => ({ x: t.x, y: t.y, w: 0.1, h: 0.03 })
+
+  test('encuentra el texto por su caja y la línea por su trazo', () => {
+    const trazos: Trazo[] = [texto, linea]
+    expect(trazoEnPunto(trazos, 0.15, 0.11, 1.4, caja)).toBe(0)
+    expect(trazoEnPunto(trazos, 0.55, 0.5, 1.4, caja)).toBe(1)
+    expect(trazoEnPunto(trazos, 0.9, 0.9, 1.4, caja)).toBe(-1)
+    // Con la herramienta Texto, las líneas no cuentan.
+    expect(trazoEnPunto(trazos, 0.55, 0.5, 1.4, caja, { soloTextos: true })).toBe(-1)
+  })
+
+  test('el texto gana a lo dibujado, y el lápiz al rotulador', () => {
+    const encima: TrazoTexto = { ...texto, x: 0.52, y: 0.49 }
+    expect(trazoEnPunto([linea, encima], 0.55, 0.5, 1, caja)).toBe(1)
+    expect(trazoEnPunto([linea, rot], 0.55, 0.51, 1, caja)).toBe(0)
+  })
+
+  test('mueve un texto sin salirse de la página', () => {
+    expect(moverTrazo(texto, 0.2, 0.3)).toMatchObject({ x: 0.3, y: 0.4, texto: 'Hallo' })
+    expect(moverTrazo(texto, -1, 2)).toMatchObject({ x: 0, y: 0.98 })
+  })
+
+  test('mueve una línea entera, con todos sus puntos dentro', () => {
+    expect((moverTrazo(linea, 0.1, -0.2) as any).p).toEqual([0.6, 0.3, 0.7, 0.3])
+    // Hacia la derecha solo cabe hasta que su último punto toca el borde.
+    expect((moverTrazo(linea, 0.9, 0) as any).p).toEqual([0.9, 0.5, 1, 0.5])
+  })
+
+  test('la caja de una línea incluye su grosor', () => {
+    const c = cajaDeLinea(linea as any, 1)
+    expect(c.x).toBeCloseTo(0.498)
+    expect(c.w).toBeCloseTo(0.104)
   })
 })

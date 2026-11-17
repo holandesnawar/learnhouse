@@ -27,6 +27,20 @@ describe('próxima clase semanal', () => {
     expect(nextBroadcastLabel('4', '', 'Por confirmar', lunes31)).toBe('Jueves 3 de septiembre')
   })
 
+  test('una fecha puesta a mano que ya pasó no se enseña (16/11/2026)', () => {
+    expect(nextBroadcastLabel('4', '2026-07-30', 'Por confirmar', MIERCOLES)).toBe('Jueves 6 de agosto')
+    expect(nextBroadcastLabel('', '2026-07-30', 'Por confirmar', MIERCOLES)).toBe('Por confirmar')
+  })
+
+  test('con semanas creadas manda la próxima de ellas', () => {
+    // El recuadro dice jueves, pero las semanas se crearon en martes.
+    expect(nextBroadcastLabel('4', '', 'Por confirmar', MIERCOLES, ['2026-07-28', '2026-08-11', '2026-08-04'])).toBe('Martes 11 de agosto')
+    // Hoy mismo cuenta.
+    expect(nextBroadcastLabel('4', '', 'Por confirmar', MIERCOLES, ['2026-08-05'])).toBe('Miércoles 5 de agosto')
+    // Todas pasadas: lo de siempre.
+    expect(nextBroadcastLabel('4', '', 'Por confirmar', MIERCOLES, ['2026-07-28'])).toBe('Jueves 6 de agosto')
+  })
+
   test('sin día ni fecha se queda el texto libre', () => {
     expect(nextBroadcastLabel('', '', 'Por confirmar', MIERCOLES)).toBe('Por confirmar')
   })

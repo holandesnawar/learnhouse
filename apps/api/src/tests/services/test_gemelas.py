@@ -50,3 +50,26 @@ def test_igualar_copia_lo_de_la_clase_y_respeta_lo_del_grupo():
     assert m["profe"] == "Luna" and m["mensaje"]["texto"] == "Ojo con la hora" and m["pizarra"]["fuente"] == "profe:zz"
     # Repetirlo no cambia nada.
     assert G.igualar(origen, destino, "luego") == []
+
+
+def test_igualar_nunca_pone_vacio_sobre_lleno():
+    """16/11/2026: la casilla marcada de serie no puede borrar lo del otro grupo."""
+    suyo = {"id": "b1", "tipo": "archivo", "nombre": "Thuis.pdf", "ruta": "privado/tareas/1/profe/b.pdf", "por": "Luna", "at": "x"}
+    origen = SimpleNamespace(tema="", enunciado="", fecha="2026-11-10", fecha_limite="", material_profe=json.dumps({"notas": "", "archivos": []}))
+    destino = SimpleNamespace(
+        tema="Thuis", enunciado="Describe tu casa", fecha="2026-11-12", fecha_limite="2026-11-17", updated_at="",
+        material_profe=json.dumps({"notas": "Notas de Luna", "archivos": [suyo]}),
+    )
+    assert G.igualar(origen, destino, "ahora") == []
+    assert destino.tema == "Thuis" and destino.enunciado == "Describe tu casa" and destino.fecha_limite == "2026-11-17"
+    m = MP.leer(destino.material_profe)
+    assert m["notas"] == "Notas de Luna" and [a["id"] for a in m["archivos"]] == ["b1"]
+
+
+def test_igualar_suma_archivos_sin_quitar_los_del_otro_grupo():
+    suyo = {"id": "b1", "tipo": "archivo", "nombre": "Thuis.pdf", "ruta": "r/b.pdf", "por": "Luna", "at": "x"}
+    mio = {"id": "a1", "tipo": "archivo", "nombre": "Huis.pdf", "ruta": "r/a.pdf", "por": "Paul", "at": "x"}
+    origen = SimpleNamespace(tema="Huis", enunciado="", fecha="2026-11-10", fecha_limite="", material_profe=json.dumps({"archivos": [mio]}))
+    destino = SimpleNamespace(tema="Huis", enunciado="", fecha="2026-11-12", fecha_limite="", updated_at="", material_profe=json.dumps({"archivos": [suyo]}))
+    assert G.igualar(origen, destino, "ahora") == ["material"]
+    assert [a["id"] for a in MP.leer(destino.material_profe)["archivos"]] == ["b1", "a1"]

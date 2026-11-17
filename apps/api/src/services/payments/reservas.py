@@ -37,6 +37,7 @@ Lo que cuida
 """
 
 from __future__ import annotations
+import asyncio
 
 import logging
 from datetime import datetime, timezone
@@ -55,6 +56,21 @@ logger = logging.getLogger(__name__)
 
 #: Lo mínimo que Stripe deja cobrar en euros.
 MINIMO_CENTS = 50
+# «Otro importe» para un closer (16/11): como mínimo 100 €. Con 0,50 € se le
+# podía dar acceso completo a la formación. El administrador, sin límite.
+MINIMO_CLOSER_CENTS = 10000
+
+
+def minimo_para_closer(total_cents: int, es_admin: bool) -> None:
+    """Un pago único o un total a medida que fija un closer no baja de 100 €."""
+    if not es_admin and int(total_cents or 0) < MINIMO_CLOSER_CENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Un closer puede cobrar como mínimo {MINIMO_CLOSER_CENTS // 100} € con «Otro importe». "
+                "Para menos, pídeselo a un administrador."
+            ),
+        )
 #: La señal que se propone por defecto en la pantalla.
 SENAL_POR_DEFECTO_CENTS = 5000
 
@@ -238,7 +254,7 @@ async def crear_enlace(
     mantiene su total: el enlace nuevo cobra a cuenta de ella."""
     from config.config import get_learnhouse_config
     from src.services.contactos.contactos import emails_que_pagaron
-    from src.services.payments.enlace import DIAS_VALIDEZ, firmar
+    from src.services.payments.enlace import DIAS_VALIDEZ, TIPO_RESERVA, firmar
     from src.services.payments.payments import _academy_url
 
     clave = (email or "").strip().lower()
@@ -254,6 +270,8 @@ async def crear_enlace(
         pago_unico = bool(total_cents) and int(total_cents) == int(importe_cents or 0)
         if total_cents and (es_admin or pago_unico):
             total, moneda = int(total_cents), "eur"
+            if pago_unico:
+                minimo_para_closer(total, es_admin)
         else:
             total, moneda = await precio_formacion()
         if total < MINIMO_CENTS:
@@ -294,7 +312,7 @@ async def crear_enlace(
         )
 
     secreto = get_learnhouse_config().security_config.auth_jwt_secret_key
-    token = firmar({"r": reserva.id, "i": importe, "e": clave, "a": autor[:60]}, secreto)
+    token = firmar({"r": reserva.id, "i": importe, "e": clave, "a": autor[:60], "t": TIPO_RESERVA}, secreto)
 
     # En su línea de tiempo: quién le mandó el enlace y de cuánto.
     try:
@@ -347,7 +365,7 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
     import stripe
 
     from config.config import get_learnhouse_config
-    from src.services.payments.enlace import verificar
+    from src.services.payments.enlace import TIPO_RESERVA, tipo_vale, verificar
     from src.services.payments.payments import (
         _academy_url,
         _stripe_publishable,
@@ -357,7 +375,7 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
     )
 
     datos = verificar(token, get_learnhouse_config().security_config.auth_jwt_secret_key)
-    if not datos or not datos.get("r"):
+    if not datos or not datos.get("r") or not tipo_vale(datos, TIPO_RESERVA):
         raise HTTPException(status_code=410, detail="Este enlace ha caducado o no está completo")
     reserva = (
         await db_session.execute(select(ReservaPlaza).where(ReservaPlaza.id == int(datos["r"])))
@@ -366,6 +384,13 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
         raise HTTPException(status_code=410, detail="Esta reserva ya no está activa")
     if reserva.estado == "completada":
         raise HTTPException(status_code=409, detail="Ya está todo pagado. ¡Revisa tu correo para entrar en la escuela!")
+    # Pagó la formación por otro camino mientras tenía la reserva abierta: no
+    # se le cobra otra vez (16/11). La reserva abierta no tiene aún matrícula
+    # pagada propia, así que esto solo salta con un pago de fuera de ella.
+    from src.services.payments.payments import ya_pago_la_formacion
+
+    if await ya_pago_la_formacion(reserva.email, db_session):
+        raise HTTPException(status_code=409, detail="Ya estás matriculado/a en la formación. ¡Revisa tu correo para entrar en la escuela!")
 
     importe = importe_a_cobrar(int(datos.get("i") or 0), reserva.total_cents, reserva.pagado_cents)
     if importe <= 0:
@@ -380,7 +405,8 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
     nombre = f"{reserva.first_name} {reserva.last_name}".strip() or reserva.email.split("@")[0]
     if not reserva.stripe_customer_id:
         try:
-            cliente = stripe.Customer.create(
+            cliente = await asyncio.to_thread(
+                stripe.Customer.create,
                 email=reserva.email, name=nombre, phone=reserva.phone or None,
                 metadata={"source": "reserva-plaza", "reserva_id": str(reserva.id)},
             )
@@ -391,7 +417,7 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
     # Si ya se abrió antes y no se pagó, esa sesión se cierra: dos pestañas
     # abiertas no pueden acabar en dos cobros.
     for viejo in await _pagos_de(int(reserva.id or 0), db_session):
-        if viejo.estado == "pendiente" and _caducar(viejo.stripe_session_id):
+        if viejo.estado == "pendiente" and await asyncio.to_thread(_caducar, viejo.stripe_session_id):
             viejo.estado = "caducado"
             db_session.add(viejo)
 
@@ -436,7 +462,8 @@ async def abrir_pago(token: str, db_session: AsyncSession) -> str:
     if falta_despues > 0:
         vuelta += f"&reserva=1&pag={pagado_despues}&pend={falta_despues}&cur={reserva.currency or 'eur'}"
     try:
-        sesion = crear_sesion_de_pago(
+        sesion = await asyncio.to_thread(
+            crear_sesion_de_pago,
             importe,
             reserva.currency or "eur",
             ui_mode="embedded_page",
@@ -532,6 +559,7 @@ async def atender_pago(pago_id: int, importe_cobrado: int, db_session: AsyncSess
     from src.services.payments.payments import (
         _provision_after_payment,
         _reclamar_matricula,
+        _reintentar_si_hace_falta,
         _soltar_matricula,
     )
 
@@ -617,6 +645,9 @@ async def atender_pago(pago_id: int, importe_cobrado: int, db_session: AsyncSess
     resultado = await _provision_after_payment(reserva.email, nombre, db_session, ya_atendida=ya_atendida)
     if not ya_atendida and not resultado.get("atendida_ahora"):
         await _soltar_matricula(matricula, db_session)
+    # Sin correo de bienvenida: 503 a Stripe para que reintente (16/11). El
+    # pago y la matrícula ya están apuntados; el reintento solo manda el correo.
+    _reintentar_si_hace_falta(resultado)
 
     if resultado.get("atendida_ahora") and resultado.get("user_id") and resultado.get("org_id"):
         from src.services.automations.engine import run_trigger

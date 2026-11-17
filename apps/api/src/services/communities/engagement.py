@@ -10,6 +10,7 @@ import json
 import logging
 import re
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from typing import List, Optional, Tuple
 
 from fastapi import HTTPException, Request
@@ -56,6 +57,51 @@ def como_fecha_de_mensaje(marca: str) -> str:
         return str(d)
     except (TypeError, ValueError):
         return str(marca)
+
+
+def ruta_canal(community_uuid: str, discussion_uuid: str = "") -> str:
+    """La dirección de un canal (o de una publicación suya) dentro de la
+    escuela, SIN los prefijos `community_` / `discussion_`: la página se los
+    pone (16/11/2026; antes los avisos llevaban «/community/community_…», la
+    página lo doblaba y salía «no tienes acceso»). Función pura, con test."""
+    c = str(community_uuid or "")
+    c = c[len("community_"):] if c.startswith("community_") else c
+    ruta = f"/community/{c}"
+    if discussion_uuid:
+        d = str(discussion_uuid)
+        d = d[len("discussion_"):] if d.startswith("discussion_") else d
+        ruta += f"/discussion/{d}"
+    return ruta
+
+
+def instante(fecha: str) -> datetime:
+    """Una fecha de la campana como instante comparable (16/11/2026).
+
+    Las fuentes no escriben igual: los mensajes van como
+    `str(datetime.now())` («2026-11-16 09:00:00.1», hora del servidor sin
+    zona) y la marca de «visto» y otros avisos en ISO con zona
+    («2026-11-16T08:00:00+00:00»). Comparadas como texto, la «T» frente al
+    espacio hacía que un mensaje del mismo día nunca encendiera el punto rojo.
+    Sin zona = hora del servidor (como `como_fecha_de_mensaje`). Lo que no se
+    entiende cuenta como lo más antiguo. Función pura, con test."""
+    if not fecha:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    try:
+        d = datetime.fromisoformat(str(fecha).strip().replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return datetime.min.replace(tzinfo=timezone.utc)
+    if d.tzinfo is None:
+        d = d.astimezone()
+    return d
+
+
+def es_nuevo(fecha: str, visto: str) -> bool:
+    """Si algo de la campana es posterior a la última vez que se abrió."""
+    if not fecha:
+        return False
+    if not visto:
+        return True
+    return instante(fecha) > instante(visto)
 
 
 def _user_id_or_401(current_user) -> int:
@@ -224,22 +270,130 @@ async def get_unread(
     read_map = {cid: last for cid, last in read_rows}
     alta = await _alta(user_id, db_session)
 
-    nuevos = await _nuevos_por_canal(user_id, communities, read_map, alta, db_session)
+    # Un @all solo cuenta como mención para los alumnos, igual que en la
+    # campana (16/11/2026): al equipo solo su nombre.
+    es_alumno = await _es_alumno(user_id, org_ids, db_session)
+    resumen = await _resumen_nuevos(
+        user_id, communities, read_map, alta, db_session, user=user, con_all=es_alumno
+    )
 
     out: List[UnreadCount] = []
     for community in communities:
-        rows = nuevos.get(community.id) or []
-        if not rows:
+        r = resumen.get(community.id)
+        if not r:
             continue
-
-        mention_count = sum(1 for d in rows if mentions_user(texto_para_menciones(d), user))
         out.append(
             UnreadCount(
                 community_uuid=community.community_uuid,
-                unread=len(rows),
-                mentions=mention_count,
+                unread=r["n"],
+                mentions=r["menciones"],
             )
         )
+    return out
+
+
+async def _es_alumno(user_id: int, org_ids: List[int], db_session: AsyncSession) -> bool:
+    from src.security.rbac.constants import STUDENT_ROLE_ID
+
+    roles = (
+        await db_session.execute(
+            select(UserOrganization.role_id).where(
+                UserOrganization.user_id == user_id, UserOrganization.org_id.in_(org_ids)  # type: ignore
+            )
+        )
+    ).scalars().all()
+    return any(r == STUDENT_ROLE_ID for r in roles)
+
+
+def _condicion_nuevos(user_id: int, communities, read_map: dict, alta: str):
+    """La misma condición que `_nuevos_por_canal`: mensajes de otros, de cada
+    canal, después de su última lectura (o del alta). None = sin canales."""
+    from sqlalchemy import and_, or_
+
+    condiciones = []
+    for community in communities:
+        desde = desde_cuando(read_map.get(community.id) or "", alta)
+        condicion = Discussion.community_id == community.id
+        if desde:
+            condicion = and_(condicion, Discussion.creation_date > desde)  # type: ignore
+        condiciones.append(condicion)
+    if not condiciones:
+        return None
+    return and_(Discussion.author_id != user_id, or_(*condiciones))
+
+
+async def _resumen_nuevos(
+    user_id: int,
+    communities,
+    read_map: dict,
+    alta: str,
+    db_session: AsyncSession,
+    user=None,
+    con_all: bool = True,
+) -> dict:
+    """Lo nuevo de cada canal, CONTADO en la base de datos (16/11/2026).
+
+    Antes se traían los mensajes enteros (contenido incluido) solo para
+    contarlos, y lo piden la barra y la campana de cada pestaña cada minuto.
+    Ahora: una consulta cuenta y da la fecha del último por canal; otra trae
+    solo título y texto de los que llevan una «@» (para las menciones, si se
+    pasa `user`); y otra, el último mensaje de cada canal (para el extracto).
+
+    Devuelve {id del canal: {"n", "ultima", "menciones", "ultimo"}}, con
+    `ultimo` = (título, contenido) del último mensaje nuevo."""
+    from sqlalchemy import and_, func, or_
+
+    condicion = _condicion_nuevos(user_id, communities, read_map, alta)
+    if condicion is None:
+        return {}
+    filas = (
+        await db_session.execute(
+            select(
+                Discussion.community_id,
+                func.count(Discussion.id),
+                func.max(Discussion.creation_date),
+            )
+            .where(condicion)
+            .group_by(Discussion.community_id)
+        )
+    ).all()
+    out: dict = {
+        cid: {"n": int(n or 0), "ultima": ultima or "", "menciones": 0, "ultimo": ("", "")}
+        for cid, n, ultima in filas
+        if n
+    }
+    if not out:
+        return {}
+
+    if user is not None:
+        candidatas = (
+            await db_session.execute(
+                select(Discussion.community_id, Discussion.title, Discussion.content).where(
+                    condicion,
+                    or_(Discussion.content.contains("@"), Discussion.title.contains("@")),  # type: ignore
+                )
+            )
+        ).all()
+        for cid, title, content in candidatas:
+            if cid in out and mentions_user(
+                texto_para_menciones(SimpleNamespace(title=title, content=content)), user, con_all=con_all
+            ):
+                out[cid]["menciones"] += 1
+
+    ultimos = (
+        await db_session.execute(
+            select(Discussion.community_id, Discussion.creation_date, Discussion.title, Discussion.content).where(
+                Discussion.author_id != user_id,
+                or_(*[
+                    and_(Discussion.community_id == cid, Discussion.creation_date == r["ultima"])  # type: ignore
+                    for cid, r in out.items()
+                ]),
+            )
+        )
+    ).all()
+    for cid, _fecha, title, content in ultimos:
+        if cid in out:
+            out[cid]["ultimo"] = (title or "", content or "")
     return out
 
 
@@ -440,7 +594,7 @@ async def _mention_items(
                 "kind": "mention",
                 "title": f"{who} te ha mencionado en {community.name or 'la comunidad'}",
                 "excerpt": _short(text),
-                "url": f"/community/{community.community_uuid}",
+                "url": ruta_canal(community.community_uuid),
                 "date": discussion.creation_date or "",
             }
         )
@@ -486,36 +640,103 @@ async def _channel_items(
     read_map = {cid: last for cid, last in read_rows}
     alta = await _alta(user.id, db_session)
 
-    nuevos = await _nuevos_por_canal(user.id, communities, read_map, alta, db_session)
+    resumen = await _resumen_nuevos(user.id, communities, read_map, alta, db_session)
 
     out: List[dict] = []
     for community in communities:
-        rows = nuevos.get(community.id) or []
-        if not rows:
+        r = resumen.get(community.id)
+        if not r:
             continue
 
-        rows = sorted(rows, key=lambda d: d.creation_date or "", reverse=True)
-        ultimo = rows[0]
-        cuantos = len(rows)
+        ultimo_titulo, ultimo_contenido = r["ultimo"]
+        cuantos = r["n"]
         nombre = community.name or "la comunidad"
         titulo = (
             f"1 mensaje nuevo en {nombre}"
             if cuantos == 1
             else f"{cuantos} mensajes nuevos en {nombre}"
         )
-        fecha = ultimo.creation_date or ""
+        fecha = r["ultima"]
 
         out.append(
             {
                 "id": f"channel:{community.community_uuid}:{fecha}",
                 "kind": "channel",
                 "title": titulo,
-                "excerpt": _short(message_text(ultimo.content) or ultimo.title or ""),
-                "url": f"/community/{community.community_uuid}",
+                "excerpt": _short(message_text(ultimo_contenido) or ultimo_titulo or ""),
+                "url": ruta_canal(community.community_uuid),
                 "date": fecha,
             }
         )
     return out
+
+
+def avisos_de_comentarios(filas, user_id: int) -> List[dict]:
+    """«Ana ha comentado tu publicación» (16/11/2026), una línea por
+    publicación con los comentarios de otros. `filas` = (comentario,
+    publicación, canal, autor del comentario), de lo más nuevo a lo más viejo.
+    El id lleva la fecha del último comentario, como los de los canales: si se
+    quita y llega otro comentario, vuelve a salir. Función pura, con test."""
+    por_post: dict = {}
+    orden: List[str] = []
+    for comentario, post, canal, autor in filas:
+        if comentario.author_id == user_id or post.author_id != user_id:
+            continue
+        clave = post.discussion_uuid
+        if clave not in por_post:
+            por_post[clave] = {"post": post, "canal": canal, "ultimo": comentario, "nombres": []}
+            orden.append(clave)
+        nombre = (getattr(autor, "first_name", "") or getattr(autor, "username", "") or "Alguien").strip()
+        if nombre not in por_post[clave]["nombres"]:
+            por_post[clave]["nombres"].append(nombre)
+    out: List[dict] = []
+    for clave in orden:
+        g = por_post[clave]
+        nombres = g["nombres"]
+        quien = nombres[0] if len(nombres) == 1 else (
+            f"{nombres[0]} y {nombres[1]}" if len(nombres) == 2 else f"{nombres[0]} y {len(nombres) - 1} más"
+        )
+        verbo = "ha comentado" if len(nombres) == 1 else "han comentado"
+        post = g["post"]
+        titulo_post = (post.title or "").strip()
+        fecha = g["ultimo"].creation_date or ""
+        out.append(
+            {
+                "id": f"comment:{post.discussion_uuid}:{fecha}",
+                "kind": "comment",
+                "title": f"{quien} {verbo} tu publicación" + (f" «{_short(titulo_post, 60)}»" if titulo_post else ""),
+                "excerpt": _short(message_text(g["ultimo"].content)),
+                "url": ruta_canal(g["canal"].community_uuid, post.discussion_uuid),
+                "date": fecha,
+            }
+        )
+    return out
+
+
+async def _comment_items(user: User, org_ids: List[int], db_session: AsyncSession) -> List[dict]:
+    """Comentarios de otros en las publicaciones de tablón de esta persona.
+    Solo campana, sin correo."""
+    from src.db.communities.discussion_comments import DiscussionComment
+
+    filas = (
+        await db_session.execute(
+            select(DiscussionComment, Discussion, Community, User)
+            .join(Discussion, Discussion.id == DiscussionComment.discussion_id)  # type: ignore
+            .join(Community, Community.id == Discussion.community_id)  # type: ignore
+            .join(User, User.id == DiscussionComment.author_id)  # type: ignore
+            .where(
+                Discussion.author_id == user.id,
+                DiscussionComment.author_id != user.id,
+                Community.org_id.in_(org_ids),  # type: ignore
+            )
+            .order_by(DiscussionComment.creation_date.desc())  # type: ignore
+            .limit(200)
+        )
+    ).all()
+    vistos = await _canales_que_ve(user.id, org_ids, db_session)
+    if vistos is not None:
+        filas = [f for f in filas if f[2].id in vistos]
+    return avisos_de_comentarios(filas, user.id)
 
 
 async def _announcement_items(org_ids: List[int], db_session: AsyncSession) -> List[dict]:
@@ -734,7 +955,7 @@ async def _tareas_items(user_id: int, org_ids: List[int], db_session: AsyncSessi
     for org_id in org_ids:
         admin = superadmin or await is_org_admin(user_id, org_id, db_session)
         if admin or await is_org_staff(user_id, org_id, db_session):
-            out.extend(await avisos_equipo(org_id, admin, db_session))
+            out.extend(await avisos_equipo(org_id, admin, db_session, user_id))
             # El mensaje del administrador para el profe de esa clase (09/11/2026).
             if not admin:
                 try:
@@ -806,6 +1027,7 @@ async def list_notifications(
     for source in (
         _mention_items(user, org_ids, db_session),
         _channel_items(user, org_ids, db_session),
+        _comment_items(user, org_ids, db_session),
         _announcement_items(org_ids, db_session),
         # Fuera los avisos de «Has desbloqueado el módulo N» (16/11/2026,
         # usuario: "quita eso de las notificaciones de todos"). `_module_items`
@@ -819,6 +1041,14 @@ async def list_notifications(
             raw.extend(await source)
         except Exception as e:  # noqa: BLE001
             logger.warning("Fuente de notificaciones no disponible: %s", e)
+            # Un error de SQL deja la transacción abortada y las fuentes de
+            # después fallaban todas (16/11/2026): se deshace y se vuelve a
+            # leer el usuario (el rollback lo deja caducado).
+            try:
+                await db_session.rollback()
+                await db_session.refresh(user)
+            except Exception:  # noqa: BLE001
+                logger.exception("No se pudo deshacer la transacción de la campana")
 
     # Lo de antes de entrar en la escuela no es nuevo para esta persona:
     # menciones (un @all de octubre) y avisos del panel. Lo de las clases y
@@ -827,7 +1057,7 @@ async def list_notifications(
     if alta:
         raw = [
             r for r in raw
-            if not (r["kind"] in ("mention", "announcement", "channel") and antes_de_entrar(r.get("date") or "", alta))
+            if not (r["kind"] in ("mention", "announcement", "channel", "comment") and antes_de_entrar(r.get("date") or "", alta))
         ]
 
     # Las que el alumno ha quitado a mano no vuelven.
@@ -843,7 +1073,7 @@ async def list_notifications(
     if dismissed:
         raw = [r for r in raw if r["id"] not in dismissed]
 
-    raw.sort(key=lambda r: r.get("date") or "", reverse=True)
+    raw.sort(key=lambda r: instante(r.get("date") or ""), reverse=True)
 
     items = [
         NotificationItem(
@@ -853,7 +1083,7 @@ async def list_notifications(
             excerpt=r["excerpt"],
             url=r["url"],
             date=r["date"],
-            is_new=bool(r["date"] and r["date"] > last_seen),
+            is_new=es_nuevo(r["date"], last_seen),
         )
         for r in raw[:limit]
     ]

@@ -34,6 +34,19 @@ from src.services.communities.moderation import (
 )
 
 
+async def _modera(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
+    """El equipo de la escuela (administrador, moderador y profe:
+    `STAFF_ROLE_IDS`) modera la comunidad: fija, desfija, cierra y borra
+    (16/11/2026). La pantalla ya le enseñaba los botones (`isStaff`) y el
+    servidor le daba 403 al profe. El closer no es equipo."""
+    from src.services.courses.locks import is_org_staff
+
+    try:
+        return await is_org_staff(user_id, org_id, db_session)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 class DiscussionSortBy(str, Enum):
     RECENT = "recent"      # ORDER BY creation_date DESC
     UPVOTES = "upvotes"    # ORDER BY upvote_count DESC
@@ -518,7 +531,7 @@ async def pin_discussion(
 
     is_admin = await authorization_verify_based_on_org_admin_status(
         request, acting_user_id, "update", community.community_uuid, db_session
-    )
+    ) or await _modera(acting_user_id, community.org_id, db_session)
 
     if not is_admin:
         raise HTTPException(status_code=403, detail="Only community moderators can pin discussions")
@@ -587,7 +600,7 @@ async def lock_discussion(
 
     is_admin = await authorization_verify_based_on_org_admin_status(
         request, acting_user_id, "update", community.community_uuid, db_session
-    )
+    ) or await _modera(acting_user_id, community.org_id, db_session)
 
     if not is_admin:
         raise HTTPException(status_code=403, detail="Only community moderators can lock discussions")
@@ -698,7 +711,7 @@ async def delete_discussion(
     is_author = discussion.author_id == acting_user_id
     is_admin = await authorization_verify_based_on_org_admin_status(
         request, acting_user_id, "delete", community.community_uuid, db_session
-    )
+    ) or await _modera(acting_user_id, community.org_id, db_session)
 
     if not is_author and not is_admin:
         raise HTTPException(status_code=403, detail="You don't have permission to delete this discussion")

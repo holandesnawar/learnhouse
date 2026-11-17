@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
+import { useCommunityRights } from '@components/Hooks/useCommunityRights'
 import { useDiscussions, useMutateDiscussions } from '@components/Hooks/useDiscussions'
 import { hiloDe, sinTituloRepetido } from '@/lib/communities/delChat'
 import { markChannelRead } from '@services/communities/engagement'
@@ -145,6 +146,9 @@ export default function ChannelPosts({
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
   const { isStaff, isAdmin } = (useAdminStatus() as any) || {}
+  // El closer mira los canales del programa nuevo, pero no escribe (16/11/2026).
+  const { rights } = useCommunityRights(communityUuid)
+  const soloLectura = rights?.permissions?.create_discussion === false
   // Juntar dos publicaciones (administradores): se eligen aquí y se ve el
   // resultado en una ventana antes de juntar (JuntarPublicaciones.tsx).
   const [eligiendo, setEligiendo] = useState(false)
@@ -271,7 +275,10 @@ export default function ChannelPosts({
             Juntar dos
           </button>
         ) : null}
-        {accessToken && (
+        {accessToken && soloLectura && (
+          <p className="text-[13px] text-[#5A6480]">Puedes leer este canal, pero no escribir.</p>
+        )}
+        {accessToken && !soloLectura && (
           <button
             onClick={() => setComposing(true)}
             // CTA de marca: #0b2da0 con letra #0a1656. El #1D0084 que había es

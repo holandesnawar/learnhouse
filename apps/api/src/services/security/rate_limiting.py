@@ -43,6 +43,37 @@ def _is_trusted_proxy(ip: str) -> bool:
         return False
 
 
+_FORMAS_APUNTADAS = 0
+
+
+def forma_de_xff(forwarded: str) -> str:
+    """La FORMA de una cabecera X-Forwarded-For, sin ninguna IP: «g» por cada
+    dirección pública, «n» por una interna (privada, CGNAT de Railway,
+    loopback) y «x» por lo que no es una IP. Pura.
+
+    Sirve para decidir, mirando el registro de Railway, si es seguro tomar la
+    IP de la DERECHA en vez de la primera (que la puede escribir el cliente):
+    p. ej. «g,g,n» = el cliente puso una, Railway añadió la real y nginx la
+    suya interna."""
+    partes = []
+    for trozo in (forwarded or "").split(","):
+        try:
+            partes.append("g" if ipaddress.ip_address(trozo.strip()).is_global else "n")
+        except ValueError:
+            partes.append("x")
+    return ",".join(partes)
+
+
+def _apuntar_forma(forwarded: str) -> None:
+    """Las primeras peticiones de cada proceso dejan en el registro la forma
+    de X-Forwarded-For (sin IPs: no son datos de nadie)."""
+    global _FORMAS_APUNTADAS
+    if _FORMAS_APUNTADAS >= 5:
+        return
+    _FORMAS_APUNTADAS += 1
+    logger.warning("Forma de X-Forwarded-For (g=pública, n=interna): %s", forma_de_xff(forwarded))
+
+
 def get_client_ip(request: Request) -> str:
     """
     Extract client IP from request, considering proxy headers.
@@ -64,6 +95,7 @@ def get_client_ip(request: Request) -> str:
         # Check for forwarded headers (reverse proxy)
         forwarded = request.headers.get("X-Forwarded-For")
         if forwarded:
+            _apuntar_forma(forwarded)
             # Take the first IP in the chain (original client)
             client_ip = forwarded.split(",")[0].strip()
             # Validate it's a real IP, not garbage

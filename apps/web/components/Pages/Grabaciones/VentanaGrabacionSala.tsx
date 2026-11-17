@@ -37,18 +37,24 @@ function VentanaGrabacionSalaDentro({
     return () => window.removeEventListener('keydown', tecla)
   }, [onClose])
 
-  // Con un enlace pegado no se sabe por dónde va: cuenta como vista al minuto
-  // y medio de tenerla abierta.
+  // Con un enlace pegado (Bunny, YouTube, Vimeo en su propio reproductor) no
+  // se sabe por dónde va: cuenta como vista tras minuto y medio con la ventana
+  // abierta Y la pestaña a la vista (16/11/2026: antes contaba aunque la
+  // pestaña estuviera escondida).
   const apuntada = useRef(false)
   useEffect(() => {
     if (!grabacion.enlace?.url) return
-    const t = setTimeout(() => {
-      if (!apuntada.current) {
+    let segundos = 0
+    const t = setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      segundos += 1
+      if (segundos >= 90 && !apuntada.current) {
         apuntada.current = true
+        clearInterval(t)
         vista()
       }
-    }, 90_000)
-    return () => clearTimeout(t)
+    }, 1000)
+    return () => clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grabacion.enlace?.url])
 

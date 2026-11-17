@@ -1,16 +1,10 @@
 name: Build Community Images
 
+# Heredado de LearnHouse. Solo se lanza a mano (Actions → Run workflow):
+# construye la imagen Docker de LearnHouse para ghcr.io; la escuela se despliega en Railway desde su propio Dockerfile y esto fallaba en cada subida.
+# No se borra para poder volver a encenderlo si algún día hace falta.
 on:
-  push:
-    branches:
-      - prod
-      - dev
-      - main
-  pull_request:
-    branches:
-      - prod
-      - dev
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read

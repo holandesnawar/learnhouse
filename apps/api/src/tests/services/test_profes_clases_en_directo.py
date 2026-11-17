@@ -134,3 +134,24 @@ async def test_el_profe_crea_y_cambia_semanas_pero_no_las_quita(db, org, user_ro
     with pytest.raises(HTTPException) as exc:
         await rutas_tareas.api_borrar_semana(semana_id, profe, db)
     assert exc.value.status_code == 403
+
+
+async def test_el_closer_lee_la_formacion_aunque_este_cerrada_a_un_grupo(db, org, user_role):
+    """16/11/2026: el closer tiene «Formación A0-A1» en su barra; si la
+    formación se cierra a grupos, la puede leer igual (nunca escribir)."""
+    from src.services.panel.avance import FORMACION_UUID
+
+    formacion = f"course_{FORMACION_UUID}"
+    db.add(Course(id=13, name="Formación", description="", public=False, published=True, open_to_contributors=False,
+                  org_id=org.id, course_uuid=formacion, creation_date=AHORA, update_date=AHORA))
+    db.add(UserGroup(id=31, name="Alumnos", description="", org_id=org.id, usergroup_uuid="ug_al",
+                     creation_date=AHORA, update_date=AHORA))
+    await db.commit()
+    db.add(UserGroupResource(usergroup_id=31, resource_uuid=formacion, org_id=org.id, creation_date=AHORA, update_date=AHORA))
+    await db.commit()
+    closer = await _persona(db, org, 62, 6)
+    alumno = await _persona(db, org, 63, 4)
+
+    assert await _puede(db, closer, formacion, AccessAction.READ)
+    assert not await _puede(db, closer, formacion, AccessAction.UPDATE)
+    assert not await _puede(db, alumno, formacion, AccessAction.READ)

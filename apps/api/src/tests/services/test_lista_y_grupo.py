@@ -134,7 +134,8 @@ async def test_vienes_a_la_clase(db, org, monkeypatch, contenido):  # noqa: F811
     al = await T.semanas_para_alumno(c, 7, db)
     assert al["semanas"][0]["voy"] is True and "confirmaciones" not in al["semanas"][0]
     eq = await T.semanas_para_alumno(c, 1, db, equipo=True)
-    assert eq["semanas"][0]["confirmaciones"] == {"si": 1, "no": 1}
+    conf = eq["semanas"][0]["confirmaciones"]
+    assert (conf["si"], conf["no"]) == (1, 1)
     # Se puede quitar, y el día de después ya no.
     assert (await T.confirmar_asistencia(s, 8, None, db))["no"] == 0
     monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-02")

@@ -962,6 +962,11 @@ async def api_enlace_pago(
         from src.services.payments.plazos import TOTAL_A_MEDIDA_MAX, a_medida
 
         medida = a_medida(data.total_cents, data.cuotas or 3)
+        if medida is not None:
+            # Un closer no baja de 100 € en total (16/11; ver reservas.py).
+            from src.services.payments.reservas import minimo_para_closer
+
+            minimo_para_closer(medida[1], await _es_admin(current_user, org_id, db_session))
         if medida is None:
             raise HTTPException(
                 status_code=400,
@@ -1007,7 +1012,18 @@ async def api_enlace_pago(
         # sin él es de antes del 20/10 y respeta el de entonces (397 €).
         datos["pu"] = precio_panel_cents()
         respuesta["precio_cents"] = datos["pu"]
+    from src.services.payments.enlace import TIPO_PAGAR
+
+    datos["t"] = TIPO_PAGAR  # el tipo, para que no valga en otra puerta (16/11)
     token = firmar(datos, secreto)
+    # Aviso para quien lo crea (16/11): esta persona ya es alumna. Al abrirlo,
+    # si ya pagó, no se le cobra otra vez.
+    try:
+        from src.services.payments.payments import es_alumna
+
+        respuesta["ya_alumna"] = await es_alumna(email, db_session)
+    except Exception:  # noqa: BLE001
+        respuesta["ya_alumna"] = False
     return {"url": f"{_academy_url()}/api/v1/payments/pagar/{token}", "dias": DIAS_VALIDEZ, **respuesta}
 
 

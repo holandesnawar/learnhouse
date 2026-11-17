@@ -23,8 +23,18 @@ export function humanDate(d: Date): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
+/** AAAA-MM-DD de un día, en hora local. */
+function isoLocal(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
 /**
- * - Si hay una fecha concreta puesta a mano, manda esa (sirve para cambios).
+ * - Si la clase tiene semanas creadas (`semanas`: sus días, AAAA-MM-DD), manda
+ *   la primera de hoy en adelante (16/11/2026: la franja decía un día distinto
+ *   del de las semanas, o uno que ya había pasado).
+ * - Si hay una fecha concreta puesta a mano y aún no ha pasado, manda esa
+ *   (sirve para cambios). Una ya pasada no se enseña: cae a lo siguiente.
  * - Si solo hay día de la semana, se calcula la siguiente vez que cae: así el
  *   banner se actualiza solo cada semana y nadie tiene que tocarlo.
  * - Si no hay ni una cosa ni otra, se queda el texto libre de siempre.
@@ -33,9 +43,16 @@ export function nextBroadcastLabel(
   weekday: string,
   exactDate: string,
   fallback: string,
-  today: Date = new Date()
+  today: Date = new Date(),
+  semanas: string[] = []
 ): string {
-  if (exactDate) {
+  const hoy = isoLocal(today)
+  const siguiente = semanas
+    .filter((f) => /^\d{4}-\d{2}-\d{2}$/.test(f || '') && f >= hoy)
+    .sort()[0]
+  if (siguiente) return humanDate(new Date(`${siguiente}T12:00:00`))
+
+  if (exactDate && exactDate.slice(0, 10) >= hoy) {
     // Mediodía a propósito: evita que el huso horario mueva la fecha un día.
     const d = new Date(`${exactDate}T12:00:00`)
     if (!Number.isNaN(d.getTime())) return humanDate(d)

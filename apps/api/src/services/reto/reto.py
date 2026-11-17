@@ -40,6 +40,7 @@ del enlace), la etiqueta de systeme.io y si quien se apunta entra en Matrículas
 """
 
 from __future__ import annotations
+from src.services.email.utils import en_hilo
 
 import json
 import logging
@@ -566,7 +567,7 @@ async def empezar(datos: dict, db: AsyncSession) -> dict:
     token = token_de(email)
     if nuevo:
         await _a_la_ficha(email, nombre, telefono, datos, respuestas, db)
-        _mandar_enlace(email, nombre, token)
+        await en_hilo(_mandar_enlace, email, nombre, token)
     return {"ok": True, "nuevo": nuevo, "token": token}
 
 

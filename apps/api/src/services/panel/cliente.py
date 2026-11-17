@@ -218,10 +218,10 @@ async def ficha_cliente(
     clave = (email or "").strip().lower()
     if not clave:
         return None
-    eventos = [e for e in await _todos_los_eventos(db_session) if e["email"] == clave]
+    eventos = [e for e in await _todos_los_eventos(db_session, clave) if e["email"] == clave]
     if not eventos:
         return None
-    ficha = fusionar_contactos(eventos, await _emails_con_cuenta(db_session))[0]
+    ficha = fusionar_contactos(eventos, await _emails_con_cuenta(db_session, clave))[0]
 
     from src.services.contactos.metricas import emails_excluidos
 
