@@ -255,7 +255,7 @@ export function CuerpoLectura({ l, orgId }: { l: Lectura; orgId?: number }) {
           <p className="text-[13.5px] text-[#4A5272]">
             Los alumnos no lo ven aquí: ábrelo en otra pestaña y compártelo en la sala durante la clase.
           </p>
-          <a href={l.video} target="_blank" rel="noopener" className={BOTON}>
+          <a href={l.video} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className={BOTON}>
             <ExternalLink size={15} /> Abrir el vídeo
           </a>
         </Seccion>
@@ -277,7 +277,7 @@ export function CuerpoLectura({ l, orgId }: { l: Lectura; orgId?: number }) {
               />
             </div>
           ) : (
-            <a href={l.video} target="_blank" rel="noopener" className={BOTON}>
+            <a href={l.video} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className={BOTON}>
               <ExternalLink size={15} /> Ver el vídeo
             </a>
           )}

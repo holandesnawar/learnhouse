@@ -5811,6 +5811,11 @@ títulos repetidos y no saber dónde estaba cada enlace).
   el vídeo» y lo comparte en la sala; el alumno ve «El vídeo de esta lectura lo
   veréis juntos en la clase» (`video_en_clase`). Queda en la grabación de la clase:
   confirmar con Nieuwsbegrip que la licencia lo permite. Test en `test_lecturas.py`.
+- ⚠️ **«Abrir el vídeo» va sin `Referer`** (`rel="noopener noreferrer"`,
+  `referrerPolicy="no-referrer"`): pegado a mano en el navegador el enlace de
+  Bunny de Nieuwsbegrip SÍ abría y desde el botón daba 403, porque el botón le
+  decía a Bunny que venía de app.holandesnawar.com. Sin decirlo, abre igual que
+  pegarlo. Incrustado dentro de la página sigue sin poder ser.
 
 ### Los ejercicios de la lectura, dentro de la escuela (15/11/2026)
 Usuario: "en la lectura de la semana, un botón para ir a los ejercicios, ahí
