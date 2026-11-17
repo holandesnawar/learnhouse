@@ -19,7 +19,7 @@ import { registerVisit, type StudentVisit } from '@services/student/progress'
 import { useStudentInsights } from '@/hooks/queries/useStudentInsights'
 import { fechasDeClases, semanaConClases } from '@services/student/insights'
 import { isWeeklyClassCourse } from '@/lib/course/formacionProgress'
-import { CURSO_CLASE_SEMANAL_UUID, conGrabadas } from '@/lib/nawar/cursos'
+import { conGrabadas, nombreDeClase } from '@/lib/nawar/cursos'
 import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
 import { LecturaEnInicio } from '@components/Pages/Recursos/LecturaSemanal'
 import { InsigniaNueva } from '@components/Pages/Insignias/Insignias'
@@ -81,9 +81,7 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
   const claseEnDirecto = directo
     ? {
         uuid: String(directo.course_uuid || '').replace(/^course_/, ''),
-        nombre: String(directo.course_uuid || '').includes(CURSO_CLASE_SEMANAL_UUID)
-          ? 'Clase semanal'
-          : String(directo.name || 'Clase en directo'),
+        nombre: nombreDeClase(directo),
       }
     : null
 

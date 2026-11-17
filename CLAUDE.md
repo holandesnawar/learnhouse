@@ -7698,6 +7698,16 @@ cookies (10/11), solo cuenta a quien acepta.
   solo administradores. Pantalla `Panel/AnaliticaPanel.tsx`, primera pestaña
   (y la de serie) de `/dash/webs`. Tocar una fila de las tablas filtra por ella.
 
+### La clase semanal renombrada («Conversatieles», 17/11/2026)
+El usuario renombró en Cursos las dos clases semanales a «Conversatieles» y la
+de Blauw (la original, `CURSO_CLASE_SEMANAL_UUID`) seguía saliendo «Clase
+semanal» en la barra y en el Inicio: estaba escrito a mano. Ahora sale el
+nombre que tenga en Cursos (`nombreDeClase` en `lib/nawar/cursos.ts`, con
+test); solo el nombre de origen «Clases Nawar» se sigue enseñando como «Clase
+semanal». ⚠️ Las dos copias tienen que llamarse EXACTAMENTE igual para ser
+hermanas («la clase del otro grupo»). `tipoDeClase` no la confunde con el
+Spreekclub: «conversatie» no casa con /conversaci/.
+
 ### El vídeo del recorte se queda congelado a mitad (17/11/2026)
 «Ver por qué» dijo «El archivo está bien: mp4 (3407 MB) con el índice al
 principio» y era falso: el archivo empieza por `ftyp · moov · styp`, o sea un

@@ -109,14 +109,26 @@ export type CursoEnDirecto = { uuid: string; nombre: string }
  * según sus grupos, así que la beta ve «Clase semanal» y el programa nuevo
  * ve su masterclass y sus spreekuren, sin escribir aquí ningún id más.
  * Sin publicar no salen (el equipo los ve en la lista, pero son borradores).
- * La clase semanal, primero y con su nombre de siempre.
+ * La clase semanal, primero, con el nombre que tenga en Cursos.
  */
+/**
+ * El nombre de una clase en directo, el que tiene en Cursos. La clase semanal
+ * de siempre se escribía aquí a mano como «Clase semanal» y, al renombrarla
+ * (17/11/2026, «Conversatieles»), la barra seguía con el nombre viejo. Solo su
+ * nombre de origen, «Clases Nawar», se sigue enseñando como «Clase semanal».
+ */
+export function nombreDeClase(c: any): string {
+  const nombre = String(c?.name || '').trim()
+  if (uuidDeCurso(c) === CURSO_CLASE_SEMANAL_UUID && (!nombre || nombre === 'Clases Nawar')) return 'Clase semanal'
+  return nombre || 'Clases en directo'
+}
+
 export function cursosEnDirecto(lista: any[]): CursoEnDirecto[] {
   return (Array.isArray(lista) ? lista : [])
     .filter((c) => c && c.published !== false && uuidDeCurso(c) && uuidDeCurso(c) !== CURSO_FORMACION_UUID)
     .map((c) => ({
       uuid: uuidDeCurso(c),
-      nombre: uuidDeCurso(c) === CURSO_CLASE_SEMANAL_UUID ? 'Clase semanal' : String(c.name || 'Clases en directo'),
+      nombre: nombreDeClase(c),
     }))
     .sort((a, b) =>
       a.uuid === CURSO_CLASE_SEMANAL_UUID ? -1 : b.uuid === CURSO_CLASE_SEMANAL_UUID ? 1 : a.nombre.localeCompare(b.nombre, 'es')

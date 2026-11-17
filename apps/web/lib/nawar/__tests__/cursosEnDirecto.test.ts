@@ -30,6 +30,11 @@ describe('las clases en directo de cada alumno', () => {
     ])
   })
 
+  test('la clase semanal renombrada sale con su nombre nuevo (17/11)', () => {
+    const renombrada = { ...semanal, name: 'Conversatieles' }
+    expect(cursosEnDirecto([renombrada])).toEqual([{ uuid: CURSO_CLASE_SEMANAL_UUID, nombre: 'Conversatieles' }])
+  })
+
   test('sin lista, nada', () => {
     expect(cursosEnDirecto(undefined as any)).toEqual([])
   })
