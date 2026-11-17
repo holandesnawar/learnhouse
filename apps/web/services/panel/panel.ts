@@ -457,7 +457,16 @@ export interface AlumnoProgreso {
   /** El WhatsApp que dejó al matricularse. */
   telefono?: string
   /** Su objetivo y sus días de estudio, si los ha rellenado. */
-  plan?: { objetivo: string; texto: string; dias: string; hora: string; minutos: number } | null
+  plan?: {
+    objetivo: string
+    texto: string
+    dias: string
+    hora: string
+    minutos: number
+    /** «Para conocerte»: de_donde, vive_en, problema, en_4_meses (solo lo contestado). */
+    conocerte?: Record<string, string>
+    conocerte_at?: string
+  } | null
   /** Lo que sacó en los ejercicios de cada lectura semanal (la más nueva primero). */
   lecturas?: { id: string; titulo: string; semana: string; aciertos: number; total: number; mejor?: number; veces?: number; ultima?: string }[]
   /** ¿Lleva dos semanas o más sin terminar ninguna clase de la formación? */
@@ -588,6 +597,20 @@ export const getAlumnosProgreso = (orgId: number, t: string) =>
   pedir<{ alumnos: AlumnoProgreso[]; total_clases: number }>(`panel/org/${orgId}/alumnos`, 'GET', null, t)
 
 /** «Sí, se lo he mandado»: apunta el WhatsApp a un alumno que no avanza. */
+export interface EnlaceContrasena {
+  ok: boolean
+  email?: string
+  nombre?: string
+  enlace: string
+  dias?: number
+  correo_enviado: boolean
+  motivo: string
+}
+
+/** Un enlace nuevo de «crear contraseña» (7 días) y, con `enviar`, el correo (17/11/2026). */
+export const darEnlaceContrasena = (orgId: number, userId: number, enviar: boolean, t: string) =>
+  pedir<EnlaceContrasena>(`panel/org/${orgId}/alumnos/${userId}/enlace-contrasena`, 'POST', { enviar }, t)
+
 export const apuntarWhatsappAlumno = (orgId: number, userId: number, t: string) =>
   pedir<{ sent_at: string; tipo: string; por: string }>(`panel/org/${orgId}/alumnos/${userId}/whatsapp`, 'POST', {}, t)
 

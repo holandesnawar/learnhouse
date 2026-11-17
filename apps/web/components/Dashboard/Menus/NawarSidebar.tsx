@@ -62,6 +62,7 @@ import {
   Receipt,
   SidebarSimple,
   SignOut,
+  Star,
   UserCircle,
   UsersThree,
   AddressBook,
@@ -283,6 +284,59 @@ export function buscarEnPanel(grupos: Grupo[], q: string): Item[] {
 
 const CLAVE_PLEGADOS = 'nawar.panel.plegados'
 
+/**
+ * Favoritos (17/11/2026, usuario: "en la barra de panel veo muchas cosas pero
+ * las importantes salen abajo, me gustaría tenerlas como favoritos y acceder
+ * más rápido"). La estrella de cada entrada la sube a «Favoritos», debajo de
+ * Inicio. Se guarda en el navegador de cada uno (es una comodidad de quien lo
+ * usa, no algo de la escuela) y se avisa a la otra barra (la del móvil) con
+ * un evento.
+ */
+const CLAVE_FAVORITOS = 'nawar.panel.favoritos'
+const EVENTO_FAVORITOS = 'nawar-favoritos'
+export const claveItem = (it: Item) => `${it.href}|${it.label}`
+
+export function useFavoritosPanel(): [string[], (it: Item) => void] {
+  const [favoritos, setFavoritos] = useState<string[]>([])
+  useEffect(() => {
+    const leer = () => {
+      try {
+        const f = JSON.parse(localStorage.getItem(CLAVE_FAVORITOS) || '[]')
+        setFavoritos(Array.isArray(f) ? f.filter((x) => typeof x === 'string') : [])
+      } catch {
+        setFavoritos([])
+      }
+    }
+    leer()
+    window.addEventListener(EVENTO_FAVORITOS, leer)
+    return () => window.removeEventListener(EVENTO_FAVORITOS, leer)
+  }, [])
+  const alternar = (it: Item) => {
+    const k = claveItem(it)
+    const nuevos = favoritos.includes(k) ? favoritos.filter((x) => x !== k) : [...favoritos, k]
+    setFavoritos(nuevos)
+    try {
+      localStorage.setItem(CLAVE_FAVORITOS, JSON.stringify(nuevos))
+      window.dispatchEvent(new Event(EVENTO_FAVORITOS))
+    } catch {}
+  }
+  return [favoritos, alternar]
+}
+
+/** Los grupos con «Favoritos» justo después de Inicio (en el orden en que se marcaron). */
+export function conFavoritos(grupos: Grupo[], favoritos: string[]): Grupo[] {
+  if (!favoritos.length) return grupos
+  const todos = grupos.flatMap((g) => g.items)
+  const items = favoritos
+    .map((k) => todos.find((it) => claveItem(it) === k))
+    .filter((it): it is Item => !!it)
+  if (!items.length) return grupos
+  const [primero, ...resto] = grupos
+  return primero && !primero.titulo
+    ? [primero, { titulo: 'Favoritos', items }, ...resto]
+    : [{ titulo: 'Favoritos', items }, ...grupos]
+}
+
 export default function NawarSidebar() {
   const org = useOrg() as any
   const session = useLHSession() as any
@@ -293,6 +347,7 @@ export default function NawarSidebar() {
   const [plegados, setPlegados] = useState<string[]>([])
   const { isCloser } = useAdminStatus()
   const closerVeNumeros = useCloserVeNumeros(isCloser)
+  const [favoritos, alternarFavorito] = useFavoritosPanel()
 
   useEffect(() => {
     // Los enlaces a pestañas llevan ?tab=; la ruta sola no lo sabe.
@@ -338,13 +393,16 @@ export default function NawarSidebar() {
   if (!org || !session) return null
 
   // El closer: lo suyo (gruposDelCloser), y Números si se los abren.
-  const grupos = isCloser ? gruposDelCloser(closerVeNumeros) : GRUPOS_DEL_PANEL
-  const encontrados = buscarEnPanel(grupos, buscar)
+  const base = isCloser ? gruposDelCloser(closerVeNumeros) : GRUPOS_DEL_PANEL
+  const grupos = conFavoritos(base, favoritos)
+  const encontrados = buscarEnPanel(base, buscar)
 
   const fila = (it: Item) => {
     const on = activo(it, pathname, search)
+    const fav = favoritos.includes(claveItem(it))
+    const esInicio = it.href === INICIO.href && it.label === INICIO.label
     return (
-      <li key={it.href + it.label}>
+      <li key={it.href + it.label} className="group/fila relative">
         <Link
           href={it.href}
           title={isCollapsed ? it.label : undefined}
@@ -357,8 +415,22 @@ export default function NawarSidebar() {
           style={on ? { backgroundColor: ACTIVO_SOBRE_MARCA } : undefined}
         >
           <span className={on ? 'text-[#9CCBFF]' : 'text-white/85'}>{it.icon}</span>
-          {!isCollapsed && <span className="truncate">{it.label}</span>}
+          {!isCollapsed && <span className="truncate pr-5">{it.label}</span>}
         </Link>
+        {!isCollapsed && !esInicio ? (
+          <button
+            type="button"
+            onClick={() => alternarFavorito(it)}
+            aria-label={fav ? `Quitar ${it.label} de favoritos` : `Añadir ${it.label} a favoritos`}
+            title={fav ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+            className={cn(
+              'absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md transition-opacity',
+              fav ? 'text-[#FFD66B] opacity-100' : 'text-white/70 opacity-0 group-hover/fila:opacity-100 focus:opacity-100 hover:text-white'
+            )}
+          >
+            <Star size={13} weight={fav ? 'fill' : 'bold'} />
+          </button>
+        ) : null}
       </li>
     )
   }
@@ -443,6 +515,11 @@ export default function NawarSidebar() {
             )
           })
         )}
+        {!favoritos.length && !isCollapsed && !buscar.trim() ? (
+          <p className="px-3 pb-1 text-[11.5px] leading-snug text-white/60">
+            Pasa el ratón por una sección y toca la estrella para tenerla arriba, en Favoritos.
+          </p>
+        ) : null}
       </div>
 
       {/* Pie: la escuela y la persona */}

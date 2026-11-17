@@ -18,12 +18,13 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
   abrirModulo,
+  darEnlaceContrasena,
   getAlumnosProgreso,
   quitarAperturaModulo,
   type AlumnoProgreso,
   type AperturaModulo,
 } from '@services/panel/panel'
-import { Bell, ChevronDown, Loader2, Lock, Mail, Search, X } from 'lucide-react'
+import { Bell, ChevronDown, Copy, KeyRound, Loader2, Lock, Mail, Search, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
 import FichaCliente from './FichaCliente'
@@ -197,6 +198,83 @@ function ModulosPorAvance({
 
 /** Lo de dentro de un alumno: estado, constancia, recordatorio y módulos.
  * Lo usan la fila abierta de Progreso y la ficha del alumno de Usuarios. */
+function fechaCorta(iso: string): string {
+  const d = new Date(`${iso.slice(0, 10)}T12:00:00`)
+  return isNaN(d.getTime()) ? iso : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+/**
+ * «Mandarle el enlace para crear su contraseña» (17/11/2026, usuario: "entró
+ * una nueva pero le caducó el link… algo manual así no le pido a este alumno").
+ * Un enlace nuevo de 7 días: vale para quien no la puso nunca y para quien la
+ * ha olvidado. Por correo o copiándolo para mandarlo por WhatsApp.
+ */
+function EnlaceContrasena({ a }: { a: AlumnoProgreso }) {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const token = session?.data?.tokens?.access_token
+  const [abierto, setAbierto] = useState(false)
+  const [ocupado, setOcupado] = useState<'' | 'correo' | 'copiar'>('')
+  const [enlace, setEnlace] = useState('')
+  const pedirlo = async (enviar: boolean) => {
+    if (!org?.id || !token) return
+    setOcupado(enviar ? 'correo' : 'copiar')
+    const r = await darEnlaceContrasena(org.id, a.user_id, enviar, token)
+    setOcupado('')
+    if (!r.ok || !r.datos) return toast.error(r.error || 'No se ha podido crear el enlace')
+    const d = r.datos
+    if (!d.enlace) return toast.error(d.motivo || 'No se ha podido crear el enlace')
+    setEnlace(d.enlace)
+    if (enviar) {
+      if (d.correo_enviado) toast.success(`Correo mandado a ${a.email}`)
+      else toast.error(`El correo no salió: ${d.motivo || 'motivo desconocido'}. Copia el enlace y mándaselo por WhatsApp.`)
+    } else {
+      try {
+        await navigator.clipboard.writeText(d.enlace)
+        toast.success('Enlace copiado')
+      } catch {
+        toast.success('Enlace listo: cópialo de abajo')
+      }
+    }
+  }
+  const nombre = (a.nombre || '').split(' ')[0]
+  const wa = (a.telefono || '').replace(/[^\d]/g, '')
+  const textoWa = `Hola ${nombre}, aquí tienes tu enlace para poner tu contraseña y entrar en la escuela (vale 7 días): ${enlace}`
+  if (!abierto) {
+    return (
+      <button onClick={() => setAbierto(true)} className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#025dc7] hover:underline">
+        <KeyRound size={13} /> No puede entrar: darle un enlace para crear su contraseña
+      </button>
+    )
+  }
+  return (
+    <div className="rounded-lg border border-[#E2E8F4] bg-white p-3 space-y-2">
+      <p className="text-[12.5px] text-[#374151] leading-snug">
+        Un enlace nuevo para que ponga su contraseña y entre (vale 7 días). Sirve si no la puso nunca, si le caducó el del
+        correo o si la ha olvidado.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => pedirlo(true)} disabled={!!ocupado} className={BOTON_PRINCIPAL}>
+          {ocupado === 'correo' ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />} Mandárselo por correo
+        </button>
+        <button onClick={() => pedirlo(false)} disabled={!!ocupado} className={BOTON}>
+          {ocupado === 'copiar' ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />} Solo copiar el enlace
+        </button>
+      </div>
+      {enlace ? (
+        <div className="space-y-1.5">
+          <input readOnly value={enlace} onFocus={(e) => e.currentTarget.select()} className="w-full h-8 rounded-md border border-[#E2E8F4] bg-[#F9FAFB] px-2 text-[12px] text-[#374151]" />
+          {wa ? (
+            <a href={`https://wa.me/${wa}?text=${encodeURIComponent(textoWa)}`} target="_blank" rel="noreferrer" className="inline-flex text-[12.5px] font-medium text-[#025dc7] hover:underline">
+              Mandárselo por WhatsApp
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export function DetalleAlumno({
   a,
   onFicha,
@@ -231,15 +309,43 @@ export function DetalleAlumno({
               <>
                 {a.plan.texto || a.plan.objetivo}
                 {a.plan.texto && a.plan.texto !== a.plan.objetivo ? ` (${a.plan.objetivo})` : ''}
-                <span className="block text-[#6B7280]">
-                  Se propuso estudiar {a.plan.dias} a las {a.plan.hora}, {a.plan.minutos} minutos
-                </span>
+                {a.plan.dias ? (
+                  <span className="block text-[#6B7280]">
+                    Se propuso estudiar {a.plan.dias} a las {a.plan.hora}, {a.plan.minutos} minutos
+                  </span>
+                ) : null}
               </>
             ) : (
               'Aún no lo ha dicho'
             )}
           </dd>
         </div>
+        {a.plan?.conocerte && Object.keys(a.plan.conocerte).length ? (
+          <div>
+            <dt className="text-[#6B7280]">
+              Al empezar nos contó{a.plan.conocerte_at ? ` (${fechaCorta(a.plan.conocerte_at)})` : ''}
+            </dt>
+            <dd className="text-gray-900 space-y-1">
+              {a.plan.conocerte.de_donde || a.plan.conocerte.vive_en ? (
+                <span className="block">
+                  {[a.plan.conocerte.de_donde && `De ${a.plan.conocerte.de_donde}`, a.plan.conocerte.vive_en && `vive en ${a.plan.conocerte.vive_en}`]
+                    .filter(Boolean)
+                    .join(', ')}
+                </span>
+              ) : null}
+              {a.plan.conocerte.problema ? (
+                <span className="block">
+                  <span className="text-[#6B7280]">Lo que más le cuesta: </span>«{a.plan.conocerte.problema}»
+                </span>
+              ) : null}
+              {a.plan.conocerte.en_4_meses ? (
+                <span className="block">
+                  <span className="text-[#6B7280]">Cómo se ve en 4 meses: </span>«{a.plan.conocerte.en_4_meses}»
+                </span>
+              ) : null}
+            </dd>
+          </div>
+        ) : null}
         <div>
           <dt className="text-[#6B7280]">Lecturas de la semana</dt>
           <dd className="text-gray-900">
@@ -308,6 +414,7 @@ export function DetalleAlumno({
             <Mail size={14} /> Escribirle
           </a>
         </div>
+        <EnlaceContrasena a={a} />
       </dl>
 
       <div>
