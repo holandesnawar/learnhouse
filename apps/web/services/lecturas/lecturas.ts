@@ -95,6 +95,20 @@ export function youtubeId(url: string): string {
   return m ? m[1] : ''
 }
 
+/** La dirección para ver el vídeo DENTRO de la página: YouTube, Bunny
+ *  (iframe.mediadelivery.net/embed/… o player.mediadelivery.net/play/…) o
+ *  Vimeo. Vacía si es otra web (NOS…): entonces sale el botón «Ver el vídeo». */
+export function videoIncrustado(url: string): string {
+  const u = (url || '').trim()
+  const yt = youtubeId(u)
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt}?rel=0`
+  const bunny = u.match(/(?:iframe|player)\.mediadelivery\.net\/(?:embed|play)\/(\d+)\/([0-9a-f-]{36})/i)
+  if (bunny) return `https://iframe.mediadelivery.net/embed/${bunny[1]}/${bunny[2]}?autoplay=false&responsive=true&preload=true`
+  const vimeo = u.match(/vimeo\.com\/(?:video\/)?(\d+)/i)
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`
+  return ''
+}
+
 /** «Semana del 9 nov». */
 export function semanaTexto(semana: string): string {
   const d = new Date(`${semana}T12:00:00`)

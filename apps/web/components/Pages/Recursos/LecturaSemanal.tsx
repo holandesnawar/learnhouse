@@ -33,7 +33,7 @@ import {
   quitarHoja,
   semanaTexto,
   subirHoja,
-  youtubeId,
+  videoIncrustado,
   type Lectura,
   type MisLecturas,
 } from '@services/lecturas/lecturas'
@@ -139,7 +139,7 @@ export function CuerpoLectura({ l, orgId }: { l: Lectura; orgId?: number }) {
   const [hojaAbierta, setHojaAbierta] = useState(!l.texto)
   const [visorNavegador, setVisorNavegador] = useState(false)
   const hoja = l.hoja?.url ? mediaSrc(l.hoja.url) : ''
-  const yt = l.video ? youtubeId(l.video) : ''
+  const yt = l.video ? videoIncrustado(l.video) : ''
   const trozos = parrafos(l.texto || '')
   const ejercicios = l.ejercicios || []
   const [haciendo, setHaciendo] = useState(false)
@@ -256,10 +256,10 @@ export function CuerpoLectura({ l, orgId }: { l: Lectura; orgId?: number }) {
           {yt ? (
             <div className="relative w-full max-w-[640px] overflow-hidden rounded-xl bg-black" style={{ aspectRatio: '16 / 9' }}>
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${yt}?rel=0`}
+                src={yt}
                 title={l.titulo}
                 className="absolute inset-0 w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                 allowFullScreen
               />
             </div>
@@ -546,7 +546,7 @@ function EditorLectura({
         ) : null}
       </label>
       <div className="grid sm:grid-cols-2 gap-3">
-        <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="Enlace del vídeo (YouTube, NOS…)" className={CAMPO} />
+        <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="Enlace del vídeo (Bunny, YouTube, Vimeo o NOS)" className={CAMPO} />
         <input value={comunidad} onChange={(e) => setComunidad(e.target.value)} placeholder="Enlace a los ejercicios en la comunidad" className={CAMPO} />
       </div>
       {error ? <p className="text-[13px] text-red-600">{error}</p> : null}
