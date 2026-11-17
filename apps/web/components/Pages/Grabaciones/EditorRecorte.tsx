@@ -59,7 +59,7 @@ import {
   type Trozo,
 } from '@/lib/nawar/recorte'
 import { diaCorto } from '@services/tareas/tareas'
-import { publicarGrabacion, quitarGrabacion, urlVideoSala, type DiaGrabado, type SemanaDelEstudio } from '@services/grabaciones/grabaciones'
+import { diagnosticoVideo, publicarGrabacion, quitarGrabacion, urlVideoSala, type DiaGrabado, type DiagnosticoVideo, type SemanaDelEstudio } from '@services/grabaciones/grabaciones'
 
 const PX_POR_SEGUNDO_MAX = 14
 const REINTENTOS = 3
@@ -128,6 +128,11 @@ function EditorRecorteDentro({
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
   const [intento, setIntento] = useState(0)
+  // «Se queda cargando todo el tiempo» (17/11/2026): pasados 20 s sin poder
+  // enseñar nada, se dice y se ofrece ver por qué (la escuela mira el archivo).
+  const [tarda, setTarda] = useState(false)
+  const [porQue, setPorQue] = useState<DiagnosticoVideo | null>(null)
+  const [mirando, setMirando] = useState(false)
   const [previa, setPrevia] = useState(false)
   const [marcaA, setMarcaA] = useState<number | null>(null)
   const [marcaB, setMarcaB] = useState<number | null>(null)
@@ -230,6 +235,28 @@ function EditorRecorteDentro({
     } else v.pause()
   }, [previa, trozos, t, irA, tramos, iParte])
 
+  useEffect(() => {
+    setTarda(false)
+    setPorQue(null)
+    const id = window.setTimeout(() => {
+      const v = video.current
+      if (v && v.readyState < 1) setTarda(true)
+    }, 20000)
+    return () => window.clearTimeout(id)
+  }, [parte?.id, intento])
+
+  async function verPorQue() {
+    if (!parte) return
+    setMirando(true)
+    try {
+      setPorQue(await diagnosticoVideo(courseUuid, parte.id, token))
+    } catch (e: any) {
+      setPorQue({ veredicto: e?.message || 'No se pudo mirar el vídeo.' })
+    } finally {
+      setMirando(false)
+    }
+  }
+
   function alCargar() {
     const v = video.current
     if (!v) return
@@ -242,6 +269,7 @@ function EditorRecorteDentro({
       pendiente.current = null
     }
     setCargando(false)
+    setTarda(false)
     setError('')
     if (quiereSonar.current) void v.play().catch(() => undefined)
     quiereSonar.current = false
@@ -582,6 +610,49 @@ function EditorRecorteDentro({
                   >
                     <RotateCcw size={15} /> Volver a intentarlo
                   </button>
+                </div>
+              ) : tarda ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+                  <Loader2 size={26} className="animate-spin text-white/70" />
+                  <p className="max-w-md text-[14px] text-white/90">
+                    {porQue ? porQue.veredicto : 'El vídeo está tardando mucho en cargar. Puedes recortar igualmente con la línea de abajo: los tiempos valen aunque no se vea.'}
+                  </p>
+                  {porQue && porQue.tamano ? (
+                    <p className="text-[12px] text-white/60">
+                      {[porQue.archivo && `.${porQue.archivo}`, porQue.tipo, porQue.acepta_rangos ? 'deja pedir trozos' : 'no deja pedir trozos', porQue.cajas?.length ? `empieza por ${porQue.cajas.slice(0, 3).join(' · ')}` : '']
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {!porQue ? (
+                      <button
+                        onClick={verPorQue}
+                        disabled={mirando}
+                        className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-white text-[13.5px] font-semibold text-[#0B1033] disabled:opacity-70"
+                      >
+                        {mirando ? <Loader2 size={15} className="animate-spin" /> : null} Ver por qué
+                      </button>
+                    ) : null}
+                    <button
+                      onClick={() => {
+                        setTarda(false)
+                        setCargando(true)
+                        setIntento((n) => n + 1)
+                      }}
+                      className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-white/40 text-[13.5px] font-semibold text-white"
+                    >
+                      <RotateCcw size={15} /> Volver a intentarlo
+                    </button>
+                    <a
+                      href={urlVideoSala(courseUuid, parte.id, 1)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center h-9 px-4 rounded-lg border border-white/40 text-[13.5px] font-semibold text-white"
+                    >
+                      Abrirlo en otra pestaña
+                    </a>
+                  </div>
                 </div>
               ) : cargando ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

@@ -74,6 +74,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, AlertTriangle, Loader2, Maximize2, Minimize2, PenLine, Power } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { conMano, haceCuantoMano, manosLevantadas, sinMano, tieneMano, type ManoLevantada } from '@/lib/nawar/mano'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { entrarPizarra, entrarSala, getSala, guardarSala, type EntradaSala } from '@services/salas/salas'
 import { getSemanas, diaCorto, type Semana } from '@services/tareas/tareas'
@@ -128,6 +129,77 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
   // Dentro de la llamada (entre «joined-meeting» y «left-meeting»).
   const [dentro, setDentro] = useState(false)
   const llamadaRef = useRef<any>(null)
+
+  // Levantar la mano (17/11/2026, ver lib/nawar/mano.ts): un botón propio en
+  // la barra de Daily; el nombre lleva «✋» delante y el equipo ve el orden.
+  const [manos, setManos] = useState<ManoLevantada[]>([])
+  const [miMano, setMiMano] = useState(false)
+  const manoDesde = useRef<Record<string, number>>({})
+  const [, setTicMano] = useState(0)
+  useEffect(() => {
+    if (!manos.length) return
+    const id = window.setInterval(() => setTicMano((n) => n + 1), 30000)
+    return () => window.clearInterval(id)
+  }, [manos.length])
+  const botonesMano = (arriba: boolean) => ({
+    mano: {
+      iconPath: `${typeof window !== 'undefined' ? window.location.origin : ''}/mano.svg`,
+      label: arriba ? 'Bajar la mano' : 'Levantar la mano',
+      tooltip: arriba ? 'Bajar la mano' : 'Levantar la mano para preguntar',
+      visualState: (arriba ? 'active' : 'default') as 'active' | 'default',
+    },
+  })
+  const recalcularManos = useCallback(() => {
+    const ll = llamadaRef.current
+    if (!ll) return
+    try {
+      const otros = Object.values(ll.participants() || {}).filter((p: any) => p && !p.local) as any[]
+      const vistos = new Set<string>()
+      for (const p of otros) {
+        if (!tieneMano(p.user_name)) continue
+        vistos.add(p.session_id)
+        if (manoDesde.current[p.session_id] === undefined) manoDesde.current[p.session_id] = Date.now()
+      }
+      for (const id of Object.keys(manoDesde.current)) if (!vistos.has(id)) delete manoDesde.current[id]
+      setManos(manosLevantadas(otros, manoDesde.current, Date.now()))
+      setMiMano(tieneMano(ll.participants()?.local?.user_name))
+    } catch {
+      /* la llamada se está cerrando */
+    }
+  }, [])
+  const ponerMiMano = useCallback((arriba: boolean, porElProfe = false) => {
+    const ll = llamadaRef.current
+    if (!ll) return
+    try {
+      const yo = ll.participants()?.local
+      const base = sinMano(yo?.user_name || '')
+      if (base || arriba) void Promise.resolve(ll.setUserName(arriba ? conMano(base) : base)).catch(() => undefined)
+      try {
+        ll.updateCustomTrayButtons(botonesMano(arriba))
+      } catch {
+        /* versión de Daily sin botones propios */
+      }
+      ll.sendAppMessage({ nawar: 'mano', arriba }, '*')
+    } catch {
+      /* fuera de la llamada */
+    }
+    setMiMano(arriba)
+    if (porElProfe) toast('El profe ha bajado tu mano')
+  }, [])
+  const bajarManoDe = (id?: string) => {
+    const ll = llamadaRef.current
+    if (!ll) return
+    const ids = id ? [id] : manos.map((m) => m.id)
+    for (const x of ids) {
+      try {
+        ll.sendAppMessage({ nawar: 'bajar-mano' }, x)
+      } catch {
+        /* ya no está */
+      }
+    }
+  }
+  const ponerMiManoRef = useRef(ponerMiMano)
+  ponerMiManoRef.current = ponerMiMano
 
   // ── La pizarra al lado de la llamada (equipo) ────────────────────────────
   const [pizarra, setPizarra] = useState(false)
@@ -485,6 +557,7 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
           showLeaveButton: true,
           showFullscreenButton: true,
           theme: TEMA_NAWAR,
+          customTrayButtons: botonesMano(false),
         })
         // El botón de pantalla completa de Daily necesita este permiso en su iframe.
         try {
@@ -502,6 +575,42 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
         // también avisa de «left-meeting», y no hay que mandarle al curso.
         llamadaRef.current = llamada
         llamada.on('joined-meeting', () => vivo && setDentro(true))
+        // Levantar la mano (17/11/2026).
+        llamada.on('custom-button-click', (ev: any) => {
+          if (!vivo || ev?.button_id !== 'mano') return
+          let arriba = true
+          try {
+            arriba = !tieneMano(llamada.participants()?.local?.user_name)
+          } catch {
+            /* se queda en levantarla */
+          }
+          ponerMiManoRef.current(arriba)
+        })
+        llamada.on('app-message', (ev: any) => {
+          if (!vivo) return
+          const d = ev?.data
+          if (!d || typeof d !== 'object') return
+          if (d.nawar === 'mano') {
+            if (d.arriba) {
+              manoDesde.current[ev.fromId] = Date.now()
+              if (entrada.anfitrion) {
+                let quien = 'Alguien'
+                try {
+                  quien = sinMano(llamada.participants()?.[ev.fromId]?.user_name) || quien
+                } catch {
+                  /* sin nombre */
+                }
+                toast(`✋ ${quien} ha levantado la mano`)
+              }
+            } else delete manoDesde.current[ev.fromId]
+            window.setTimeout(recalcularManos, 400)
+          } else if (d.nawar === 'bajar-mano') {
+            ponerMiManoRef.current(false, true)
+          }
+        })
+        for (const ev of ['joined-meeting', 'participant-joined', 'participant-updated', 'participant-left'] as const) {
+          llamada.on(ev, () => vivo && recalcularManos())
+        }
         llamada.on('left-meeting', () => {
           if (!vivo) return
           setDentro(false)
@@ -614,6 +723,35 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
           </button>
         ) : null}
       </div>
+
+      {/* Manos levantadas (17/11/2026): el equipo ve el orden y las baja. */}
+      {entrada?.anfitrion && manos.length ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#DDE6F5] bg-[#F0F5FF] px-3 py-2 text-[13px] text-[#0a1656]">
+          <span className="font-semibold">✋ Manos levantadas ({manos.length})</span>
+          {manos.map((m, i) => (
+            <span key={m.id} className="inline-flex items-center gap-1.5 rounded-lg border border-[#D5DEEE] bg-white px-2 py-1">
+              <span className="font-semibold">{i + 1}.</span> {m.nombre}
+              <span className="text-[#5A6480]">· {haceCuantoMano(m.desde, Date.now())}</span>
+              <button onClick={() => bajarManoDe(m.id)} className="ml-1 font-semibold text-[#0b2da0] hover:underline">
+                Bajar
+              </button>
+            </span>
+          ))}
+          {manos.length > 1 ? (
+            <button onClick={() => bajarManoDe()} className="ml-auto font-semibold text-[#0b2da0] hover:underline">
+              Bajar todas
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {!entrada?.anfitrion && miMano ? (
+        <div className="flex items-center gap-3 rounded-xl border border-[#DDE6F5] bg-[#F0F5FF] px-3 py-2 text-[13px] text-[#0a1656]">
+          <span>✋ Tienes la mano levantada. El profe lo ve y te dará la palabra.</span>
+          <button onClick={() => ponerMiMano(false)} className="ml-auto font-semibold text-[#0b2da0] hover:underline">
+            Bajar la mano
+          </button>
+        </div>
+      ) : null}
 
       {/* Solo el equipo ve por qué no se graba; el alumno, nada. */}
       {grabacion.estado === 'error' && entrada?.anfitrion ? (
@@ -759,7 +897,7 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
           <p className="text-[12px] text-[#5A6480]">
             Entras como <strong className="text-gray-900">{entrada.nombre}</strong>
             {entrada.anfitrion ? ' (anfitrión: puedes silenciar y compartir pantalla)' : ''}. Si el navegador te
-            pregunta por la cámara y el micrófono, dale a «Permitir».
+            pregunta por la cámara y el micrófono, dale a «Permitir». ¿Una pregunta? Pulsa «Levantar la mano» en la barra de la llamada.
           </p>
         </>
       )}
