@@ -132,3 +132,17 @@ def test_resultados_de_los_ejercicios():
 
     p = R.para_progreso(por[1], [{"id": "l1", "titulo": "Mijn huis", "semana": "2026-11-16"}, {"id": "otra"}])
     assert p == [{"id": "l1", "titulo": "Mijn huis", "semana": "2026-11-16", "aciertos": 1, "total": 2, "mejor": None, "veces": None, "ultima": "b"}]
+
+
+def test_el_video_solo_para_el_equipo_no_llega_al_alumno():
+    from datetime import date
+
+    l = L.limpiar({"semana": "2026-11-16", "titulo": "De klok", "video": "https://www.nieuwsbegrip.nl/les/1", "video_equipo": True})
+    assert l["video_equipo"] is True
+    alumno = L.partir([l], date(2026, 11, 17), equipo=False)["actual"]
+    assert "video" not in alumno and alumno["video_en_clase"] is True
+    equipo = L.partir([l], date(2026, 11, 17), equipo=True)["actual"]
+    assert equipo["video"] == "https://www.nieuwsbegrip.nl/les/1"
+    # sin la marca, el alumno sigue viendo el vídeo
+    normal = L.limpiar({"semana": "2026-11-16", "titulo": "X", "video": "https://youtu.be/abcDEF12345"})
+    assert L.partir([normal], date(2026, 11, 17), equipo=False)["actual"]["video"]

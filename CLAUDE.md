@@ -5794,6 +5794,24 @@ títulos repetidos y no saber dónde estaba cada enlace).
 - «Pegar enlace» acepta también el enlace de compartir de Bunny
   (`player.mediadelivery.net/play/…`).
 
+### El vídeo de la lectura: Bunny dentro y «solo para el equipo» (17/11/2026)
+- YouTube, Bunny (`iframe.mediadelivery.net/embed/…`, `player.mediadelivery.net/play/…`)
+  y Vimeo se ven DENTRO de la lectura (`videoIncrustado` en
+  `services/lecturas/lecturas.ts`); otra web, botón «Ver el vídeo».
+- ⚠️ **Los vídeos de Nieuwsbegrip NO se pueden incrustar ni abrir sueltos**: están
+  en el Bunny de Nieuwsbegrip (biblioteca 327691), que solo los deja ver desde su
+  web: desde la escuela, o pegando el enlace en el navegador, Bunny da 403. No se
+  puede arreglar desde aquí ni hay que saltarse ese bloqueo. Solo lo arregla
+  Nieuwsbegrip (añadir `app.holandesnawar.com` a sus dominios) o con cuentas de
+  alumno suyas. Se les mandó un correo en neerlandés pidiendo las dos cosas.
+- **«El vídeo solo lo ve el equipo»** (casilla en «Nueva lectura», campo
+  `video_equipo`): el enlace (el de la PÁGINA de Nieuwsbegrip donde el profe lo ve
+  con su cuenta, no el de Bunny) solo le llega al equipo (`para_alumnos` en
+  `lecturas.py` lo quita en el servidor). El equipo ve «Vídeo para la clase · Abrir
+  el vídeo» y lo comparte en la sala; el alumno ve «El vídeo de esta lectura lo
+  veréis juntos en la clase» (`video_en_clase`). Queda en la grabación de la clase:
+  confirmar con Nieuwsbegrip que la licencia lo permite. Test en `test_lecturas.py`.
+
 ### Los ejercicios de la lectura, dentro de la escuela (15/11/2026)
 Usuario: "en la lectura de la semana, un botón para ir a los ejercicios, ahí
 mismo hacerlos y ver la respuesta". Cada lectura lleva `ejercicios` (lista en

@@ -16,6 +16,8 @@ Qué es una lectura (todo opcional menos el título y la semana):
   escucharlo, y su traducción (se enseña plegada).
 - `palabras`: [{nl, es, ejemplo}] — las palabras de la semana.
 - `video`: el enlace del vídeo (NOS Jeugdjournaal, YouTube…).
+- `video_equipo`: el vídeo solo lo ve el equipo, que lo pone en la clase
+  (vídeos con licencia que no se dejan incrustar, como los de Nieuwsbegrip).
 - `comunidad`: el enlace a la publicación de los ejercicios en la comunidad.
 
 Dónde se guarda: en la configuración de la escuela (org_config `lecturas`,
@@ -153,12 +155,26 @@ def limpiar(datos: dict, antes: Optional[dict] = None) -> dict:
     for campo in ("video", "comunidad"):
         if campo in datos:
             base[campo] = _url(datos.get(campo))
+    if "video_equipo" in datos:
+        base["video_equipo"] = bool(datos.get("video_equipo"))
     if "palabras" in datos:
         base["palabras"] = leer_palabras(datos.get("palabras"))
     if "ejercicios" in datos:
         base["ejercicios"] = leer_ejercicios(datos.get("ejercicios"))
     base.setdefault("id", uuid4().hex[:12])
     return base
+
+
+def para_alumnos(lectura: dict) -> dict:
+    """Con «Solo para el equipo» marcado (`video_equipo`), el enlace del vídeo
+    no le llega al alumno: es un vídeo con licencia (Nieuwsbegrip…) que el profe
+    o el monitor pone en la clase compartiendo pantalla. El alumno solo sabe que
+    lo verá en la clase (`video_en_clase`)."""
+    if not (lectura.get("video_equipo") and lectura.get("video")):
+        return lectura
+    copia = {k: v for k, v in lectura.items() if k not in ("video", "video_equipo")}
+    copia["video_en_clase"] = True
+    return copia
 
 
 def partir(lecturas: list[dict], hoy: date, equipo: bool) -> dict:
@@ -171,6 +187,8 @@ def partir(lecturas: list[dict], hoy: date, equipo: bool) -> dict:
         key=lambda l: (l["semana"], l.get("creada", "")),
         reverse=True,
     )
+    if not equipo:
+        ordenadas = [para_alumnos(l) for l in ordenadas]
     publicadas = [l for l in ordenadas if l["semana"] <= hoy_s]
     proximas = sorted((l for l in ordenadas if l["semana"] > hoy_s), key=lambda l: l["semana"])
     return {
