@@ -250,7 +250,20 @@ export function CuerpoLectura({ l, orgId }: { l: Lectura; orgId?: number }) {
         </Seccion>
       ) : null}
 
-      {l.video ? (
+      {l.video && l.video_equipo ? (
+        <Seccion titulo="Vídeo para la clase · solo lo ve el equipo">
+          <p className="text-[13.5px] text-[#4A5272]">
+            Los alumnos no lo ven aquí: ábrelo en otra pestaña y compártelo en la sala durante la clase.
+          </p>
+          <a href={l.video} target="_blank" rel="noopener" className={BOTON}>
+            <ExternalLink size={15} /> Abrir el vídeo
+          </a>
+        </Seccion>
+      ) : l.video_en_clase ? (
+        <Seccion titulo="Vídeo">
+          <p className="text-[13.5px] text-[#4A5272]">El vídeo de esta lectura lo veréis juntos en la clase.</p>
+        </Seccion>
+      ) : l.video ? (
         <Seccion titulo="Escucha">
           <p className="text-[13.5px] text-[#4A5272]">Escúchalo aunque no lo entiendas todo: fíjate en las palabras de la semana.</p>
           {yt ? (
@@ -443,6 +456,7 @@ function EditorLectura({
   const [traduccion, setTraduccion] = useState(lectura?.traduccion || '')
   const [palabras, setPalabras] = useState((lectura?.palabras || []).map((p) => [p.nl, p.es, p.ejemplo].filter(Boolean).join(' | ')).join('\n'))
   const [video, setVideo] = useState(lectura?.video || '')
+  const [videoEquipo, setVideoEquipo] = useState(!!lectura?.video_equipo)
   const [comunidad, setComunidad] = useState(lectura?.comunidad || '')
   const [ejerciciosTexto, setEjerciciosTexto] = useState(aTexto(lectura?.ejercicios))
   const leidos = leerEjercicios(ejerciciosTexto)
@@ -455,7 +469,7 @@ function EditorLectura({
     setGuardando(true)
     setError('')
     try {
-      const datos = { semana, titulo, titulo_es: tituloEs, texto, traduccion, palabras, video, comunidad, ejercicios: leidos.ejercicios }
+      const datos = { semana, titulo, titulo_es: tituloEs, texto, traduccion, palabras, video, video_equipo: videoEquipo, comunidad, ejercicios: leidos.ejercicios }
       const hecha = lectura ? await editarLectura(orgId, lectura.id, datos, accessToken) : await crearLectura(orgId, datos, accessToken)
       if (archivo) await subirHoja(orgId, hecha.id, archivo, accessToken)
       onHecho()
@@ -549,6 +563,14 @@ function EditorLectura({
         <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="Enlace del vídeo (Bunny, YouTube, Vimeo o NOS)" className={CAMPO} />
         <input value={comunidad} onChange={(e) => setComunidad(e.target.value)} placeholder="Enlace a los ejercicios en la comunidad" className={CAMPO} />
       </div>
+      <label className="flex items-start gap-2.5 text-[13.5px] text-[#3B4262] cursor-pointer">
+        <input type="checkbox" checked={videoEquipo} onChange={(e) => setVideoEquipo(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#0b2da0]" />
+        <span>
+          <span className="font-semibold text-[#0B1033]">El vídeo solo lo ve el equipo</span> (profes y monitores lo ponen en la clase
+          compartiendo pantalla). Para vídeos con licencia, como los de Nieuwsbegrip: pega el enlace de la página donde lo ves tú con tu
+          cuenta, no el de Bunny.
+        </span>
+      </label>
       {error ? <p className="text-[13px] text-red-600">{error}</p> : null}
       <div className="flex justify-end">
         <button type="button" disabled={guardando || !titulo.trim() || !semana} onClick={guardar} className={BOTON_PRINCIPAL}>

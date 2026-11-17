@@ -22,6 +22,10 @@ export interface Lectura {
   traduccion?: string
   palabras?: Palabra[]
   video?: string
+  /** El vídeo solo lo ve el equipo, que lo pone en la clase (Nieuwsbegrip…). */
+  video_equipo?: boolean
+  /** Para el alumno: hay vídeo, pero se ve en la clase. */
+  video_en_clase?: boolean
   comunidad?: string
   /** Ejercicios sobre el texto, que se hacen en la escuela. */
   ejercicios?: EjercicioLectura[]
