@@ -242,6 +242,15 @@ def cita_desde_calendly(evento: dict, invitados: list[dict]) -> list[dict]:
                 # turnos, el closer que le asignó Calendly.
                 "anfitrion_email": anfitrion_email,
                 "anfitrion": anfitrion,
+                # La campaña con la que se abrió el enlace de Calendly (17/11):
+                # Calendly guarda los `utm_*` de la dirección de reserva en
+                # `tracking`. Es lo único que dice de dónde viene quien reserva
+                # directo en Calendly (el enlace de un setter), sin pasar por la
+                # web. La lee la analítica (services/stats/analitica.py).
+                "utm": {
+                    k: str((inv.get("tracking") or {}).get(k) or "")[:120]
+                    for k in ("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term")
+                },
             }
         )
     return salida

@@ -111,6 +111,36 @@ async def api_paso(request: Request, db_session: AsyncSession = Depends(get_db_s
 
 
 @router.post(
+    "/visita",
+    status_code=204,
+    summary="La web avisa de una página vista (sin datos personales), para la analítica del panel.",
+    description=(
+        "Público. Lo manda el navegador directamente, como texto (sin consulta "
+        "previa de CORS): `{s: sesión al azar, h: web, r: página, ref: web de "
+        "origen, w: ancho de pantalla, utm_…}`. Ver services/stats/analitica.py."
+    ),
+)
+async def api_visita(request: Request, db_session: AsyncSession = Depends(get_db_session)):
+    import json
+
+    from fastapi import Response
+
+    from src.services.security.rate_limiting import check_rate_limit, get_client_ip
+    from src.services.stats.analitica import apuntar_visita
+
+    permitido, _, _ = check_rate_limit(f"web-visita:{get_client_ip(request)}", 900, 3600)
+    if permitido:
+        try:
+            datos = json.loads((await request.body())[:4000] or b"{}")
+            if isinstance(datos, dict):
+                await apuntar_visita(datos, request.headers.get("user-agent") or "", db_session)
+        except Exception:  # noqa: BLE001
+            # Es un contador: un fallo aquí no le importa a quien navega.
+            logger.warning("No se pudo apuntar una visita de la web", exc_info=True)
+    return Response(status_code=204)
+
+
+@router.post(
     "/calendly/aviso",
     summary="Calendly avisa de una reserva (firmado). Manda el correo de Rida una vez por persona.",
     description=(
