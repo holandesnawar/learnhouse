@@ -7618,6 +7618,30 @@ Síntoma: con la sesión iniciada, la barra salía sin «Mis clases» ni «Comun
 - Solo un administrador enciende la sala o crea semanas en la formación.
 - El «Seguimiento» de cada semana lleva al profe a `/seguimiento`; «Avisar» del calendario y los ajustes de Mensajes solo los ven administradores.
 
+### La pizarra: elegir, estirar y cambiar el color de lo escrito (18/11/2026)
+Usuario: "agrandar o achicar un texto como en Canva una vez escrito y clicar,
+el cambiar color tampoco funciona, y se ve mal… más profesional".
+- **Elegir como en Canva**: con «Elegir y mover» (V) un clic elige un texto o
+  un dibujo; con Texto (T) el primer clic sobre un texto lo elige y el segundo
+  (o doble clic, o Intro) lo abre para escribir. Un clic fuera lo suelta. Lo
+  elegido lleva un recuadro con **cuatro esquinas**: arrastrar una agranda o
+  achica (texto: la letra; dibujo: puntos y grosor) con la esquina de enfrente
+  quieta. Encima sale una **barra pequeña**: colores, − tamaño +, Texto /
+  Título / Nota, escribir, duplicar (Ctrl+D) y borrar (Supr). Esc lo suelta.
+  Deshacer lo devuelve todo (el estirado es un solo paso).
+- **Por qué «cambiar el color no funcionaba»**: (1) pulsar un color mientras se
+  escribía quitaba el foco a la caja de texto, el texto se guardaba con el
+  color de antes y el color nuevo solo valía para el siguiente; (2) no había
+  forma de cambiarle el color a lo ya escrito; (3) una Nota salía siempre
+  azul, eligiera el color que eligiera. Ahora los botones de color y tamaño no
+  quitan el foco (`onMouseDown` sin hacer nada), el color se aplica a lo
+  elegido o a lo que se escribe, y la Nota usa el color elegido.
+- Barra de abajo por grupos (herramientas · color y tamaño · deshacer · página
+  · zoom · páginas). El recuadro y la barra pequeña van en la página, no en el
+  lienzo: no salen en lo que ven los alumnos en la sala.
+- Lógica pura en `lib/nawar/pizarra.ts` (`escalarTrazo`, `factorEscala`,
+  `cambiarTamano`, `recolorear`, `duplicarTrazo`, `esquinas`), con test.
+
 ### Que una llamada lenta no congele la escuela (16/11/2026)
 La API es UN proceso con UN bucle: una llamada síncrona a Resend, SMTP o Stripe dentro de una ruta async paraba a TODOS mientras esperaba. Ahora van en un hilo: los correos con `await en_hilo(fn, …)` (`services/email/utils.py`, que además deja apuntado el bucle para que `email_log` se siga guardando desde el hilo; los textos de `usar_textos` viajan solos) y Stripe con `await asyncio.to_thread(…)` (caja de la formación, ebook, señal, plazos, webhook). **Cualquier correo o llamada a Stripe nueva dentro de una ruta async, igual.** `_usar_stripe()` se sigue llamando antes (la clave es global y el hilo la ve). La copia del volumen (`/backup/content-archive`) también se empaqueta en un hilo.
 - Al arrancar, cada sentencia de `_ADDED_COLUMNS` / `_DATOS_UNA_VEZ` / `_INDICES`, el `CREATE EXTENSION vector` y `create_all` van en su propio SAVEPOINT (`_paso_aparte`): antes, en Postgres, una sola que fallara abortaba la transacción y se perdían TODAS las columnas nuevas.
