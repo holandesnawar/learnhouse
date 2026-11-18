@@ -218,7 +218,10 @@ async def _bunny(metodo: str, ruta: str, cuerpo: Optional[dict] = None, params: 
 
 _cache: dict[str, Any] = {"t": 0.0, "videos": {}, "error": ""}
 _host: dict[str, str] = {}
-_mp4_ok: dict[str, tuple[float, bool]] = {}
+_mp4_ok: dict[str, tuple[float, int]] = {}
+_rehaciendo: dict[str, float] = {}
+#: Cada cuánto se le puede volver a pedir a Bunny que rehaga un vídeo.
+_REHACER_SEG = 6 * 3600
 _pidiendo: set[str] = set()
 _tareas: set[asyncio.Task] = set()
 _cerrojo = asyncio.Lock()
@@ -291,22 +294,97 @@ async def _host_desde(guid: str) -> str:
     return h
 
 
-async def _responde(url: str) -> bool:
-    """¿El mp4 existe de verdad? (MP4 Fallback apagado = 404)."""
+async def _responde(url: str) -> int:
+    """Lo que contesta el mp4 (200/206 = existe; 404 = sin MP4 Fallback;
+    403 = Bunny no deja abrirlo desde fuera; 0 = no se pudo preguntar)."""
     guardado = _mp4_ok.get(url)
-    if guardado and time.time() - guardado[0] < (3600 if guardado[1] else 300):
+    if guardado and time.time() - guardado[0] < (3600 if guardado[1] in (200, 206) else 120):
         return guardado[1]
-    ok = False
+    code = 0
     try:
         async with httpx.AsyncClient(timeout=10, follow_redirects=True) as c:
             r = await c.get(url, headers={"Range": "bytes=0-1", "Referer": _REFERER})
-            ok = r.status_code in (200, 206)
-            if not ok:
-                logger.warning("Bunny: el mp4 %s responde %s", url, r.status_code)
+            code = r.status_code
+            if code not in (200, 206):
+                logger.warning("Bunny: el mp4 %s responde %s", url, code)
     except httpx.HTTPError as exc:
         logger.warning("Bunny: no se pudo comprobar el mp4. %s", exc)
-    _mp4_ok[url] = (time.time(), ok)
-    return ok
+    _mp4_ok[url] = (time.time(), code)
+    return code
+
+
+async def rehacer(guid: str) -> bool:
+    """Pide a Bunny que vuelva a convertir un vídeo (así hace el mp4 si MP4
+    Fallback se encendió después de copiarlo). Como mucho cada 6 horas."""
+    if not guid or time.time() - _rehaciendo.get(guid, 0) < _REHACER_SEG:
+        return False
+    _rehaciendo[guid] = time.time()
+    try:
+        await _bunny("POST", f"/videos/{guid}/reencode")
+        _cache["t"] = 0.0
+        logger.info("Bunny: le pido que rehaga el vídeo %s para tener el mp4.", guid)
+        return True
+    except BunnyError as exc:
+        logger.warning("Bunny: no deja rehacer el vídeo %s. %s", guid, exc.mensaje)
+        return False
+
+
+async def detalle(grabacion_id: str) -> dict:
+    """En qué está esa grabación en Bunny y qué contesta su mp4. Si está lista
+    pero sin mp4 (404), le pide a Bunny que la rehaga."""
+    if not configurado():
+        return {"estado": "sin-bunny"}
+    videos = await _videos()
+    v = videos.get(grabacion_id)
+    r = resumen(v)
+    if r["estado"] == "no" and grabacion_id in _pidiendo:
+        r = {"estado": "preparando", "progreso": 0}
+    out: dict[str, Any] = {**r, "error_lista": ultimo_error()}
+    if v and r["estado"] == "lista":
+        guid = str(v.get("guid") or "")
+        host = await _host_desde(guid)
+        url = mp4_de(host, guid, v.get("availableResolutions"))
+        out["mp4_url"] = url
+        out["mp4_code"] = await _responde(url) if url else 0
+        out["sin_cdn"] = not host
+        if out["mp4_code"] == 404:
+            out["rehaciendo"] = await rehacer(guid) or time.time() - _rehaciendo.get(guid, 0) < _REHACER_SEG
+    elif v and r["estado"] == "error":
+        out["motivo"] = str(v.get("statusMessage") or v.get("errorMessage") or "")
+    return out
+
+
+def explicar(d: dict) -> str:
+    """Una frase para la persona: qué le pasa al vídeo en Bunny."""
+    e = d.get("estado")
+    if e == "sin-bunny":
+        return ""
+    if e == "no":
+        if d.get("error_lista"):
+            return f"La escuela no puede leer la biblioteca de Bunny: {d['error_lista']}."
+        return ("Aún no está copiada en Bunny. La escuela se la acaba de pedir: Bunny tarda un rato en copiar "
+                "y preparar una grabación larga (hasta una hora). Luego se podrá saltar a cualquier minuto.")
+    if e == "preparando":
+        return (f"Bunny la está preparando ({d.get('progreso', 0)} %). Cuando termine se podrá saltar a "
+                "cualquier minuto; mientras, sale la de Daily, que es la que se queda congelada.")
+    if e == "error":
+        return f"Bunny no pudo convertir esta grabación{': ' + d['motivo'] if d.get('motivo') else ''}. Hay que borrarla en Bunny para que la escuela la vuelva a pedir."
+    if e == "lista":
+        code = d.get("mp4_code")
+        if code in (200, 206):
+            return "Se ve desde Bunny: ya se puede saltar al momento a cualquier minuto."
+        if d.get("sin_cdn"):
+            return ("Está lista en Bunny, pero la escuela no sabe la dirección de su CDN. Pon en Railway "
+                    "LIBRARY_CDN_BUNNY con el «CDN Hostname» de la biblioteca (vz-….b-cdn.net).")
+        if code == 404:
+            return ("Está lista en Bunny, pero sin el archivo mp4: MP4 Fallback se encendió después de copiarla. "
+                    "La escuela ya le ha pedido a Bunny que la rehaga; en un rato (hasta una hora) se verá bien.")
+        if code in (401, 403):
+            return ("Está lista en Bunny, pero Bunny no deja abrirla desde la escuela (403). En Bunny → la "
+                    "biblioteca → Security: apaga «Token Authentication» o añade app.holandesnawar.com a los "
+                    "dominios permitidos.")
+        return f"Está lista en Bunny, pero su mp4 no responde ({code or 'sin respuesta'})."
+    return ""
 
 
 async def mp4_listo(grabacion_id: str) -> str:
@@ -314,15 +392,9 @@ async def mp4_listo(grabacion_id: str) -> str:
     if not configurado():
         return ""
     try:
-        videos = await _videos()
-        v = videos.get(grabacion_id)
-        if not v or resumen(v)["estado"] != "lista":
-            return ""
-        guid = str(v.get("guid") or "")
-        host = await _host_desde(guid)
-        url = mp4_de(host, guid, v.get("availableResolutions"))
-        if url and await _responde(url):
-            return url
+        d = await detalle(grabacion_id)
+        if d.get("estado") == "lista" and d.get("mp4_code") in (200, 206):
+            return str(d.get("mp4_url") or "")
     except Exception as exc:  # noqa: BLE001 - nunca romper el vídeo por Bunny
         logger.warning("Bunny: %s", exc)
     return ""

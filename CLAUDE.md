@@ -7828,6 +7828,14 @@ puede saltar (ver «El vídeo del recorte se queda congelado a mitad»).
 - ⚠️ Sin probar contra Bunny de verdad (`video.bunnycdn.com` no se alcanza
   desde aquí). Si algo no va, «Ver por qué» del editor dice ahora el estado en
   Bunny, y el registro de Railway lleva las líneas «Bunny: …».
+- ⚠️ **«Puse MP4 Fallback y sigue sin verse» (18/11)**: MP4 Fallback solo vale
+  para lo que Bunny convierte DESPUÉS de encenderlo. Ahora, si un vídeo está
+  listo en Bunny y su mp4 da 404, la escuela le pide a Bunny que lo rehaga
+  (`POST /videos/{guid}/reencode`, `bunny.rehacer`, como mucho cada 6 h). Y
+  «Ver por qué» dice primero qué le pasa en Bunny (`bunny.detalle` +
+  `bunny.explicar`: sin copiar → la pide; preparando con %; lista sin mp4 →
+  rehaciendo; 403 → Security de la biblioteca; sin CDN → `LIBRARY_CDN_BUNNY`)
+  y luego lo de Daily.
 - Pendiente (paso 2, si se quiere): un vídeo cortado de verdad en Bunny (un
   proceso en GitHub con ffmpeg), para usarlo fuera de la escuela.
 
@@ -7882,6 +7890,19 @@ borran las grabaciones de Zoom de octubre… así revisamos el vídeo un mes".
   4,5 y sigue la hora siguiente) y archivos de 50 MB como mucho (un audio más
   grande se salta y lo dice). Sin M4A en Zoom no puede sacar el audio del vídeo
   (no hay ffmpeg): se salta. El workflow de GitHub queda solo a mano.
+- ⚠️ **Desde la tarde del 18/11 guarda también el VÍDEO** (usuario: «mejor que
+  guarde vídeo, tengo 2 TB… el de galería»): `video.mp4` en la carpeta de cada
+  llamada, el de galería si lo hay (`PREFERENCIA_VIDEO`). Lo grande se sube A
+  TROZOS de 32 MB (Zoom da trozos con `Range` en la dirección a la que
+  redirige; Drive, subida «resumable» con `ScriptApp.getOAuthToken()`); un
+  vídeo que no acaba sigue en la siguiente vuelta (`est.sesion`). Por eso ya
+  no hay audios «demasiado grandes». El vídeo de Zoom (todas sus vistas) se
+  borra solo cuando audio y vídeo están en Drive y el de Drive pesa lo mismo
+  que el de Zoom (`videoSeguro_`). Vuelta de 3,5 min (las cuentas gratis de
+  Google dan 90 min al día a los activadores). Función `parar()` quita el
+  activador. Probado con un Zoom y un Drive falsos en Node, no contra los de
+  verdad. No había corrido nunca de verdad (solo `probar`) antes de este
+  cambio: no se borró nada.
 
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con

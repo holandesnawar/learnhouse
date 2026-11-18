@@ -774,13 +774,16 @@ async def diagnostico(course_uuid: str, grabacion_id: str) -> dict:
     }
     from src.services.salas import bunny
 
+    en_bunny = ""
     if bunny.configurado():
-        est = (await bunny.estados([grabacion_id])).get(grabacion_id) or {}
-        mp4 = await bunny.mp4_listo(grabacion_id)
-        out["bunny"] = {**est, "mp4": bool(mp4), "error": bunny.ultimo_error()}
-        if mp4:
-            out.update(status=200, veredicto="Se ve desde Bunny: ya se puede saltar al momento a cualquier minuto.")
+        d = await bunny.detalle(grabacion_id)
+        out["bunny"] = {k: v for k, v in d.items() if k != "mp4_url"}
+        en_bunny = bunny.explicar(d)
+        if d.get("estado") == "lista" and d.get("mp4_code") in (200, 206):
+            out.update(status=200, veredicto=en_bunny)
             return out
+        if d.get("estado") == "no" and not d.get("error_lista"):
+            bunny.en_segundo_plano(_copiar_a_bunny(course_uuid, [grabacion_id]))
     olvidar_enlace(grabacion_id)
     enlace = await enlace_daily(course_uuid, grabacion_id)
     if enlace.startswith("/"):
@@ -790,7 +793,7 @@ async def diagnostico(course_uuid: str, grabacion_id: str) -> dict:
         async with httpx.AsyncClient(timeout=25, follow_redirects=True) as c:
             r = await c.get(enlace, headers={"Range": "bytes=0-1048575"})
     except Exception as exc:  # noqa: BLE001
-        out.update(status=0, veredicto=f"No se pudo pedir el vídeo a Daily: {exc}")
+        out.update(status=0, veredicto=(en_bunny + " " if en_bunny else "") + f"No se pudo pedir el vídeo a Daily: {exc}")
         return out
     rango = r.headers.get("content-range", "")
     tam = 0
@@ -808,6 +811,6 @@ async def diagnostico(course_uuid: str, grabacion_id: str) -> dict:
         tamano=tam,
         cajas=d["cajas"][:12],
         servidor=httpx.URL(str(r.url)).host,
-        veredicto=explicar_video(d),
+        veredicto=(f"{en_bunny} Mientras, la de Daily: {explicar_video(d)}" if en_bunny else explicar_video(d)),
     )
     return out
