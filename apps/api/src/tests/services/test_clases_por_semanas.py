@@ -261,3 +261,40 @@ async def test_avisar_a_la_clase(db, org, monkeypatch):
     # Las clases lado a lado.
     lado = await T.resumen_clases(org.id, db)
     assert {c["course_uuid"]: c["semana"]["tema"] for c in lado}["blauw"] == "Kleding"
+
+
+async def test_la_version_de_la_clase_es_la_de_su_grupo_o_la_de_la_clase_a_la_que_fue(db, org, monkeypatch):
+    """18/11/2026: cada grupo ve UNA presentación; tras su clase, la versión
+    que guardó SU profe. Quien esa semana va a la clase del otro grupo ve la de
+    esa clase, y no antes de que se dé."""
+    import json as _json
+
+    from sqlmodel import select as _select
+
+    from src.db.tareas import TareaSemana
+
+    blauw, rood = await _dos_grupos(db, org)
+    filas = (await db.execute(_select(TareaSemana))).scalars().all()
+    kb = next(f for f in filas if f.course_uuid.endswith("blauw"))
+    kr = next(f for f in filas if f.course_uuid.endswith("rood") and f.fecha == "2026-11-05")
+    pub = lambda at: _json.dumps({"pizarra": {"publicada": {"ruta": "x.pdf", "at": at, "paginas": 4}}})  # noqa: E731
+    kb.material_profe = pub("2026-11-02T20:00:00")
+    kr.material_profe = pub("2026-11-05T20:00:00")
+    kb.cambios = _json.dumps({"100": {"destino": kr.id}})
+    db.add(kb)
+    db.add(kr)
+    await db.commit()
+
+    # Martes 4: blauw ya tuvo clase. Quien se quedó en blauw ve la de blauw;
+    # quien va a rood, nada todavía (rood aún no ha dado la clase).
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-04")
+    sigue = (await T.semanas_para_alumno(blauw, 101, db))["semanas"]
+    assert next(s for s in sigue if s["id"] == kb.id)["notas_clase"]["at"] == "2026-11-02T20:00:00"
+    va = (await T.semanas_para_alumno(blauw, 100, db))["semanas"]
+    assert next(s for s in va if s["id"] == kb.id)["notas_clase"] is None
+
+    # Viernes 6: rood ya la dio: quien fue ve la de rood.
+    monkeypatch.setattr(tandas, "hoy_nl", lambda ahora=None: "2026-11-06")
+    va = (await T.semanas_para_alumno(blauw, 100, db))["semanas"]
+    n = next(s for s in va if s["id"] == kb.id)["notas_clase"]
+    assert n["semana_id"] == kr.id and n["at"] == "2026-11-05T20:00:00"

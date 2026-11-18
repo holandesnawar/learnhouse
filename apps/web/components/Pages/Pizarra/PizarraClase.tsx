@@ -9,6 +9,13 @@ import {
   ArrowsIn,
   ArrowsHorizontal,
   ArrowsOut,
+  Broom,
+  CaretDown,
+  CloudCheck,
+  FilePlus,
+  PaperPlaneTilt,
+  SidebarSimple,
+  WarningCircle,
   Broadcast,
   CaretLeft,
   CaretRight,
@@ -66,6 +73,7 @@ import {
 } from '@/lib/nawar/pizarra'
 import { bajarFuente, getPizarra, guardarNotas, publicarPizarra, quitarPublicada, urlPdfConNotas, type Pizarra } from '@services/pizarra/pizarra'
 import { subirArchivoProfe } from '@services/tareas/tareas'
+import { VisorPresentacionClase } from '@components/Pages/Clases/pasosSemana'
 import { cajaDeTexto, letrasDeLaEscuela, pintarEnBlanco, pintarTrazos, type Letras } from './dibujo'
 
 /**
@@ -89,6 +97,10 @@ const A4: Tam = { w: 595, h: 842 }
 // cabe; hasta 5 veces. Los lienzos no pasan de MAX_PX de ancho (si no, en el
 // iPad o con mucho zoom se queda sin memoria): por encima, el navegador estira.
 const ZOOM_MAX = 5
+// Lo que ocupa abajo la barra de herramientas flotante: la página queda encima.
+const RESERVA_ABAJO = 76
+// En pantallas estrechas, las páginas y el zoom suben arriba: la página, debajo.
+const reservaArriba = (ancho: number) => (ancho < 560 ? 104 : ancho < 860 ? 56 : 0)
 const MAX_PX = 4200
 
 /**
@@ -162,6 +174,24 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   const [subiendo, setSubiendo] = useState(false)
   const [falloPdf, setFalloPdf] = useState('')
   const [zoom, setZoom] = useState(1)
+  const [viendoPublicada, setViendoPublicada] = useState(false)
+  // El panel de las páginas se puede esconder (y se recuerda en este navegador).
+  const [verMiniaturas, setVerMiniaturas] = useState(true)
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('nawar.pizarra.paginas') === 'no') setVerMiniaturas(false)
+    } catch {
+      /* sin almacenamiento */
+    }
+  }, [])
+  const cambiarMiniaturas = (v: boolean) => {
+    setVerMiniaturas(v)
+    try {
+      localStorage.setItem('nawar.pizarra.paginas', v ? 'si' : 'no')
+    } catch {
+      /* sin almacenamiento */
+    }
+  }
   const zoomRef = useRef(1)
   zoomRef.current = zoom
 
@@ -353,7 +383,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   const encaje = useMemo<Tam>(() => {
     const t = tamDe(pagina)
     if (!area.w || !area.h) return { w: 0, h: 0 }
-    const w = Math.max(120, Math.min(area.w - 24, ((area.h - 24) * t.w) / t.h))
+    const w = Math.max(120, Math.min(area.w - 32, ((area.h - 32 - RESERVA_ABAJO - reservaArriba(area.w)) * t.w) / t.h))
     return { w: Math.floor(w), h: Math.floor((w * t.h) / t.w) }
   }, [area, pagina, tamDe])
   const escena = useMemo<Tam>(
@@ -1158,10 +1188,11 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       return
     }
     const ya = info.publicada
+    const grupo = info.semana.curso || 'esta clase'
     const ok = await confirmar(
       ya
-        ? 'Los alumnos ya tienen una versión de esta presentación. ¿Cambiarla por la de ahora, con lo que has escrito?'
-        : `¿Guardar esta presentación, con lo que has escrito, para los alumnos de ${info.semana.curso || 'la clase'}? La verán en su semana desde el día de la clase.`,
+        ? `Los alumnos de ${grupo} ya tienen una versión de esta presentación. ¿Cambiarla por la de ahora, con lo que has escrito?`
+        : `¿Guardar esta presentación, con lo que has escrito, para los alumnos de ${grupo}?\n\nDesde el día de la clase la verán en su semana EN LUGAR de la presentación de antes. Los del otro grupo siguen con la suya hasta que su profe guarde la de su clase.`,
       { boton: 'Guardar para los alumnos', peligro: false }
     )
     if (!ok) return
@@ -1190,22 +1221,11 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       setPublicando('Subiendo a la escuela…')
       const pub = await publicarPizarra(id, pdf.output('blob'), paginas.length, token)
       setInfo((i) => (i ? { ...i, publicada: pub } : i))
-      toast.success('Guardada: los alumnos ya la tienen en su semana')
+      toast.success(`Guardada: los alumnos de ${grupo} ya ven esta versión`)
     } catch (e: any) {
       toast.error(e?.message || 'No se pudo guardar para los alumnos')
     } finally {
       setPublicando('')
-    }
-  }
-
-  const verPublicada = async () => {
-    const ventana = window.open('', '_blank')
-    try {
-      const url = await urlPdfConNotas(id, token)
-      if (ventana) ventana.location.href = url
-    } catch (e: any) {
-      ventana?.close()
-      toast.error(e?.message || 'No se pudo abrir')
     }
   }
 
@@ -1251,9 +1271,9 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     return (
       <Marco dentro={!!enSala}>
         <div className="m-auto max-w-md px-6 text-center">
-          <p className="text-[15px] font-semibold text-[#0a1656]">No se pudo abrir la pizarra</p>
-          <p className="mt-2 text-[14px] text-[#171a2e]">{fallo}</p>
-          <Link href="/equipo" className="mt-5 inline-block rounded-lg bg-[#0b2da0] px-4 py-2.5 text-[14px] font-semibold text-white">
+          <p className="font-[family-name:var(--font-poppins)] text-[17px] font-semibold text-[#0B1033]">No se pudo abrir la pizarra</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#4A5272]">{fallo}</p>
+          <Link href="/equipo" className="mt-6 inline-flex h-10 items-center rounded-lg bg-[#0b2da0] px-4 text-[14px] font-semibold text-white hover:bg-[#0a2690]">
             Volver a la sala de profesores
           </Link>
         </div>
@@ -1263,7 +1283,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   if (!info) {
     return (
       <Marco dentro={!!enSala}>
-        <p className="m-auto animate-pulse text-[14px] text-[#0a1656]/70">Abriendo la pizarra…</p>
+        <Cargando texto="Abriendo la pizarra…" />
       </Marco>
     )
   }
@@ -1274,53 +1294,74 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   const total = doc.paginas.length
   const trazoColor = herramienta === 'rotulador' ? colorRot : color
   const despues = !!info.publicada && !!guardadaAt && guardadaAt > info.publicada.at
+  const conMiniaturas = !apretada && verMiniaturas
+  const conPropiedades = herramienta !== 'borrador' && herramienta !== 'mano' && (herramienta !== 'mover' || !!elegido)
+  const paraQuien = info.semana.curso || 'esta clase'
 
   return (
     <Marco dentro={!!enSala}>
-      {/* Arriba */}
-      <header className="flex h-[52px] shrink-0 items-center gap-3 border-b border-[#E2E8F4] bg-white px-3 sm:px-4">
+      {/* Arriba: de dónde vienes, qué clase es, si está guardado y qué tienen los alumnos */}
+      <header className="relative z-[5] flex h-14 shrink-0 items-center gap-2 border-b border-[#E6EAF2] bg-white px-2.5 sm:gap-3 sm:px-4">
         {enSala ? (
-          <button
-            onClick={() => enSala.cerrar()}
-            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[13.5px] font-medium text-[#0a1656] hover:text-[#0b2da0]"
-            title="Cerrar la pizarra (la llamada sigue)"
-          >
-            <X size={16} weight="bold" />
-            <span className="hidden sm:inline">Cerrar</span>
-          </button>
+          <BotonCabecera onClick={() => enSala.cerrar()} titulo="Cerrar la pizarra (la llamada sigue)">
+            <X size={18} />
+          </BotonCabecera>
         ) : (
-          <Link href="/equipo" className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[13.5px] font-medium text-[#0a1656] hover:text-[#0b2da0]" title="Volver a la sala de profesores">
-            <CaretLeft size={16} weight="bold" />
-            <span className="hidden sm:inline">Sala de profesores</span>
+          <Link
+            href="/equipo"
+            aria-label="Volver a la sala de profesores"
+            title="Volver a la sala de profesores"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#3B4262] transition-colors hover:bg-[#F2F4F8] hover:text-[#0B1033]"
+          >
+            <CaretLeft size={18} weight="bold" />
           </Link>
         )}
+        <span className="hidden h-6 w-px shrink-0 bg-[#E6EAF2] sm:block" />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-[family-name:var(--font-poppins)] text-[15px] font-semibold leading-tight text-[#0a1656]">{info.semana.tema || 'Clase'}</p>
-          <p className="truncate text-[12px] leading-tight text-[#5B6B8C]">
-            {info.semana.curso}
+          <p className="truncate font-[family-name:var(--font-poppins)] text-[15px] font-semibold leading-tight text-[#0B1033]">{info.semana.tema || 'Clase sin tema'}</p>
+          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate text-[12px] leading-tight text-[#6B7393]">
+            <span className="truncate">{info.semana.curso}</span>
             {!sinPdf && (
               <>
-                {' · '}
+                <span className="text-[#C3C9D8]">·</span>
                 <EstadoGuardado estado={guardado} at={guardadaAt} onReintentar={() => guardar()} />
               </>
             )}
           </p>
         </div>
+
         {info.fuentes.length > 1 && (
-          <select
-            value={fuente}
-            onChange={(e) => cambiarFuente(e.target.value)}
-            className="max-w-[140px] rounded-lg border border-[#E2E8F4] bg-white px-2 py-1.5 text-[13px] text-[#0a1656] sm:max-w-[220px]"
-            title="Sobre qué presentación escribes"
-          >
-            {info.fuentes.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.de === 'profe' ? 'Completa: ' : 'La de los alumnos: '}
-                {f.nombre}
-              </option>
-            ))}
-          </select>
+          <label className="relative hidden h-9 max-w-[260px] shrink items-center gap-2 rounded-lg border border-[#E2E7F0] bg-white pl-2.5 pr-7 text-[13px] text-[#0B1033] transition-colors hover:border-[#C9D3E6] md:flex">
+            <FilePdf size={16} className="shrink-0 text-[#B42323]" />
+            <select
+              value={fuente}
+              onChange={(e) => cambiarFuente(e.target.value)}
+              className="absolute inset-0 cursor-pointer opacity-0"
+              title="Sobre qué presentación escribes"
+              aria-label="Sobre qué presentación escribes"
+            >
+              {info.fuentes.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.de === 'profe' ? 'Completa (profe): ' : 'La de los alumnos: '}
+                  {f.nombre}
+                </option>
+              ))}
+            </select>
+            <span className="truncate">{info.fuentes.find((f) => f.id === fuente)?.nombre || 'Presentación'}</span>
+            <CaretDown size={12} weight="bold" className="pointer-events-none absolute right-2.5 text-[#6B7393]" />
+          </label>
         )}
+
+        {!sinPdf && (
+          <EstadoAlumnos
+            publicada={info.publicada}
+            despues={despues}
+            paraQuien={paraQuien}
+            onVer={() => setViendoPublicada(true)}
+            onQuitar={quitar}
+          />
+        )}
+
         {enSala && !sinPdf ? (
           <button
             onClick={() => {
@@ -1328,100 +1369,107 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
               enSala.alternar()
             }}
             disabled={!enSala.ensenando && (!enSala.puede || !pdfListo || !!falloPdf)}
-            className={`flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2 text-[13.5px] font-semibold disabled:opacity-50 ${
-              enSala.ensenando ? 'bg-[#B4413C] text-white' : 'border border-[#0b2da0] text-[#0b2da0]'
+            className={`flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-[13.5px] font-semibold transition-colors disabled:opacity-50 ${
+              enSala.ensenando ? 'bg-[#B42323] text-white hover:bg-[#9E1E1E]' : 'border border-[#E2E7F0] text-[#0B1033] hover:border-[#C9D3E6] hover:bg-[#F7F9FD]'
             }`}
             title={enSala.ensenando ? 'Los alumnos están viendo la pizarra' : 'Que los alumnos vean la pizarra en la llamada'}
           >
-            <Broadcast size={16} weight="bold" />
+            {enSala.ensenando ? <span className="h-2 w-2 animate-pulse rounded-full bg-white" /> : <Broadcast size={16} weight="bold" />}
             {enSala.ensenando ? 'Dejar de enseñar' : 'Enseñar a la clase'}
           </button>
         ) : null}
         {!enSala && (
-          <button onClick={pantallaCompleta} className="hidden rounded-lg p-2 text-[#0a1656] hover:text-[#0b2da0] sm:block" title={completa ? 'Salir de pantalla completa' : 'Pantalla completa'}>
+          <BotonCabecera onClick={pantallaCompleta} titulo={completa ? 'Salir de pantalla completa' : 'Pantalla completa'} solo="sm">
             {completa ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
-          </button>
+          </BotonCabecera>
         )}
         {!sinPdf && (
           <button
             onClick={publicar}
             disabled={!!publicando || !pdfListo || !!falloPdf}
-            className="flex shrink-0 items-center gap-2 rounded-lg bg-[#0b2da0] px-3.5 py-2 text-[13.5px] font-semibold text-white disabled:opacity-60"
+            title={`La versión que verán los alumnos de ${paraQuien} en lugar de la de antes de la clase`}
+            className="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[#0b2da0] px-3.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#0a2690] disabled:opacity-60"
           >
-            <Check size={15} weight="bold" />
-            <span className="hidden sm:inline">Guardar para los alumnos</span>
+            <PaperPlaneTilt size={16} weight="fill" />
+            <span className="hidden sm:inline">{info.publicada ? (despues ? 'Volver a guardar para los alumnos' : 'Guardar de nuevo') : 'Guardar para los alumnos'}</span>
             <span className="sm:hidden">Guardar</span>
           </button>
         )}
       </header>
 
-      {info.publicada && (
-        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#E2E8F4] bg-white px-4 py-1.5 text-[12.5px] text-[#171a2e]">
-          <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: despues ? '#E4B252' : '#16A34A' }} />
-            {despues
-              ? 'Has escrito después de guardarla para los alumnos: vuelve a guardarla para que vean lo último.'
-              : `Los alumnos tienen la versión de las ${horaCorta(info.publicada.at)} (${info.publicada.paginas} páginas).`}
-          </span>
-          <button onClick={verPublicada} className="font-semibold text-[#0b2da0]">
-            Ver cómo la ven
-          </button>
-          <button onClick={quitar} className="text-[#5B6B8C] hover:text-[#B4413C]">
-            Quitar
-          </button>
-        </div>
-      )}
-
       {sinPdf ? (
-        <div className="m-auto max-w-lg px-6 text-center">
-          <FilePdf size={34} className="mx-auto text-[#0b2da0]" />
-          <p className="mt-3 font-[family-name:var(--font-poppins)] text-[18px] font-semibold text-[#0a1656]">Esta semana aún no tiene la presentación en PDF</p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#171a2e]">
-            Súbela aquí y podrás abrirla en clase, escribir encima y guardarla para los alumnos. Tiene que ser un PDF: desde PowerPoint, Keynote, Canva o
-            Claude, «Exportar → PDF».
-          </p>
-          <label className="mt-5 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#0b2da0] px-4 py-2.5 text-[14px] font-semibold text-white">
-            <UploadSimple size={16} weight="bold" />
-            {subiendo ? 'Subiendo…' : 'Subir la presentación'}
-            <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={subiendo} onChange={(e) => subir(e.target.files?.[0])} />
-          </label>
+        <div className="flex flex-1 items-center justify-center px-6" style={PUNTOS}>
+          <div className="w-full max-w-[460px] rounded-2xl border border-[#E6EAF2] bg-white px-7 py-8 text-center">
+            <FilePdf size={34} className="mx-auto text-[#0b2da0]" />
+            <p className="mt-3 font-[family-name:var(--font-poppins)] text-[18px] font-semibold text-[#0B1033]">Esta clase aún no tiene la presentación en PDF</p>
+            <p className="mt-2 text-[14px] leading-relaxed text-[#4A5272]">
+              Súbela y podrás abrirla en clase, escribir encima y guardarla para los alumnos. Desde PowerPoint, Keynote, Canva o Claude: «Exportar → PDF».
+            </p>
+            <label className="mt-6 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-[#0b2da0] px-4 text-[14px] font-semibold text-white hover:bg-[#0a2690]">
+              <UploadSimple size={16} weight="bold" />
+              {subiendo ? 'Subiendo…' : 'Subir la presentación'}
+              <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={subiendo} onChange={(e) => subir(e.target.files?.[0])} />
+            </label>
+          </div>
         </div>
       ) : (
         <div className="flex min-h-0 flex-1">
-          {/* Las páginas */}
-          <aside className={`hidden w-[148px] shrink-0 flex-col border-r border-[#E2E8F4] bg-white ${apretada ? '' : 'lg:flex'}`}>
-            <div className="flex-1 space-y-2 overflow-y-auto p-2.5">
-              {doc.paginas.map((pg, k) => (
-                <Miniatura key={k} n={k + 1} pagina={pg} src={pg.origen ? miniaturas[pg.origen] : ''} tam={tamDe(pg)} elegida={k === idx} onClick={() => ir(k)} />
-              ))}
-            </div>
-            <button onClick={paginaEnBlanco} className="flex items-center justify-center gap-1.5 border-t border-[#E2E8F4] px-2 py-2.5 text-[12.5px] font-semibold text-[#0b2da0]">
-              <Plus size={13} weight="bold" /> Página en blanco
-            </button>
-          </aside>
+          {/* Las páginas, como en Keynote o Google Slides */}
+          {conMiniaturas && (
+            <aside className="hidden w-[196px] shrink-0 flex-col border-r border-[#E6EAF2] bg-white lg:flex">
+              <div className="flex h-11 shrink-0 items-center justify-between pl-4 pr-2">
+                <p className="text-[12.5px] font-semibold text-[#3B4262]">
+                  Páginas <span className="font-normal text-[#8A91AD]">{total}</span>
+                </p>
+                <BotonCabecera onClick={() => cambiarMiniaturas(false)} titulo="Esconder las páginas" chico>
+                  <SidebarSimple size={16} />
+                </BotonCabecera>
+              </div>
+              <div className="flex-1 space-y-1 overflow-y-auto px-2.5 pb-3">
+                {doc.paginas.map((pg, k) => (
+                  <Miniatura key={k} n={k + 1} pagina={pg} src={pg.origen ? miniaturas[pg.origen] : ''} tam={tamDe(pg)} elegida={k === idx} onClick={() => ir(k)} />
+                ))}
+                <button
+                  onClick={paginaEnBlanco}
+                  className="ml-[22px] mt-2 flex aspect-[3/2] w-[calc(100%-22px)] flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-[#C9D1E3] text-[12px] font-semibold text-[#6B7393] transition-colors hover:border-[#0b2da0] hover:text-[#0b2da0]"
+                >
+                  <Plus size={16} weight="bold" />
+                  Página en blanco
+                </button>
+              </div>
+            </aside>
+          )}
 
-          <div className="flex min-w-0 flex-1 flex-col">
-            {/* La página */}
-            <div ref={areaRef} className={`relative flex min-h-0 flex-1 ${zoom > 1 ? 'overflow-auto' : 'items-center justify-center overflow-hidden'}`}>
+          {/* El lienzo, con las barras flotando encima */}
+          <div className="@container relative min-w-0 flex-1" style={PUNTOS}>
+            <div ref={areaRef} className={`absolute inset-0 flex ${zoom > 1 ? 'overflow-auto' : 'items-center justify-center overflow-hidden'}`}>
               {falloPdf ? (
-                <div className="max-w-md px-6 text-center">
-                  <p className="text-[15px] font-semibold text-[#0a1656]">No se pudo abrir esta presentación</p>
-                  <p className="mt-2 text-[14px] leading-relaxed text-[#171a2e]">{falloPdf}</p>
-                  {info.fuentes.length > 1 && <p className="mt-2 text-[13.5px] text-[#5B6B8C]">Arriba puedes elegir otra de las presentaciones de esta semana.</p>}
-                  <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#0b2da0] px-4 py-2.5 text-[14px] font-semibold text-white">
+                <div className="m-auto w-full max-w-[440px] rounded-2xl border border-[#E6EAF2] bg-white px-7 py-7 text-center">
+                  <p className="font-[family-name:var(--font-poppins)] text-[16px] font-semibold text-[#0B1033]">No se pudo abrir esta presentación</p>
+                  <p className="mt-2 text-[14px] leading-relaxed text-[#4A5272]">{falloPdf}</p>
+                  {info.fuentes.length > 1 && <p className="mt-2 text-[13px] text-[#6B7393]">Arriba puedes elegir otra de las presentaciones de esta clase.</p>}
+                  <label className="mt-5 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-[#0b2da0] px-4 text-[14px] font-semibold text-white">
                     <UploadSimple size={16} weight="bold" />
                     {subiendo ? 'Subiendo…' : 'Subir otro PDF'}
                     <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={subiendo} onChange={(e) => subir(e.target.files?.[0])} />
                   </label>
                 </div>
               ) : !pdfListo ? (
-                <p className="animate-pulse text-[14px] text-[#0a1656]/70">Abriendo la presentación…</p>
+                <Cargando texto="Abriendo la presentación…" />
               ) : (
                 pagina && (
                   <div
                     ref={hojaRef}
                     className="relative m-auto shrink-0 bg-white"
-                    style={{ width: escena.w, height: escena.h, boxShadow: '0 0 0 1px #DDE6F5, 0 1px 3px rgba(10,22,86,0.07)', marginTop: zoom > 1 ? 12 : undefined, marginBottom: zoom > 1 ? 12 : undefined }}
+                    style={{
+                      width: escena.w,
+                      height: escena.h,
+                      borderRadius: 2,
+                      boxShadow: '0 0 0 1px rgba(16,24,64,0.06), 0 1px 2px rgba(16,24,64,0.06), 0 12px 32px -12px rgba(16,24,64,0.18)',
+                      marginTop: (zoom > 1 ? 16 : 0) + reservaArriba(area.w) || undefined,
+                      // Que la página quede por encima de la barra de herramientas.
+                      marginBottom: RESERVA_ABAJO,
+                    }}
                   >
                     <canvas ref={fondoRef} className="absolute inset-0 h-full w-full" />
                     <canvas
@@ -1494,7 +1542,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
                       />
                     )}
                     {pagina.oculta && (
-                      <div className="pointer-events-none absolute left-2 top-2 flex items-center gap-1.5 rounded-md bg-[#0a1656] px-2 py-1 text-[11.5px] font-semibold text-white">
+                      <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-[#0B1033]/85 px-2.5 py-1 text-[11.5px] font-semibold text-white">
                         <EyeSlash size={13} /> Los alumnos no verán esta página
                       </div>
                     )}
@@ -1503,151 +1551,188 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
               )}
             </div>
 
-            {/* Las herramientas (18/11/2026: por grupos, como Canva o Miro) */}
-            <div className="shrink-0 border-t border-[#E2E8F4] bg-white">
-              <div className="mx-auto flex flex-wrap items-center justify-center gap-2 px-3 py-2">
-                <Grupo>
-                  <Boton activo={herramienta === 'mover'} onClick={() => elegirHerramienta('mover')} titulo="Elegir y mover (V): toca un texto o un dibujo para moverlo, estirarlo o cambiarle el color">
-                    <Cursor size={18} />
-                  </Boton>
-                  <Boton activo={herramienta === 'lapiz'} onClick={() => elegirHerramienta('lapiz')} titulo="Lápiz (L)">
-                    <PencilSimple size={18} />
-                  </Boton>
-                  <Boton activo={herramienta === 'rotulador'} onClick={() => elegirHerramienta('rotulador')} titulo="Rotulador para resaltar (R)">
-                    <Highlighter size={18} />
-                  </Boton>
-                  <Boton activo={herramienta === 'texto'} onClick={() => elegirHerramienta('texto')} titulo="Texto (T): un clic para escribir; sobre un texto, lo elige; otro clic, a escribir">
-                    <TextT size={18} />
-                  </Boton>
-                  <Boton activo={herramienta === 'borrador'} onClick={() => elegirHerramienta('borrador')} titulo="Borrador (B)">
-                    <Eraser size={18} />
-                  </Boton>
-                  <Boton activo={herramienta === 'mano'} onClick={() => elegirHerramienta('mano')} titulo="Mano: mover la página con zoom (H)">
-                    <Hand size={18} />
-                  </Boton>
-                </Grupo>
+            {/* Abrir otra vez las páginas */}
+            {!apretada && !verMiniaturas && (
+              <div className="absolute left-3 top-3 z-[4] hidden lg:block">
+                <Flotante>
+                  <BotonDock onClick={() => cambiarMiniaturas(true)} titulo="Ver las páginas">
+                    <SidebarSimple size={18} />
+                  </BotonDock>
+                </Flotante>
+              </div>
+            )}
 
-                {/* Color y tamaño: de lo elegido, o de lo que se escribe a partir de ahora */}
-                {herramienta !== 'borrador' && herramienta !== 'mano' && (herramienta !== 'mover' || elegido) && (
-                  <Grupo propiedades>
-                    {(elegido ? elegido.t === 'rotulador' : herramienta === 'rotulador')
-                      ? COLORES_ROTULADOR.map((c) => <Color key={c} c={c} elegido={(elegido ? elegido.color : colorRot) === c} onClick={() => elegirColor(c)} />)
-                      : [...COLORES, BLANCO].map((c) => <Color key={c} c={c} elegido={(elegido ? elegido.color : color) === c} onClick={() => elegirColor(c)} />)}
-                    {(elegido ? elegido.t === 'lapiz' : herramienta === 'lapiz') && (
-                      <>
-                        <Raya />
-                        {(Object.keys(GROSORES) as (keyof typeof GROSORES)[]).map((g) => {
-                          const activo = elegido?.t === 'lapiz' ? Math.abs(elegido.grosor - GROSORES[g]) < 0.0005 : grosor === g
-                          const c = elegido ? elegido.color : trazoColor
-                          return (
-                            <button
-                              key={g}
-                              onClick={() => elegirGrosor(g)}
-                              title={`Trazo ${g}`}
-                              aria-label={`Trazo ${g}`}
-                              className={`flex h-8 w-8 items-center justify-center rounded-md ${activo ? 'bg-white ring-1 ring-[#C9D5EE]' : 'hover:bg-white'}`}
-                            >
-                              <span className="rounded-full" style={{ width: g === 'fino' ? 4 : g === 'medio' ? 7 : 11, height: g === 'fino' ? 4 : g === 'medio' ? 7 : 11, background: c === BLANCO ? '#0a1656' : c }} />
-                            </button>
-                          )
-                        })}
-                      </>
-                    )}
-                    {(elegido ? elegido.t === 'texto' : herramienta === 'texto') && (
-                      <>
-                        <Raya />
-                        <Opcion activa={(elegido?.t === 'texto' ? elegido.estilo : estilo) === 'texto'} onClick={() => elegirEstilo('texto')}>Texto</Opcion>
-                        <Opcion activa={(elegido?.t === 'texto' ? elegido.estilo : estilo) === 'titulo'} onClick={() => elegirEstilo('titulo')}>Título</Opcion>
-                        <Opcion activa={(elegido?.t === 'texto' ? elegido.estilo : estilo) === 'nota'} onClick={() => elegirEstilo('nota')}>Nota</Opcion>
-                        {!elegido && (
-                          <>
-                            <Raya />
-                            <Opcion activa={tamTexto === 'pequeno'} onClick={() => elegirTamTexto('pequeno')} titulo="Letra pequeña">A−</Opcion>
-                            <Opcion activa={tamTexto === 'normal'} onClick={() => elegirTamTexto('normal')} titulo="Letra normal">A</Opcion>
-                            <Opcion activa={tamTexto === 'grande'} onClick={() => elegirTamTexto('grande')} titulo="Letra grande">A+</Opcion>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </Grupo>
+            {pdfListo && !falloPdf ? (
+              <>
+                {/* Color, grosor y tipo de letra: un panel a la izquierda, solo cuando sirven (como en Excalidraw) */}
+                {conPropiedades && (
+                  <div className="absolute left-4 top-1/2 z-[4] -translate-y-1/2 @max-[860px]:left-3">
+                    <Flotante propiedades vertical>
+                      <div className="grid grid-cols-2 gap-0.5">
+                        {(elegido ? elegido.t === 'rotulador' : herramienta === 'rotulador')
+                          ? COLORES_ROTULADOR.map((c) => <Color key={c} c={c} elegido={(elegido ? elegido.color : colorRot) === c} onClick={() => elegirColor(c)} />)
+                          : [...COLORES, BLANCO].map((c) => <Color key={c} c={c} elegido={(elegido ? elegido.color : color) === c} onClick={() => elegirColor(c)} />)}
+                      </div>
+                      {(elegido ? elegido.t === 'lapiz' : herramienta === 'lapiz') && (
+                        <>
+                          <Raya horizontal />
+                          <div className="flex flex-col gap-0.5">
+                            {(Object.keys(GROSORES) as (keyof typeof GROSORES)[]).map((g) => {
+                              const activo = elegido?.t === 'lapiz' ? Math.abs(elegido.grosor - GROSORES[g]) < 0.0005 : grosor === g
+                              const c = elegido ? elegido.color : trazoColor
+                              return (
+                                <button
+                                  key={g}
+                                  onClick={() => elegirGrosor(g)}
+                                  title={`Trazo ${g}`}
+                                  aria-label={`Trazo ${g}`}
+                                  aria-pressed={activo}
+                                  className={`flex h-8 w-full items-center justify-center rounded-lg px-2 transition-colors ${activo ? 'bg-[#EEF2FC]' : 'hover:bg-[#F2F4F8]'}`}
+                                >
+                                  <span className="block w-full rounded-full" style={{ height: g === 'fino' ? 2 : g === 'medio' ? 4 : 7, background: c === BLANCO ? '#0B1033' : c }} />
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </>
+                      )}
+                      {(elegido ? elegido.t === 'texto' : herramienta === 'texto') && (
+                        <>
+                          <Raya horizontal />
+                          <div className="flex flex-col gap-0.5">
+                            <Opcion activa={(elegido?.t === 'texto' ? elegido.estilo : estilo) === 'titulo'} onClick={() => elegirEstilo('titulo')}>
+                              Título
+                            </Opcion>
+                            <Opcion activa={(elegido?.t === 'texto' ? elegido.estilo : estilo) === 'texto'} onClick={() => elegirEstilo('texto')}>
+                              Texto
+                            </Opcion>
+                            <Opcion activa={(elegido?.t === 'texto' ? elegido.estilo : estilo) === 'nota'} onClick={() => elegirEstilo('nota')}>
+                              Nota
+                            </Opcion>
+                          </div>
+                          {!elegido && (
+                            <>
+                              <Raya horizontal />
+                              <div className="grid grid-cols-3 gap-0.5">
+                                <Opcion activa={tamTexto === 'pequeno'} onClick={() => elegirTamTexto('pequeno')} titulo="Letra pequeña">
+                                  <span className="text-[10.5px]">A</span>
+                                </Opcion>
+                                <Opcion activa={tamTexto === 'normal'} onClick={() => elegirTamTexto('normal')} titulo="Letra normal">
+                                  <span className="text-[13px]">A</span>
+                                </Opcion>
+                                <Opcion activa={tamTexto === 'grande'} onClick={() => elegirTamTexto('grande')} titulo="Letra grande">
+                                  <span className="text-[16px]">A</span>
+                                </Opcion>
+                              </div>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </Flotante>
+                  </div>
                 )}
 
-                <Grupo>
-                  <Boton onClick={deshacer} apagado={!historia.atras} titulo="Deshacer (Ctrl+Z)">
-                    <ArrowCounterClockwise size={18} />
-                  </Boton>
-                  <Boton onClick={rehacer} apagado={!historia.adelante} titulo="Rehacer (Ctrl+Mayús+Z)">
-                    <ArrowClockwise size={18} />
-                  </Boton>
-                  <Boton onClick={limpiarPagina} apagado={!pagina?.trazos.length} titulo="Borrar todo lo escrito en esta página">
-                    <Trash size={18} />
-                  </Boton>
-                </Grupo>
+                {/* Las herramientas, abajo en el centro (como en Canva, Miro o tldraw) */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[4] flex justify-center px-3">
+                  <Flotante className="pointer-events-auto max-w-full overflow-x-auto">
+                    <BotonDock activo={herramienta === 'mover'} onClick={() => elegirHerramienta('mover')} titulo="Elegir y mover" atajo="V">
+                      <Cursor size={19} />
+                    </BotonDock>
+                    <BotonDock activo={herramienta === 'lapiz'} onClick={() => elegirHerramienta('lapiz')} titulo="Lápiz" atajo="L">
+                      <PencilSimple size={19} />
+                    </BotonDock>
+                    <BotonDock activo={herramienta === 'rotulador'} onClick={() => elegirHerramienta('rotulador')} titulo="Rotulador" atajo="R">
+                      <Highlighter size={19} />
+                    </BotonDock>
+                    <BotonDock activo={herramienta === 'texto'} onClick={() => elegirHerramienta('texto')} titulo="Texto" atajo="T">
+                      <TextT size={19} />
+                    </BotonDock>
+                    <BotonDock activo={herramienta === 'borrador'} onClick={() => elegirHerramienta('borrador')} titulo="Borrador" atajo="B">
+                      <Eraser size={19} />
+                    </BotonDock>
+                    <BotonDock activo={herramienta === 'mano'} onClick={() => elegirHerramienta('mano')} titulo="Mover la página" atajo="H">
+                      <Hand size={19} />
+                    </BotonDock>
+                    <Raya alta />
+                    <BotonDock onClick={deshacer} apagado={!historia.atras} titulo="Deshacer" atajo="⌘Z">
+                      <ArrowCounterClockwise size={19} />
+                    </BotonDock>
+                    <BotonDock onClick={rehacer} apagado={!historia.adelante} titulo="Rehacer" atajo="⇧⌘Z">
+                      <ArrowClockwise size={19} />
+                    </BotonDock>
+                  </Flotante>
+                </div>
 
-                <Grupo>
-                  <Boton onClick={esconder} activo={!!pagina?.oculta} titulo={pagina?.oculta ? 'Volver a enseñar esta página a los alumnos' : 'Que los alumnos no vean esta página'}>
-                    {pagina?.oculta ? <EyeSlash size={18} /> : <Eye size={18} />}
-                  </Boton>
-                  <button
-                    onClick={paginaEnBlanco}
-                    className={`flex h-8 items-center gap-1.5 rounded-md px-2 text-[12.5px] font-semibold text-[#0b2da0] hover:bg-white ${apretada ? '' : 'lg:hidden'}`}
-                    title="Añadir una página en blanco para notas"
-                  >
-                    <Plus size={14} weight="bold" /> Página
-                  </button>
-                  {pagina?.origen == null && (
-                    <button onClick={quitarPagina} className="h-8 rounded-md px-2 text-[12.5px] font-medium text-[#5B6B8C] hover:bg-white hover:text-[#B4413C]">
-                      Quitar página
+                {/* Las páginas: abajo a la izquierda (arriba si no cabe) */}
+                <div className="absolute bottom-4 left-4 z-[4] @max-[860px]:bottom-auto @max-[860px]:left-3 @max-[860px]:top-3">
+                  <Flotante>
+                    <BotonDock onClick={() => ir(idx - 1)} apagado={idx === 0} titulo="Página anterior" atajo="←" chico>
+                      <CaretLeft size={16} weight="bold" />
+                    </BotonDock>
+                    <span className="min-w-[52px] px-0.5 text-center text-[12.5px] font-semibold tabular-nums text-[#0B1033]">
+                      {total ? idx + 1 : 0} <span className="font-normal text-[#8A91AD]">/ {total}</span>
+                    </span>
+                    <BotonDock onClick={() => ir(idx + 1)} apagado={idx >= total - 1} titulo="Página siguiente" atajo="→" chico>
+                      <CaretRight size={16} weight="bold" />
+                    </BotonDock>
+                    <Raya />
+                    <BotonDock onClick={esconder} activo={!!pagina?.oculta} titulo={pagina?.oculta ? 'Volver a enseñar esta página a los alumnos' : 'Que los alumnos no vean esta página'} chico>
+                      {pagina?.oculta ? <EyeSlash size={17} /> : <Eye size={17} />}
+                    </BotonDock>
+                    <BotonDock onClick={paginaEnBlanco} titulo="Añadir una página en blanco para notas" chico>
+                      <FilePlus size={17} />
+                    </BotonDock>
+                    {pagina?.origen == null ? (
+                      <BotonDock onClick={quitarPagina} titulo="Quitar esta página en blanco" chico peligro>
+                        <Trash size={17} />
+                      </BotonDock>
+                    ) : (
+                      <BotonDock onClick={limpiarPagina} apagado={!pagina?.trazos.length} titulo="Borrar todo lo escrito en esta página" chico peligro>
+                        <Broom size={17} />
+                      </BotonDock>
+                    )}
+                  </Flotante>
+                </div>
+
+                {/* El zoom: abajo a la derecha (arriba si no cabe) */}
+                <div className="absolute bottom-4 right-4 z-[4] @max-[860px]:bottom-auto @max-[860px]:right-3 @max-[860px]:top-3 @max-[560px]:top-[60px]">
+                  <Flotante>
+                    <BotonDock onClick={() => ponerZoom(zoom / 1.25)} apagado={zoom <= 1} titulo="Alejar" atajo="−" chico>
+                      <Minus size={16} weight="bold" />
+                    </BotonDock>
+                    <button
+                      onClick={() => ponerZoom(1)}
+                      title="La página entera (0)"
+                      className="h-8 min-w-[52px] rounded-lg px-1.5 text-[12.5px] font-semibold tabular-nums text-[#0B1033] transition-colors hover:bg-[#F2F4F8]"
+                    >
+                      {Math.round(zoom * 100)} %
                     </button>
-                  )}
-                </Grupo>
-
-                <Grupo>
-                  <Boton onClick={() => ponerZoom(zoom / 1.25)} apagado={zoom <= 1} titulo="Alejar (−)">
-                    <MagnifyingGlassMinus size={18} />
-                  </Boton>
-                  <button
-                    onClick={() => ponerZoom(1)}
-                    title="Página entera (0)"
-                    className="h-8 min-w-[50px] rounded-md px-1.5 text-[12.5px] font-semibold tabular-nums text-[#0a1656] hover:bg-white"
-                  >
-                    {Math.round(zoom * 100)} %
-                  </button>
-                  <Boton onClick={() => ponerZoom(zoom * 1.25)} apagado={zoom >= ZOOM_MAX} titulo="Acercar (+)">
-                    <MagnifyingGlassPlus size={18} />
-                  </Boton>
-                  {zoomAncho > 1.02 && (
-                    <Boton onClick={() => ponerZoom(zoomAncho, 0.5, 0)} activo={Math.abs(zoom - zoomAncho) < 0.02} titulo="Ajustar al ancho de la pantalla">
-                      <ArrowsHorizontal size={18} />
-                    </Boton>
-                  )}
-                </Grupo>
-
-                <Grupo>
-                  <Boton onClick={() => ir(idx - 1)} apagado={idx === 0} titulo="Página anterior (←)">
-                    <CaretLeft size={18} />
-                  </Boton>
-                  <span className="min-w-[50px] text-center text-[12.5px] font-semibold tabular-nums text-[#0a1656]">
-                    {total ? idx + 1 : 0} / {total}
-                  </span>
-                  <Boton onClick={() => ir(idx + 1)} apagado={idx >= total - 1} titulo="Página siguiente (→)">
-                    <CaretRight size={18} />
-                  </Boton>
-                </Grupo>
-              </div>
-            </div>
+                    <BotonDock onClick={() => ponerZoom(zoom * 1.25)} apagado={zoom >= ZOOM_MAX} titulo="Acercar" atajo="+" chico>
+                      <Plus size={16} weight="bold" />
+                    </BotonDock>
+                    {zoomAncho > 1.02 && (
+                      <BotonDock onClick={() => ponerZoom(zoomAncho, 0.5, 0)} activo={Math.abs(zoom - zoomAncho) < 0.02} titulo="Ajustar al ancho de la pantalla" chico>
+                        <ArrowsHorizontal size={17} />
+                      </BotonDock>
+                    )}
+                  </Flotante>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       )}
 
       {publicando && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
-          <div className="rounded-xl border border-[#E2E8F4] bg-white px-6 py-5 text-center">
-            <p className="font-[family-name:var(--font-poppins)] text-[16px] font-semibold text-[#0a1656]">Guardando para los alumnos</p>
-            <p className="mt-1.5 text-[13.5px] text-[#171a2e]">{publicando}</p>
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/75 backdrop-blur-[2px]">
+          <div className="w-[320px] rounded-2xl border border-[#E6EAF2] bg-white px-6 py-6 text-center shadow-[0_16px_40px_-16px_rgba(16,24,64,0.25)]">
+            <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-[2.5px] border-[#DCE3F2] border-t-[#0b2da0]" />
+            <p className="mt-4 font-[family-name:var(--font-poppins)] text-[15.5px] font-semibold text-[#0B1033]">Guardando para los alumnos</p>
+            <p className="mt-1 text-[13px] text-[#6B7393]">{publicando}</p>
           </div>
         </div>
       )}
+      {viendoPublicada ? <VisorPresentacionClase semanaId={id} titulo={`Lo que ven los alumnos de ${paraQuien}`} onClose={() => setViendoPublicada(false)} /> : null}
     </Marco>
   )
 }
@@ -1660,9 +1745,9 @@ function Marco({ children, dentro }: { children: React.ReactNode; dentro?: boole
   const [listo, setListo] = useState(false)
   useEffect(() => setListo(true), [])
   // Dentro de la sala: en su caja, al lado de la llamada.
-  if (dentro) return <div className="relative flex h-full w-full flex-col bg-[#EEF2F9]">{children}</div>
+  if (dentro) return <div className="relative flex h-full w-full flex-col bg-[#F3F5F9]">{children}</div>
   if (!listo) return null
-  return createPortal(<div className="fixed inset-0 z-[999] flex flex-col bg-[#EEF2F9]">{children}</div>, document.body)
+  return createPortal(<div className="fixed inset-0 z-[999] flex flex-col bg-[#F3F5F9]">{children}</div>, document.body)
 }
 
 /**
@@ -1780,8 +1865,8 @@ function BarraElegido({
       onPointerDown={parar}
       onClick={parar}
       onDoubleClick={parar}
-      className="absolute z-[3] flex flex-wrap items-center gap-0.5 rounded-xl border border-[#DDE6F5] bg-white p-1 text-[#0a1656]"
-      style={{ left, top, maxWidth: Math.max(160, W - 8), boxShadow: '0 6px 18px -6px rgba(10,22,86,0.22)', visibility: medida.w ? 'visible' : 'hidden' }}
+      className="absolute z-[3] flex flex-wrap items-center gap-0.5 rounded-xl border border-[#E3E7EF] bg-white p-1 text-[#0B1033]"
+      style={{ left, top, maxWidth: Math.max(160, W - 8), boxShadow: '0 1px 2px rgba(16,24,64,0.05), 0 10px 28px -12px rgba(16,24,64,0.25)', visibility: medida.w ? 'visible' : 'hidden' }}
     >
       {colores.map((c) => (
         <Color key={c} c={c} elegido={trazo.color === c} onClick={() => onColor(c)} chico />
@@ -1803,7 +1888,7 @@ function BarraElegido({
             <button
               key={es}
               onClick={() => onEstilo(es)}
-              className={`h-7 rounded-md px-2 text-[12px] font-semibold ${(trazo as TrazoTexto).estilo === es ? 'bg-[#EAF0FE] text-[#0b2da0]' : 'text-[#0a1656] hover:bg-[#F4F7FD]'}`}
+              className={`h-7 rounded-lg px-2 text-[12px] font-semibold ${(trazo as TrazoTexto).estilo === es ? 'bg-[#EEF2FC] text-[#0b2da0]' : 'text-[#3B4262] hover:bg-[#F2F4F8]'}`}
             >
               {es === 'texto' ? 'Texto' : es === 'titulo' ? 'Título' : 'Nota'}
             </button>
@@ -1836,54 +1921,200 @@ function BotonBarra({ children, onClick, titulo, peligro }: { children: React.Re
       onClick={onClick}
       title={titulo}
       aria-label={titulo}
-      className={`flex h-7 w-7 items-center justify-center rounded-md ${peligro ? 'text-[#0a1656] hover:bg-[#FBEDEC] hover:text-[#B4413C]' : 'text-[#0a1656] hover:bg-[#F4F7FD]'}`}
+      className={`flex h-7 w-7 items-center justify-center rounded-lg ${peligro ? 'text-[#3B4262] hover:bg-[#FBEDEC] hover:text-[#B42323]' : 'text-[#3B4262] hover:bg-[#F2F4F8]'}`}
     >
       {children}
     </button>
   )
 }
 
-/** Un grupo de botones de la barra de abajo. Los de color y tamaño no le quitan el foco al texto que se escribe. */
-function Grupo({ children, propiedades }: { children: React.ReactNode; propiedades?: boolean }) {
+/** El fondo del lienzo: gris muy claro con puntos, como una mesa de trabajo. */
+const PUNTOS: React.CSSProperties = {
+  backgroundColor: '#F3F5F9',
+  backgroundImage: 'radial-gradient(rgba(16,24,64,0.11) 1px, transparent 1px)',
+  backgroundSize: '18px 18px',
+}
+
+function Cargando({ texto }: { texto: string }) {
+  return (
+    <div className="m-auto flex flex-col items-center gap-3">
+      <span className="h-6 w-6 animate-spin rounded-full border-[2.5px] border-[#DCE3F2] border-t-[#0b2da0]" />
+      <p className="text-[13.5px] text-[#6B7393]">{texto}</p>
+    </div>
+  )
+}
+
+/** Una barra que flota sobre el lienzo. */
+function Flotante({ children, propiedades, vertical, className = '' }: { children: React.ReactNode; propiedades?: boolean; vertical?: boolean; className?: string }) {
   return (
     <div
+      // Los de color y tamaño no le quitan el foco al texto que se escribe.
       onMouseDown={propiedades ? (e) => e.preventDefault() : undefined}
-      className="flex shrink-0 items-center gap-0.5 rounded-xl border border-[#E2E8F4] bg-[#F7F9FD] p-1"
+      className={`flex shrink-0 gap-0.5 rounded-xl border border-[#E3E7EF] bg-white/95 p-1 backdrop-blur ${vertical ? 'w-[84px] flex-col items-stretch p-1.5' : 'items-center'} ${className}`}
+      style={{ boxShadow: '0 1px 2px rgba(16,24,64,0.05), 0 8px 24px -10px rgba(16,24,64,0.18)' }}
     >
       {children}
     </div>
   )
 }
 
+/** Un botón de las barras flotantes, con su nombre y su atajo al pasar el ratón. */
+function BotonDock({
+  children,
+  onClick,
+  activo,
+  apagado,
+  titulo,
+  atajo,
+  chico,
+  peligro,
+}: {
+  children: React.ReactNode
+  onClick: () => void
+  activo?: boolean
+  apagado?: boolean
+  titulo: string
+  atajo?: string
+  chico?: boolean
+  peligro?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={apagado}
+      aria-label={titulo}
+      aria-pressed={activo}
+      title={atajo ? `${titulo} (${atajo})` : titulo}
+      className={`flex shrink-0 items-center justify-center rounded-lg transition-colors ${chico ? 'h-8 w-8' : 'h-10 w-10'} ${
+        activo
+          ? 'bg-[#0b2da0] text-white'
+          : peligro
+            ? 'text-[#3B4262] hover:bg-[#FBEDEC] hover:text-[#B42323]'
+            : 'text-[#3B4262] hover:bg-[#F2F4F8] hover:text-[#0B1033]'
+      } disabled:pointer-events-none disabled:opacity-30`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function BotonCabecera({ children, onClick, titulo, solo, chico }: { children: React.ReactNode; onClick: () => void; titulo: string; solo?: 'sm'; chico?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      title={titulo}
+      aria-label={titulo}
+      className={`${solo === 'sm' ? 'hidden sm:flex' : 'flex'} ${chico ? 'h-8 w-8' : 'h-9 w-9'} shrink-0 items-center justify-center rounded-lg text-[#3B4262] transition-colors hover:bg-[#F2F4F8] hover:text-[#0B1033]`}
+    >
+      {children}
+    </button>
+  )
+}
+
+/**
+ * Qué tienen los alumnos de ESTA clase (18/11/2026): nada aún (ven la de
+ * antes de la clase), la versión de la clase, o hay cambios sin guardar
+ * para ellos. Al tocarlo: verla como ellos o quitarla.
+ */
+function EstadoAlumnos({
+  publicada,
+  despues,
+  paraQuien,
+  onVer,
+  onQuitar,
+}: {
+  publicada: { at: string; paginas: number } | null | undefined
+  despues: boolean
+  paraQuien: string
+  onVer: () => void
+  onQuitar: () => void
+}) {
+  const [abierto, setAbierto] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!abierto) return
+    const fuera = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setAbierto(false)
+    document.addEventListener('mousedown', fuera)
+    return () => document.removeEventListener('mousedown', fuera)
+  }, [abierto])
+  const punto = !publicada ? '#B8C0D2' : despues ? '#D9A23B' : '#16A34A'
+  const corto = !publicada ? 'Aún no la tienen' : despues ? 'Cambios sin guardar' : `La tienen · ${horaCorta(publicada.at)}`
+  return (
+    <div ref={ref} className="relative hidden shrink-0 md:block">
+      <button
+        onClick={() => setAbierto((v) => !v)}
+        className="flex h-9 items-center gap-2 rounded-lg border border-[#E2E7F0] bg-white px-3 text-[13px] font-medium text-[#0B1033] transition-colors hover:border-[#C9D3E6] hover:bg-[#F7F9FD]"
+        aria-expanded={abierto}
+      >
+        <span className="h-2 w-2 rounded-full" style={{ background: punto }} />
+        <span className="text-[#6B7393]">Alumnos:</span> {corto}
+        <CaretDown size={12} weight="bold" className="text-[#6B7393]" />
+      </button>
+      {abierto && (
+        <div
+          className="absolute right-0 top-[calc(100%+6px)] z-20 w-[320px] rounded-xl border border-[#E3E7EF] bg-white p-1.5"
+          style={{ boxShadow: '0 1px 2px rgba(16,24,64,0.05), 0 16px 40px -16px rgba(16,24,64,0.25)' }}
+        >
+          <div className="px-3 pb-2.5 pt-2">
+            <p className="text-[13.5px] font-semibold text-[#0B1033]">Lo que ven los alumnos de {paraQuien}</p>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B7393]">
+              {!publicada
+                ? 'Por ahora, la presentación de antes de la clase. Al terminar, pulsa «Guardar para los alumnos» y verán esta, con lo que has escrito. El otro grupo no la ve.'
+                : despues
+                  ? `Tienen la versión de las ${horaCorta(publicada.at)}. Has escrito después: vuelve a guardar para que vean lo último.`
+                  : `La versión de la clase, guardada a las ${horaCorta(publicada.at)} (${publicada.paginas} páginas), en lugar de la de antes. El otro grupo no la ve.`}
+            </p>
+          </div>
+          {publicada ? (
+            <>
+              <button
+                onClick={() => {
+                  setAbierto(false)
+                  onVer()
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13.5px] font-medium text-[#0B1033] hover:bg-[#F4F6FB]"
+              >
+                <Eye size={16} className="text-[#6B7393]" /> Verla como la ven ellos
+              </button>
+              <button
+                onClick={() => {
+                  setAbierto(false)
+                  onQuitar()
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13.5px] font-medium text-[#B42323] hover:bg-[#FBEDEC]"
+              >
+                <Trash size={16} /> Quitársela (vuelven a la de antes)
+              </button>
+            </>
+          ) : null}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function EstadoGuardado({ estado, at, onReintentar }: { estado: Guardado; at: string; onReintentar?: () => void }) {
-  if (estado === 'guardando') return <span>Guardando…</span>
-  if (estado === 'sin-guardar') return <span>Sin guardar</span>
+  if (estado === 'guardando')
+    return (
+      <span className="flex shrink-0 items-center gap-1">
+        <span className="h-2.5 w-2.5 animate-spin rounded-full border-[1.5px] border-[#C9D1E3] border-t-[#6B7393]" /> Guardando…
+      </span>
+    )
+  if (estado === 'sin-guardar') return <span className="shrink-0">Sin guardar</span>
   if (estado === 'error')
     return (
-      <span className="text-[#B4413C]">
-        Sin guardar ·{' '}
+      <span className="flex shrink-0 items-center gap-1 text-[#B42323]">
+        <WarningCircle size={13} weight="fill" /> Sin guardar ·{' '}
         <button onClick={onReintentar} className="font-semibold underline">
           Reintentar
         </button>
       </span>
     )
-  return <span>{at ? `Lo escrito está guardado (${horaCorta(at)})` : 'Aún no has escrito nada'}</span>
-}
-
-function Boton({ children, onClick, activo, apagado, titulo }: { children: React.ReactNode; onClick: () => void; activo?: boolean; apagado?: boolean; titulo: string }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={apagado}
-      title={titulo}
-      aria-label={titulo}
-      aria-pressed={activo}
-      className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
-        activo ? 'bg-[#0b2da0] text-white' : 'text-[#0a1656] hover:bg-white hover:text-[#0b2da0]'
-      } disabled:pointer-events-none disabled:opacity-30`}
-    >
-      {children}
-    </button>
+    <span className="flex shrink-0 items-center gap-1">
+      {at ? <CloudCheck size={14} className="text-[#16A34A]" /> : null}
+      {at ? `Guardado ${horaCorta(at)}` : 'Aún no has escrito nada'}
+    </span>
   )
 }
 
@@ -1892,24 +2123,32 @@ function Opcion({ children, onClick, activa, titulo }: { children: React.ReactNo
     <button
       onClick={onClick}
       title={titulo}
-      className={`h-8 rounded-md px-2.5 text-[12.5px] font-semibold ${activa ? 'bg-white text-[#0b2da0] ring-1 ring-[#C9D5EE]' : 'text-[#0a1656] hover:bg-white'}`}
+      aria-pressed={activa}
+      className={`h-8 min-w-8 shrink-0 rounded-lg px-2 text-[12.5px] font-semibold transition-colors ${activa ? 'bg-[#EEF2FC] text-[#0b2da0]' : 'text-[#3B4262] hover:bg-[#F2F4F8]'}`}
     >
       {children}
     </button>
   )
 }
 
-function Raya({ chica }: { chica?: boolean }) {
-  return <span className={`shrink-0 bg-[#E2E8F4] ${chica ? 'mx-1 h-5 w-px' : 'mx-1 h-5 w-px'}`} />
+function Raya({ chica, alta, horizontal }: { chica?: boolean; alta?: boolean; horizontal?: boolean }) {
+  if (horizontal) return <span className="my-1 h-px w-full shrink-0 bg-[#E6EAF2]" />
+  return <span className={`mx-1 w-px shrink-0 bg-[#E6EAF2] ${alta ? 'h-6' : chica ? 'h-5' : 'h-5'}`} />
 }
 
 function Color({ c, elegido, onClick, chico }: { c: string; elegido: boolean; onClick: () => void; chico?: boolean }) {
-  const borde = c === BLANCO ? '#0a1656' : c
+  const borde = c === BLANCO ? '#0B1033' : c
   return (
-    <button onClick={onClick} title="Color" aria-label="Color" aria-pressed={elegido} className={`flex items-center justify-center ${chico ? 'h-7 w-6' : 'h-8 w-7'}`}>
+    <button
+      onClick={onClick}
+      title="Color"
+      aria-label="Color"
+      aria-pressed={elegido}
+      className={`flex shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-[#F2F4F8] ${chico ? 'h-7 w-7' : 'h-8 w-8'}`}
+    >
       <span
-        className={`${chico ? 'h-[18px] w-[18px]' : 'h-5 w-5'} rounded-full`}
-        style={{ background: c, boxShadow: elegido ? `0 0 0 2px #fff, 0 0 0 3.5px ${borde}` : c === BLANCO ? 'inset 0 0 0 1px #B7C3DA' : 'inset 0 0 0 1px rgba(10,22,86,0.08)' }}
+        className={`${chico ? 'h-[16px] w-[16px]' : 'h-[18px] w-[18px]'} rounded-full`}
+        style={{ background: c, boxShadow: elegido ? `0 0 0 2px #fff, 0 0 0 3.5px ${borde}` : c === BLANCO ? 'inset 0 0 0 1px #B7C3DA' : 'inset 0 0 0 1px rgba(16,24,64,0.08)' }}
       />
     </button>
   )
@@ -1921,22 +2160,22 @@ function Miniatura({ n, pagina, src, tam, elegida, onClick }: { n: number; pagin
     if (elegida) caja.current?.scrollIntoView({ block: 'nearest' })
   }, [elegida])
   return (
-    <button ref={caja} onClick={onClick} className="block w-full text-left">
+    <button ref={caja} onClick={onClick} className={`group flex w-full items-start gap-2 rounded-lg p-1.5 text-left transition-colors ${elegida ? 'bg-[#EEF2FC]' : 'hover:bg-[#F4F6FB]'}`}>
+      <span className={`w-[14px] shrink-0 pt-0.5 text-right text-[11px] tabular-nums ${elegida ? 'font-semibold text-[#0b2da0]' : 'text-[#8A91AD]'}`}>{n}</span>
       <div
-        className="relative w-full overflow-hidden rounded-md bg-white"
-        style={{ aspectRatio: `${tam.w} / ${tam.h}`, boxShadow: elegida ? '0 0 0 2px #0b2da0' : '0 0 0 1px #DDE6F5', opacity: pagina.oculta ? 0.45 : 1 }}
+        className="relative min-w-0 flex-1 overflow-hidden rounded-[5px] bg-white"
+        style={{ aspectRatio: `${tam.w} / ${tam.h}`, boxShadow: elegida ? '0 0 0 2px #0b2da0' : '0 0 0 1px #E3E7EF', opacity: pagina.oculta ? 0.4 : 1 }}
       >
         {src ? (
           <img src={src} alt="" className="h-full w-full" draggable={false} />
         ) : pagina.origen == null ? (
-          <span className="absolute left-2 top-2 text-[9px] font-semibold text-[#0a1656]">Notas</span>
+          <span className="absolute inset-0 flex items-center justify-center text-[10.5px] font-semibold text-[#8A91AD]">Notas</span>
         ) : (
-          <span className="absolute inset-0 animate-pulse bg-[#F4F7FD]" />
+          <span className="absolute inset-0 animate-pulse bg-[#F4F6FB]" />
         )}
-        {pagina.trazos.length > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#0b2da0]" title="Tiene algo escrito" />}
-        {pagina.oculta && <EyeSlash size={13} className="absolute bottom-1.5 right-1.5 text-[#0a1656]" />}
+        {pagina.trazos.length > 0 && <span className="absolute right-1.5 top-1.5 h-[7px] w-[7px] rounded-full bg-[#0b2da0] ring-2 ring-white" title="Tiene algo escrito" />}
+        {pagina.oculta && <EyeSlash size={13} className="absolute bottom-1.5 right-1.5 text-[#0B1033]" />}
       </div>
-      <span className={`mt-1 block text-center text-[11px] tabular-nums ${elegida ? 'font-semibold text-[#0b2da0]' : 'text-[#5B6B8C]'}`}>{n}</span>
     </button>
   )
 }

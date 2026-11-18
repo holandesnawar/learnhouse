@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query'
 import { PlayCircle, X } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
+import { esDeEstaSemana } from '@/lib/nawar/otraClase'
 import ReproductorRecortado from '@components/Pages/Grabaciones/ReproductorRecortado'
 import { diaCorto, getMiraTambien, urlVideoHermana, type MiraTambien as Datos, type VideoGrabacion } from '@services/tareas/tareas'
 
@@ -44,19 +45,18 @@ const aDia = (f: string) => Date.parse(`${(f || '').slice(0, 10)}T12:00:00Z`)
 
 /**
  * La grabación del otro grupo de ESA semana (09/11/2026): la de la clase
- * hermana que cae a 6 días o menos de la nuestra. Rood y blauw dan el mismo
+ * hermana de la misma semana del calendario (ver esDeEstaSemana). Rood y blauw dan el mismo
  * tema la misma semana, en días distintos.
  */
-export function deLaMismaSemana(clases: ClaseHermana[] | undefined, fecha: string) {
+export function deLaMismaSemana(clases: ClaseHermana[] | undefined, fecha: string, tema?: string) {
   const f = aDia(fecha)
   if (!clases || Number.isNaN(f)) return []
   const out: { clase: ClaseHermana; g: Grabacion }[] = []
   for (const clase of clases) {
     let mejor: Grabacion | null = null
     for (const g of clase.grabaciones) {
-      const d = Math.abs(aDia(g.fecha) - f)
-      if (Number.isNaN(d) || d > 6 * DIA_MS) continue
-      if (!mejor || d < Math.abs(aDia(mejor.fecha) - f)) mejor = g
+      if (!esDeEstaSemana(g.fecha, fecha, tema, g.tema)) continue
+      if (!mejor || Math.abs(aDia(g.fecha) - f) < Math.abs(aDia(mejor.fecha) - f)) mejor = g
     }
     if (mejor) out.push({ clase, g: mejor })
   }
@@ -66,11 +66,10 @@ export function deLaMismaSemana(clases: ClaseHermana[] | undefined, fecha: strin
 export const claveDe = (g: Grabacion) => g.clave || g.activity_uuid
 
 /** La semana del otro grupo que aún no tiene grabación (solo llega al equipo). */
-export function pendienteDeLaSemana(clases: ClaseHermana[] | undefined, fecha: string) {
-  const f = aDia(fecha)
-  if (!clases || Number.isNaN(f)) return null
+export function pendienteDeLaSemana(clases: ClaseHermana[] | undefined, fecha: string, tema?: string) {
+  if (!clases || Number.isNaN(aDia(fecha))) return null
   for (const clase of clases) {
-    const p = (clase.pendientes || []).find((x) => Math.abs(aDia(x.fecha) - f) <= 6 * DIA_MS)
+    const p = (clase.pendientes || []).find((x) => esDeEstaSemana(x.fecha, fecha, tema, x.tema))
     if (p) return { clase, p }
   }
   return null

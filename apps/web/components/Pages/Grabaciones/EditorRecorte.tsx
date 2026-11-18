@@ -68,9 +68,9 @@ const REINTENTOS = 3
 const PARTE_MINIMA = 60
 
 const BOTON =
-  'inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-[#D5DEEE] bg-white text-[13px] font-semibold text-[#0B1033] hover:border-[#0b2da0] hover:text-[#0b2da0] disabled:opacity-40 disabled:hover:border-[#D5DEEE] disabled:hover:text-[#0B1033]'
+  'inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-[#E2E7F0] bg-white text-[13px] font-semibold text-[#0B1033] transition-colors hover:border-[#C9D3E6] hover:bg-[#F7F9FD] disabled:opacity-40 disabled:hover:bg-white'
 const BOTON_FUERTE =
-  'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-[#0b2da0] bg-[#EAF0FE] text-[13.5px] font-semibold text-[#0b2da0] hover:bg-[#dfe8fd]'
+  'inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#0B1033] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#1F2547]'
 
 const RAYAS: React.CSSProperties = {
   backgroundImage: 'repeating-linear-gradient(135deg, rgba(100,110,135,0.55) 0 6px, rgba(100,110,135,0.25) 6px 12px)',
@@ -531,43 +531,75 @@ function EditorRecorteDentro({
   }
 
   return (
-    <div className="fixed inset-0 z-[95] flex flex-col bg-[#F4F7FD]">
-      {/* Cabecera */}
-      <div className="flex items-center gap-3 border-b border-[#E2E8F4] bg-white px-4 sm:px-6 py-3">
-        <Scissors size={20} className="shrink-0 text-[#0b2da0]" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[15.5px] font-bold text-[#0B1033]">Recortar la grabación</p>
-          <p className="truncate text-[12.5px] text-[#6B7393]">
-            {diaCorto(dia.dia)} · la sala grabó {duracionCorta(total)}
-            {varias ? ` en ${listas.length} partes, aquí seguidas` : ''}
-          </p>
+    <div className="fixed inset-0 z-[95] flex flex-col bg-[#F3F5F9]">
+      {/* Cabecera: qué grabación es y, a la derecha, dónde se publica (como «Exportar» en un editor de vídeo) */}
+      <div className="shrink-0 border-b border-[#E6EAF2] bg-white">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:px-5">
+          <button onClick={cerrar} aria-label="Cerrar" title="Cerrar" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#3B4262] transition-colors hover:bg-[#F2F4F8] hover:text-[#0B1033]">
+            <X size={19} />
+          </button>
+          <span className="hidden h-6 w-px shrink-0 bg-[#E6EAF2] sm:block" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-semibold leading-tight text-[#0B1033]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+              Recortar la grabación
+            </p>
+            <p className="mt-0.5 truncate text-[12px] leading-tight text-[#6B7393] first-letter:uppercase">
+              {diaCorto(dia.dia)} · la sala grabó {duracionCorta(total)}
+              {varias ? ` en ${listas.length} partes, aquí seguidas` : ''}
+            </p>
+          </div>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <span className="mr-1 hidden text-[13px] text-[#3B4262] lg:inline">
+              Queda <b className="font-semibold text-[#0B1033]">{duracionCorta(queda)}</b>
+              <span className="text-[#8A91AD]"> de {duracionCorta(total)}</span>
+            </span>
+            <input
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              maxLength={160}
+              placeholder="Título (opcional)"
+              className="h-9 min-w-0 flex-1 rounded-lg border border-[#E2E7F0] px-3 text-[13.5px] text-[#0B1033] outline-none transition-colors placeholder:text-[#9AA1B9] hover:border-[#C9D3E6] focus:border-[#0b2da0] focus:ring-[3px] focus:ring-[#0b2da0]/10 sm:w-44 sm:flex-none"
+            />
+            <select
+              value={semanaId ?? ''}
+              onChange={(e) => setSemanaId(e.target.value ? Number(e.target.value) : null)}
+              aria-label="Semana en la que se publica"
+              className="h-9 min-w-0 flex-1 rounded-lg border border-[#E2E7F0] bg-white px-2.5 text-[13.5px] text-[#0B1033] outline-none transition-colors hover:border-[#C9D3E6] focus:border-[#0b2da0] sm:max-w-[240px] sm:flex-none"
+            >
+              <option value="">Elige la semana…</option>
+              {semanas.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.tema || 'Semana'} · {diaCorto(s.fecha)}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={publicar}
+              disabled={guardando || !semana}
+              className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#0b2da0] px-4 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#0a2690] disabled:opacity-50"
+            >
+              {guardando ? <Loader2 size={16} className="animate-spin" /> : null}
+              Publicar
+            </button>
+          </div>
         </div>
-        <button onClick={cerrar} aria-label="Cerrar" className="flex h-9 w-9 items-center justify-center rounded-lg text-[#5A6480] hover:bg-[#F0F5FF]">
-          <X size={20} />
-        </button>
+        {!semanas.length ? (
+          <p className="border-t border-[#F1E6CC] bg-[#FFFBF2] px-5 py-1.5 text-[12.5px] text-[#8A6A2A]">Esta clase aún no tiene semanas: crea la semana de ese día y vuelve para publicar.</p>
+        ) : semana?.subida ? (
+          <p className="border-t border-[#F1E6CC] bg-[#FFFBF2] px-5 py-1.5 text-[12.5px] text-[#8A6A2A]">
+            Esa semana ya tiene una grabación subida a mano: los alumnos seguirán viendo esa, no esta.
+          </p>
+        ) : null}
       </div>
 
       <div className="flex-1 overflow-y-auto pb-6">
         <div className="mx-auto w-full max-w-5xl px-3 sm:px-6 py-4 space-y-4">
-          {/* Los pasos */}
-          <ol className="grid gap-2 sm:grid-cols-3">
-            {[
-              <>
-                Busca dónde <b>empieza</b> la clase y pulsa <b>«Empieza aquí»</b>.
-              </>,
-              <>
-                Busca dónde <b>acaba</b> y pulsa <b>«Termina aquí»</b>.
-              </>,
-              <>
-                Si sobra algo en medio, márcalo y <b>«Quitar este trozo»</b>. Luego, <b>Publicar</b>.
-              </>,
-            ].map((txt, i) => (
-              <li key={i} className="flex items-start gap-2.5 rounded-lg border border-[#E2E8F4] bg-white px-3 py-2.5 text-[13px] leading-snug text-[#3F4A61]">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0b2da0] text-[12px] font-bold text-white">{i + 1}</span>
-                <span>{txt}</span>
-              </li>
-            ))}
-          </ol>
+          {/* Cómo se hace, en una línea */}
+          <p className="text-[13px] leading-relaxed text-[#6B7393]">
+            <b className="font-semibold text-[#0B1033]">Cómo se hace:</b> busca dónde empieza la clase y pulsa <b className="font-semibold text-[#3B4262]">Empieza aquí</b>; busca
+            dónde acaba y pulsa <b className="font-semibold text-[#3B4262]">Termina aquí</b>. Si sobra algo en medio, márcalo con <b className="font-semibold text-[#3B4262]">Inicio</b> y{' '}
+            <b className="font-semibold text-[#3B4262]">Fin</b> y quítalo. Luego, <b className="font-semibold text-[#3B4262]">Publicar</b>, arriba.
+          </p>
 
           {/* Partes */}
           {varias ? (
@@ -578,7 +610,7 @@ function EditorRecorteDentro({
                   return (
                     <div
                       key={p.id}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${i === iParte ? 'border-[#0b2da0] bg-white' : 'border-[#E2E8F4] bg-white/60'}`}
+                      className={`flex items-center gap-2.5 rounded-lg border bg-white px-3 py-2 transition-colors ${i === iParte ? 'border-[#0b2da0] ring-[3px] ring-[#0b2da0]/10' : 'border-[#E2E7F0]'}`}
                     >
                       <button onClick={() => irA(ini[i])} className="text-left" title="Ir a esta parte">
                         <span className={`block text-[13px] font-semibold ${dentro ? 'text-[#0B1033]' : 'text-[#9CA3AF] line-through'}`}>
@@ -604,7 +636,7 @@ function EditorRecorteDentro({
           ) : null}
 
           {/* Vídeo */}
-          <div className="overflow-hidden rounded-xl bg-black">
+          <div className="overflow-hidden rounded-2xl bg-[#0B1033]">
             <div className="relative mx-auto w-full max-w-3xl" style={{ aspectRatio: '16 / 9' }}>
               <video
                 ref={video}
@@ -703,14 +735,14 @@ function EditorRecorteDentro({
           </div>
 
           {/* Mandos */}
-          <div className="rounded-xl border border-[#E2E8F4] bg-white p-3 sm:p-4">
+          <div className="rounded-2xl border border-[#E6EAF2] bg-white p-3 sm:p-5">
             <div className="flex flex-wrap items-center gap-2">
               <button onClick={() => irA(t - 5)} className={BOTON} aria-label="5 segundos atrás" title="5 segundos atrás (←)">
                 <SkipBack size={15} />
               </button>
               <button
                 onClick={alternar}
-                className="inline-flex h-9 w-12 items-center justify-center rounded-lg bg-[#0b2da0] text-white hover:bg-[#0a2690]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0b2da0] text-white transition-colors hover:bg-[#0a2690]"
                 aria-label={sonando ? 'Pausar' : 'Reproducir'}
                 title="Reproducir o pausar (espacio)"
               >
@@ -719,7 +751,7 @@ function EditorRecorteDentro({
               <button onClick={() => irA(t + 5)} className={BOTON} aria-label="5 segundos adelante" title="5 segundos adelante (→)">
                 <SkipForward size={15} />
               </button>
-              <span className="mx-1 text-[14px] font-semibold tabular-nums text-[#0B1033]">
+              <span className="mx-1.5 text-[14px] font-semibold tabular-nums text-[#0B1033]">
                 {reloj(t, conHoras)} <span className="font-normal text-[#8A91AD]">/ {reloj(total, conHoras)}</span>
               </span>
               {hora ? (
@@ -727,14 +759,23 @@ function EditorRecorteDentro({
                   · en la sala eran las <b className="font-semibold text-[#3F4A61]">{hora}</b>
                 </span>
               ) : null}
-              <label className="ml-auto flex items-center gap-2 text-[13px] text-[#3F4A61] cursor-pointer">
-                <input type="checkbox" checked={previa} onChange={(e) => setPrevia(e.target.checked)} className="h-4 w-4 accent-[#0b2da0]" />
+              <button
+                type="button"
+                role="switch"
+                aria-checked={previa}
+                onClick={() => setPrevia(!previa)}
+                className="ml-auto flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-[#3B4262] transition-colors hover:bg-[#F2F4F8]"
+                title="Reproduce saltando lo que has quitado, como lo verán los alumnos"
+              >
+                <span className={`relative h-5 w-9 rounded-full transition-colors ${previa ? 'bg-[#0b2da0]' : 'bg-[#D5DCE8]'}`}>
+                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${previa ? 'left-[18px]' : 'left-0.5'}`} />
+                </span>
                 Ver cómo queda
-              </label>
+              </button>
             </div>
 
             {/* Línea de tiempo */}
-            <div ref={carril} className="mt-3 overflow-x-auto overscroll-x-contain rounded-lg border border-[#E2E8F4] bg-[#F7F9FD]" style={{ touchAction: 'pan-x' }}>
+            <div ref={carril} className="mt-4 overflow-x-auto overscroll-x-contain rounded-xl border border-[#E6EAF2] bg-[#FAFBFD]" style={{ touchAction: 'pan-x' }}>
               <div
                 ref={pista}
                 className="relative h-[112px] cursor-pointer select-none"
@@ -753,7 +794,7 @@ function EditorRecorteDentro({
                   ))}
                 </div>
                 {/* Lo que se ve */}
-                <div className="absolute inset-x-0 top-[50px] h-11 rounded bg-[#0b2da0]/85" />
+                <div className="absolute inset-x-0 top-[50px] h-11 rounded-md" style={{ background: 'linear-gradient(180deg, #2449C2 0%, #0b2da0 100%)' }} />
                 {/* Dónde empieza cada parte */}
                 {varias
                   ? etiquetas.map((e, i) => (
@@ -803,8 +844,8 @@ function EditorRecorteDentro({
                   />
                 ) : null}
                 {/* Cabezal */}
-                <div className="pointer-events-none absolute top-0 h-full w-0.5 bg-[#F5A524]" style={{ left: Math.max(0, t * px - 1) }}>
-                  <span className="absolute -left-[5px] top-0 h-3 w-3 rounded-full bg-[#F5A524]" />
+                <div className="pointer-events-none absolute top-0 h-full w-0.5 bg-[#E5484D]" style={{ left: Math.max(0, t * px - 1) }}>
+                  <span className="absolute -left-[5px] top-0 h-3 w-3 rotate-45 rounded-[2px] bg-[#E5484D]" />
                 </div>
               </div>
             </div>
@@ -818,7 +859,7 @@ function EditorRecorteDentro({
                 Termina aquí <ChevronsLeft size={16} />
               </button>
               <span className="text-[12px] text-[#6B7393]">
-                En el punto naranja{hora ? ` (${hora})` : ''}. Lo que se quita queda rayado.
+                Donde está la línea roja{hora ? ` (${hora})` : ''}. Lo que se quita queda rayado.
               </span>
             </div>
 
@@ -845,9 +886,9 @@ function EditorRecorteDentro({
             </div>
 
             {/* Quitar un trozo de en medio */}
-            <div className="mt-4 rounded-lg border border-[#E2E8F4] p-3">
-              <p className="text-[12.5px] font-semibold text-[#0B1033]">Quitar un trozo de en medio</p>
-              <p className="mt-0.5 text-[12px] text-[#6B7393]">Marca dónde empieza y dónde acaba lo que sobra (una pausa, un fallo). Puede pasar de una parte a otra.</p>
+            <div className="mt-5 rounded-xl border border-[#E6EAF2] bg-[#FAFBFD] p-4">
+              <p className="text-[13.5px] font-semibold text-[#0B1033]">Quitar un trozo de en medio</p>
+              <p className="mt-0.5 text-[12.5px] text-[#6B7393]">Marca dónde empieza y dónde acaba lo que sobra (una pausa, un fallo). Puede pasar de una parte a otra.</p>
               <div className="mt-2.5 flex flex-wrap gap-2">
                 <button onClick={marcarInicio} className={BOTON} title="Tecla I">
                   Inicio{marcaA !== null ? ` · ${reloj(marcaA, conHoras)}` : ''}
@@ -879,8 +920,8 @@ function EditorRecorteDentro({
             {/* Los cortes */}
             {cortes.length ? (
               <div className="mt-3">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8A91AD]">Lo que se quita</p>
-                <ul className="mt-1.5 divide-y divide-[#EEF2F9] rounded-lg border border-[#E2E8F4]">
+                <p className="text-[13.5px] font-semibold text-[#0B1033]">Lo que se quita</p>
+                <ul className="mt-2 divide-y divide-[#EEF1F6] rounded-xl border border-[#E6EAF2]">
                   {cortes.map((c, i) => {
                     const n = nombreDelCorte(c)
                     return (
@@ -905,50 +946,6 @@ function EditorRecorteDentro({
         </div>
       </div>
 
-      {/* Publicar */}
-      <div className="border-t border-[#E2E8F4] bg-white px-3 sm:px-6 py-3">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-2.5 sm:flex-row sm:items-center">
-          <p className="text-[13.5px] text-[#0B1033] sm:flex-1">
-            Queda <b>{duracionCorta(queda)}</b>
-            <span className="text-[#6B7393]"> de {duracionCorta(total)}</span>
-          </p>
-          <input
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-            maxLength={160}
-            placeholder="Título (opcional)"
-            className="h-10 rounded-lg border border-[#D5DEEE] px-3 text-[13.5px] text-[#0B1033] outline-none focus:border-[#0b2da0] sm:w-48"
-          />
-          <select
-            value={semanaId ?? ''}
-            onChange={(e) => setSemanaId(e.target.value ? Number(e.target.value) : null)}
-            aria-label="Semana en la que se publica"
-            className="h-10 rounded-lg border border-[#D5DEEE] bg-white px-2.5 text-[13.5px] text-[#0B1033] outline-none focus:border-[#0b2da0] sm:max-w-[260px]"
-          >
-            <option value="">Elige la semana…</option>
-            {semanas.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.tema || 'Semana'} · {diaCorto(s.fecha)}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={publicar}
-            disabled={guardando || !semana}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#0b2da0] px-5 text-[14px] font-semibold text-white hover:bg-[#0a2690] disabled:opacity-50"
-          >
-            {guardando ? <Loader2 size={16} className="animate-spin" /> : null}
-            {semana ? `Publicar en «${semana.tema || 'la semana'}»` : 'Publicar'}
-          </button>
-        </div>
-        {!semanas.length ? (
-          <p className="mx-auto mt-1.5 w-full max-w-5xl text-[12px] text-[#8A6A2A]">Esta clase aún no tiene semanas: crea la semana de ese día y vuelve para publicar.</p>
-        ) : semana?.subida ? (
-          <p className="mx-auto mt-1.5 w-full max-w-5xl text-[12px] text-[#8A6A2A]">
-            Esa semana ya tiene una grabación subida a mano: los alumnos seguirán viendo esa, no esta.
-          </p>
-        ) : null}
-      </div>
     </div>
   )
 }

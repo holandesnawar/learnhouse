@@ -27,3 +27,25 @@ export function diaEnLaOtraClase(dia: string, h: { dia?: string; weekday?: strin
   const lunesEs0 = (new Date(Date.UTC(a, m - 1, d, 12)).getUTCDay() + 6) % 7
   return sumarDias(dia, (destino + 6) % 7 - lunesEs0)
 }
+
+/**
+ * Si la clase del otro grupo es de ESTA semana (18/11/2026, usuario: "estamos
+ * a miércoles, te vas al grupo del lunes y sale ver la clase del grupo rojo…
+ * pero aún no hubo la clase del rojo: te sale la de la semana pasada, que no
+ * tiene nada que ver"). Antes valía cualquiera a 6 días o menos, y el
+ * miércoles de la semana pasada está a 5 días del lunes. Ahora: la misma
+ * semana del calendario (lunes a domingo) o, si el tema es el mismo, a 6
+ * días o menos (dos grupos que dan el tema en semanas seguidas). Pura.
+ */
+const DIA_MS = 86_400_000
+const aDia = (f: string) => Date.parse(`${(f || '').slice(0, 10)}T12:00:00Z`)
+
+export function esDeEstaSemana(fechaOtra: string, fecha: string, tema?: string, temaOtra?: string) {
+  const a = aDia(fechaOtra)
+  const b = aDia(fecha)
+  if (Number.isNaN(a) || Number.isNaN(b)) return false
+  const lunes = (t: number) => t - ((new Date(t).getUTCDay() + 6) % 7) * DIA_MS
+  if (lunes(a) === lunes(b)) return true
+  const n = (x?: string) => (x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+  return !!n(tema) && n(tema) === n(temaOtra) && Math.abs(a - b) <= 6 * DIA_MS
+}

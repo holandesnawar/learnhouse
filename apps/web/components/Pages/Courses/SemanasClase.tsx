@@ -478,7 +478,7 @@ export default function SemanasClase({
     // También al equipo (10/11/2026: «no lo veo»): ve lo mismo que el alumno.
     if (!semana.fecha || semana.fecha > hoy) return null
     const margen = enLista ? 'px-4' : 'px-5'
-    const encontradas = deLaMismaSemana(hermanas?.clases, semana.fecha)
+    const encontradas = deLaMismaSemana(hermanas?.clases, semana.fecha, semana.tema)
     if (!encontradas.length) {
       // Al equipo se le dice POR QUÉ no sale (12/11/2026: «sigo sin verlo»).
       if (!equipo) return null
@@ -489,7 +489,7 @@ export default function SemanasClase({
           </p>
         )
       }
-      const falta = pendienteDeLaSemana(hermanas?.clases, semana.fecha)
+      const falta = pendienteDeLaSemana(hermanas?.clases, semana.fecha, semana.tema)
       if (!falta) return null
       return (
         <div className={`border-t border-[#EEF1F7] ${margen} py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4`}>
@@ -613,7 +613,7 @@ export default function SemanasClase({
           <div className="min-w-0 flex-1">
             <p className="text-[14.5px] font-semibold text-gray-900 truncate">{tituloDeClase(s.tema, s.fecha)}</p>
             <p className="text-[12.5px] text-[#6B7280] truncate">
-              {[queTuvo(s) || 'Clase', deLaMismaSemana(hermanas?.clases, s.fecha).length ? 'Grabación del otro grupo' : ''].filter(Boolean).join(' · ')}
+              {[queTuvo(s) || 'Clase', deLaMismaSemana(hermanas?.clases, s.fecha, s.tema).length ? 'Grabación del otro grupo' : ''].filter(Boolean).join(' · ')}
             </p>
           </div>
           {/* Un solo estado por línea. Lo de antes de que entrara no cuenta
@@ -745,6 +745,10 @@ export default function SemanasClase({
       {editando ? (
         <EditarSemana
           semana={editando}
+          courseUuid={courseUuid}
+          hoy={hoy}
+          ruta={rutaOrg}
+          onCambio={recargar}
           puedeQuitar={admin}
           onClose={() => setEditando(null)}
           onGuardada={() => {
