@@ -106,3 +106,67 @@ describe('mover lo escrito (16/11/2026)', () => {
     expect(c.w).toBeCloseTo(0.104)
   })
 })
+
+import { cambiarTamano, duplicarTrazo, escalarTrazo, esquinas, factorEscala, recolorear, TAM_TEXTO } from '../pizarra'
+
+describe('cambiar lo ya escrito (18/11/2026)', () => {
+  const texto: TrazoTexto = { t: 'texto', x: 0.2, y: 0.3, texto: 'het huis', color: '#0b2da0', tam: 0.03, estilo: 'texto' }
+  const linea: Trazo = { t: 'lapiz', color: '#0b2da0', grosor: 0.004, p: [0.2, 0.2, 0.4, 0.4] }
+
+  test('recolorear cambia solo el color', () => {
+    expect(recolorear(texto, '#D92D20')).toEqual({ ...texto, color: '#D92D20' })
+    expect((recolorear(linea, '#16A34A') as any).p).toEqual(linea.p)
+  })
+
+  test('estirar un texto desde la esquina de abajo deja quieta la de arriba y agranda la letra', () => {
+    const t = escalarTrazo(texto, 2, 0.2, 0.3) as TrazoTexto
+    expect(t.tam).toBeCloseTo(0.06)
+    expect(t.x).toBeCloseTo(0.2)
+    expect(t.y).toBeCloseTo(0.3)
+  })
+
+  test('estirar desde la esquina de arriba mueve el texto para que la de abajo no se mueva', () => {
+    const t = escalarTrazo(texto, 0.5, 0.6, 0.5) as TrazoTexto
+    expect(t.tam).toBeCloseTo(0.015)
+    expect(t.x).toBeCloseTo(0.4)
+    expect(t.y).toBeCloseTo(0.4)
+  })
+
+  test('la letra no pasa de sus límites', () => {
+    expect((escalarTrazo(texto, 50, 0.2, 0.3) as TrazoTexto).tam).toBe(TAM_TEXTO.max)
+    expect((escalarTrazo(texto, 0.01, 0.2, 0.3) as TrazoTexto).tam).toBe(TAM_TEXTO.min)
+  })
+
+  test('un dibujo escala sus puntos y su grosor y no se sale de la página', () => {
+    const l = escalarTrazo(linea, 2, 0.2, 0.2) as any
+    expect(l.p).toEqual([0.2, 0.2, 0.6, 0.6])
+    expect(l.grosor).toBeCloseTo(0.008)
+    const fuera = escalarTrazo(linea, 6, 0.2, 0.2) as any
+    expect(Math.max(...fuera.p)).toBeLessThanOrEqual(1)
+  })
+
+  test('el factor sale de cuánto se aleja el dedo en la dirección de la esquina', () => {
+    expect(factorEscala(0, 0, 0.2, 0.1, 0.4, 0.2, 1)).toBeCloseTo(2)
+    expect(factorEscala(0, 0, 0.2, 0.1, 0.1, 0.05, 1)).toBeCloseTo(0.5)
+    // Moverse de lado no estira.
+    expect(factorEscala(0, 0, 0.2, 0, 0.2, 0.3, 1)).toBeCloseTo(1)
+    expect(factorEscala(0, 0, 0, 0, 0.5, 0.5, 1)).toBe(1)
+  })
+
+  test('los botones − y + cambian la letra o el grosor', () => {
+    expect((cambiarTamano(texto, 1.2) as TrazoTexto).tam).toBeCloseTo(0.036)
+    expect((cambiarTamano(linea, 2) as any).grosor).toBeCloseTo(0.008)
+  })
+
+  test('duplicar deja una copia un poco más abajo y no toca el original', () => {
+    const d = duplicarTrazo(linea) as any
+    expect(d.p[0]).toBeCloseTo(0.225)
+    expect((linea as any).p[0]).toBe(0.2)
+  })
+
+  test('cada esquina tiene la de enfrente como punto fijo', () => {
+    const e = esquinas({ x: 0.1, y: 0.2, w: 0.3, h: 0.1 })
+    expect(e.se.fija).toEqual({ x: 0.1, y: 0.2 })
+    expect(e.no.fija).toEqual({ x: 0.4, y: 0.30000000000000004 })
+  })
+})

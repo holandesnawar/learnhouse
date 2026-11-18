@@ -231,6 +231,87 @@ export function moverTrazo(t: Trazo, dx: number, dy: number): Trazo {
   return { ...t, p: t.p.map((v, i) => r4(v + (i % 2 === 0 ? ddx : ddy))) }
 }
 
+// ── Cambiar lo que ya está escrito (18/11/2026: «agrandar o achicar un
+// texto como en Canva, una vez escrito y clicado» y «cambiar el color no
+// funciona»). Todo devuelve un trazo nuevo: el viejo queda para Deshacer.
+
+/** Los límites del tamaño: un texto ni minúsculo ni más grande que media página. */
+export const TAM_TEXTO = { min: 0.01, max: 0.16 } as const
+export const GROSOR_LINEA = { min: 0.0012, max: 0.045 } as const
+
+const entre = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n))
+
+/** El mismo trazo con otro color. */
+export function recolorear(t: Trazo, color: string): Trazo {
+  return { ...t, color }
+}
+
+/**
+ * El trazo más grande o más pequeño alrededor del punto (ax, ay), en 0-1 de
+ * la página, como al estirar una esquina en Canva: ese punto (la esquina de
+ * enfrente) no se mueve. Un texto cambia el tamaño de la letra; un dibujo,
+ * sus puntos y su grosor. Si el tamaño llega al límite, se para ahí.
+ */
+export function escalarTrazo(t: Trazo, s: number, ax: number, ay: number): Trazo {
+  if (!isFinite(s) || s <= 0) return t
+  if (t.t === 'texto') {
+    const tam = entre(t.tam * s, TAM_TEXTO.min, TAM_TEXTO.max)
+    const k = tam / t.tam
+    return { ...t, tam: r4(tam), x: r4(entre(ax + (t.x - ax) * k, 0, 0.98)), y: r4(entre(ay + (t.y - ay) * k, 0, 0.98)) }
+  }
+  // Como mucho, del tamaño de la página entera.
+  let x0 = 1, x1 = 0, y0 = 1, y1 = 0
+  for (let i = 0; i + 1 < t.p.length; i += 2) {
+    x0 = Math.min(x0, t.p[i])
+    x1 = Math.max(x1, t.p[i])
+    y0 = Math.min(y0, t.p[i + 1])
+    y1 = Math.max(y1, t.p[i + 1])
+  }
+  const lado = Math.max(x1 - x0, y1 - y0)
+  if (lado > 0 && lado * s > 1) s = 1 / lado
+  const grosor = r4(entre(t.grosor * s, GROSOR_LINEA.min, GROSOR_LINEA.max))
+  const p = t.p.map((v, i) => r4(i % 2 === 0 ? ax + (v - ax) * s : ay + (v - ay) * s))
+  // Si se ha salido de la página, se mete dentro sin cambiar la forma.
+  return moverTrazo({ ...t, grosor, p }, 0, 0)
+}
+
+/**
+ * Cuánto se estira al arrastrar una esquina: la distancia del punto fijo (ax,
+ * ay) al dedo, entre la que había hasta la esquina (cx, cy). Las cuentas, en
+ * unidades del ancho (`alto` = alto / ancho de la página), para que una
+ * página vertical no estire más hacia abajo que hacia el lado.
+ */
+export function factorEscala(ax: number, ay: number, cx: number, cy: number, px: number, py: number, alto: number): number {
+  const antes = Math.hypot(cx - ax, (cy - ay) * alto)
+  if (antes < 1e-6) return 1
+  // Solo cuenta lo que se aleja en la dirección de la esquina (como Canva).
+  const ux = (cx - ax) / antes
+  const uy = ((cy - ay) * alto) / antes
+  const ahora = (px - ax) * ux + (py - ay) * alto * uy
+  return entre(ahora / antes, 0.05, 20)
+}
+
+/** Un poco más grande o más pequeño (los botones − y +), desde su esquina de arriba. */
+export function cambiarTamano(t: Trazo, factor: number): Trazo {
+  if (t.t === 'texto') return escalarTrazo(t, factor, t.x, t.y)
+  return { ...t, grosor: r4(entre(t.grosor * factor, GROSOR_LINEA.min, GROSOR_LINEA.max)) }
+}
+
+/** Una copia un poco más abajo y a la derecha (como «Duplicar» en Canva). */
+export function duplicarTrazo(t: Trazo, d = 0.025): Trazo {
+  return moverTrazo(t.t === 'texto' ? { ...t } : { ...t, p: t.p.slice() }, d, d)
+}
+
+/** Las cuatro esquinas de una caja, y la de enfrente de cada una. */
+export type Esquina = 'no' | 'ne' | 'so' | 'se'
+export function esquinas(c: Caja01): Record<Esquina, { x: number; y: number; fija: { x: number; y: number } }> {
+  const no = { x: c.x, y: c.y }
+  const ne = { x: c.x + c.w, y: c.y }
+  const so = { x: c.x, y: c.y + c.h }
+  const se = { x: c.x + c.w, y: c.y + c.h }
+  return { no: { ...no, fija: se }, ne: { ...ne, fija: so }, so: { ...so, fija: ne }, se: { ...se, fija: no } }
+}
+
 /** Las líneas de un texto: las que escribió el profe con Intro. */
 export function lineasDe(texto: string): string[] {
   return (texto || '').replace(/\r/g, '').split('\n')
