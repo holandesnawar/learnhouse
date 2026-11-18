@@ -12,15 +12,15 @@
  * completa es la del propio vídeo (no hay otra): ahí la barra es la del
  * teléfono, pero los cortes se siguen saltando.
  *
- * El vídeo se pide a la escuela (`urlVideoSala`), que redirige a un enlace de
+ * El vídeo se pide a la escuela (`useFuenteSala`: Bunny mp4 o HLS, o un enlace de
  * Daily que caduca. Si deja de servir a mitad, se pide otro y se sigue por
  * donde iba (hasta tres veces).
  */
 
+import { useFuenteSala } from './useFuenteSala'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, Maximize, Pause, Play, RotateCcw } from 'lucide-react'
 import { aParte, deParte, dondeSeguir, duracionDePartes, limpiarTrozos, reloj, type Parte } from '@/lib/nawar/recorte'
-import { urlVideoSala } from '@services/grabaciones/grabaciones'
 
 const VELOCIDADES = [1, 1.25, 1.5, 2, 0.75]
 const REINTENTOS = 3
@@ -89,6 +89,8 @@ export default function ReproductorRecortado({
   )
   const total = duracionDePartes(efectivas)
   const parte = efectivas[iParte] || efectivas[0]
+  // El vídeo sale de Bunny (mp4 o HLS, se salta al momento) o de Daily (18/11/2026).
+  useFuenteSala(video, courseUuid, parte?.id, intento, () => alFallar(), otroGrupo)
 
   // Al abrir: sigue por donde lo dejó.
   useEffect(() => {
@@ -242,7 +244,6 @@ export default function ReproductorRecortado({
         <video
           ref={video}
           key={`${parte.id}-${intento}`}
-          src={urlVideoSala(courseUuid, parte.id, intento, otroGrupo)}
           playsInline
           preload="metadata"
           className="absolute inset-0 h-full w-full"

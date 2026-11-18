@@ -94,6 +94,12 @@ export const getEstudio = (courseUuid: string, token: string) => pedir<Estudio>(
 export const urlVideoSala = (courseUuid: string, grabacionId: string, intento = 0, otroGrupo = false) =>
   `${base()}/video/${encodeURIComponent(grabacionId)}?course=${sin(courseUuid)}${intento ? `&fresco=${intento}` : ''}${otroGrupo ? '&otro=1' : ''}`
 
+/** De dónde sale el vídeo para el reproductor (18/11/2026): el mp4 o la lista
+ * HLS de Bunny (las dos se pueden saltar al momento) o, si Bunny aún no la
+ * tiene, el enlace de Daily. */
+export const urlFuenteSala = (courseUuid: string, grabacionId: string, intento = 0, otroGrupo = false) =>
+  `${base()}/fuente/${encodeURIComponent(grabacionId)}?course=${sin(courseUuid)}${intento ? `&fresco=${intento}` : ''}${otroGrupo ? '&otro=1' : ''}`
+
 /** Qué es el vídeo de una grabación y por qué podría no cargar (17/11/2026, equipo). */
 export type DiagnosticoVideo = {
   estado?: string

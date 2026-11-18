@@ -29,6 +29,7 @@
  * del trozo a quitar), + y − (zoom).
  */
 
+import { useFuenteSala } from './useFuenteSala'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
 import { ChevronsLeft, ChevronsRight, Loader2, Minus, Pause, Play, Plus, RotateCcw, Scissors, SkipBack, SkipForward, Undo2, X } from 'lucide-react'
@@ -145,6 +146,8 @@ function EditorRecorteDentro({
   const [guardando, setGuardando] = useState(false)
 
   const parte = listas[iParte]
+  // El vídeo sale de Bunny (mp4 o HLS, se salta al momento) o de Daily (18/11/2026).
+  useFuenteSala(video, courseUuid, parte?.id, intento, () => alFallar())
   const trozos = useMemo(() => trozosDe(cortes, total), [cortes, total])
   const zoomMax = Math.max(1, (total * PX_POR_SEGUNDO_MAX) / Math.max(1, ancho))
   const anchoPista = Math.max(ancho, ancho * zoom)
@@ -606,7 +609,6 @@ function EditorRecorteDentro({
               <video
                 ref={video}
                 key={`${parte.id}-${intento}`}
-                src={urlVideoSala(courseUuid, parte.id, intento)}
                 playsInline
                 preload="metadata"
                 className="absolute inset-0 h-full w-full"

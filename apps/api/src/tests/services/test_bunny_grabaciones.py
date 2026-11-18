@@ -139,6 +139,21 @@ async def test_se_copia_y_cuando_esta_lista_se_ve_desde_bunny(db, org, monkeypat
     respuestas["ok"] = 403
     assert "403" in bunny.explicar(await bunny.detalle("rec-aaaa-1111"))
 
+    # Sin mp4 pero con su lista HLS (18/11/2026): se ve desde Bunny por HLS y
+    # NO se le pide que la rehaga (una clase larga se quedaría un rato sin verse).
+    async def solo_hls(url):
+        return 200 if url.endswith("playlist.m3u8") else 404
+
+    monkeypatch.setattr(bunny, "_responde", solo_hls)
+    bunny._rehaciendo.clear()
+    antes = len([x for x in falso.llamadas if x[1].endswith("/reencode")])
+    f = await EG.fuente_video(CURSO, "rec-aaaa-1111")
+    assert f == {"tipo": "hls", "url": "https://vz-abc-123.b-cdn.net/guid-1/playlist.m3u8"}
+    assert len([x for x in falso.llamadas if x[1].endswith("/reencode")]) == antes
+    assert "saltar" in bunny.explicar(await bunny.detalle("rec-aaaa-1111"))
+    # A la segunda vez que falla en el navegador, Daily.
+    assert (await EG.fuente_video(CURSO, "rec-aaaa-1111", con_bunny=False))["tipo"] == "daily"
+
     # Una grabación de otra sala, ni con Bunny.
     with pytest.raises(EG.GrabacionError):
         await EG.enlace_video(CURSO, "rec-ajena-9999")

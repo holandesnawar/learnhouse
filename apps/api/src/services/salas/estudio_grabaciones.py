@@ -553,6 +553,25 @@ async def enlace_video(course_uuid: str, grabacion_id: str, con_bunny: bool = Tr
     return await enlace_daily(course_uuid, grabacion_id)
 
 
+async def fuente_video(course_uuid: str, grabacion_id: str, con_bunny: bool = True) -> dict:
+    """{tipo, url} para el reproductor: el mp4 de Bunny, su lista HLS o, si
+    Bunny aún no la tiene, el enlace de Daily (tipo "daily", un mp4 que no se
+    puede saltar bien). Solo de una grabación de ESTA sala (18/11/2026)."""
+    from src.services.salas import bunny
+
+    if con_bunny and bunny.configurado() and not es_de_ejemplo(course_uuid, grabacion_id):
+        clave = (salas.nombre_sala(course_uuid), grabacion_id)
+        if time.time() - _de_esta_sala.get(clave, 0) > _ENLACE_SEG:
+            await _info(course_uuid, grabacion_id)
+            if len(_de_esta_sala) > 500:
+                _de_esta_sala.clear()
+            _de_esta_sala[clave] = time.time()
+        f = await bunny.fuente_lista(grabacion_id)
+        if f.get("url"):
+            return f
+    return {"tipo": "daily", "url": await enlace_daily(course_uuid, grabacion_id)}
+
+
 async def enlace_daily(course_uuid: str, grabacion_id: str) -> str:
     """Un enlace de Daily al vídeo. Solo de una grabación de ESTA sala. Se
     guarda 20 minutos (ver la cabecera)."""
@@ -779,7 +798,7 @@ async def diagnostico(course_uuid: str, grabacion_id: str) -> dict:
         d = await bunny.detalle(grabacion_id)
         out["bunny"] = {k: v for k, v in d.items() if k != "mp4_url"}
         en_bunny = bunny.explicar(d)
-        if d.get("estado") == "lista" and d.get("mp4_code") in (200, 206):
+        if d.get("estado") == "lista" and (d.get("mp4_code") in (200, 206) or d.get("hls_code") in (200, 206)):
             out.update(status=200, veredicto=en_bunny)
             return out
         if d.get("estado") == "no" and not d.get("error_lista"):

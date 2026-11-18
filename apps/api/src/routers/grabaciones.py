@@ -89,6 +89,29 @@ async def api_diagnostico(
         raise _error(exc) from exc
 
 
+async def _curso_del_video(request, grabacion_id, course, otro, current_user, db_session):
+    """El curso del que sale ese vídeo, si esta persona lo puede ver."""
+    curso = await _curso(request, course, current_user, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    if otro:
+        # «La clase del otro grupo» (12/11/2026): la grabación es de la sala de
+        # la clase hermana. Se pide con la clase PROPIA (la que esta persona
+        # puede abrir) y solo vale si está publicada en una semana ya dada de
+        # la hermana y esta clase no tiene apagado «Mira también». Para todos,
+        # también el equipo: es lo mismo que ve el alumno.
+        hermana = await T.hermana_con_grabacion(curso, grabacion_id, db_session)
+        if hermana is None:
+            raise HTTPException(status_code=404, detail="Esa grabación no está publicada")
+        return hermana
+    if not equipo:
+        from src.services.panel.tandas import hoy_nl
+
+        filas = await T.semanas_de(curso.org_id, curso.course_uuid, db_session)
+        if not EG.publicada_para_alumnos(filas, grabacion_id, hoy_nl()):
+            raise HTTPException(status_code=404, detail="Esa grabación no está publicada")
+    return curso
+
+
 @router.get(
     "/video/{grabacion_id}",
     summary="El vídeo de una grabación de la sala: redirige al mp4 de Bunny si ya está, o a un enlace fresco de Daily.",
@@ -102,24 +125,7 @@ async def api_video(
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
-    curso = await _curso(request, course, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
-    if otro:
-        # «La clase del otro grupo» (12/11/2026): la grabación es de la sala de
-        # la clase hermana. Se pide con la clase PROPIA (la que esta persona
-        # puede abrir) y solo vale si está publicada en una semana ya dada de
-        # la hermana y esta clase no tiene apagado «Mira también». Para todos,
-        # también el equipo: es lo mismo que ve el alumno.
-        hermana = await T.hermana_con_grabacion(curso, grabacion_id, db_session)
-        if hermana is None:
-            raise HTTPException(status_code=404, detail="Esa grabación no está publicada")
-        curso = hermana
-    elif not equipo:
-        from src.services.panel.tandas import hoy_nl
-
-        filas = await T.semanas_de(curso.org_id, curso.course_uuid, db_session)
-        if not EG.publicada_para_alumnos(filas, grabacion_id, hoy_nl()):
-            raise HTTPException(status_code=404, detail="Esa grabación no está publicada")
+    curso = await _curso_del_video(request, grabacion_id, course, otro, current_user, db_session)
     if fresco:
         # El reproductor lo pide así cuando el enlace que tenía dejó de servir.
         EG.olvidar_enlace(grabacion_id)
@@ -131,6 +137,28 @@ async def api_video(
         raise _error(exc) from exc
     # 302 y sin guardar: el enlace de Daily caduca, la próxima vez será otro.
     return RedirectResponse(enlace, status_code=302, headers={"Cache-Control": "no-store"})
+
+
+@router.get(
+    "/fuente/{grabacion_id}",
+    summary="De dónde sale el vídeo para el reproductor: mp4 o HLS de Bunny, o Daily (18/11/2026).",
+)
+async def api_fuente(
+    request: Request,
+    grabacion_id: str,
+    course: str,
+    fresco: Optional[int] = 0,
+    otro: Optional[int] = 0,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    curso = await _curso_del_video(request, grabacion_id, course, otro, current_user, db_session)
+    if fresco:
+        EG.olvidar_enlace(grabacion_id)
+    try:
+        return await EG.fuente_video(curso.course_uuid, grabacion_id, con_bunny=(fresco or 0) < 2)
+    except EG.GrabacionError as exc:
+        raise _error(exc) from exc
 
 
 class ParteIn(BaseModel):
