@@ -2525,3 +2525,10 @@ a.bg-black:hover {
 body:has(.nawar-auth-shell) {
   background-color: #1D0084;
 }
+
+/* La sala en pantalla completa (18/11/2026): fuera la barra de arriba y la
+   lateral de la escuela, que se quedaban por encima de la llamada. */
+html.sala-grande header.fixed,
+html.sala-grande aside {
+  display: none !important;
+}
