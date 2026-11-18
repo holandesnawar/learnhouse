@@ -91,7 +91,7 @@ async def api_diagnostico(
 
 @router.get(
     "/video/{grabacion_id}",
-    summary="El vídeo de una grabación de la sala: redirige a un enlace fresco de Daily.",
+    summary="El vídeo de una grabación de la sala: redirige al mp4 de Bunny si ya está, o a un enlace fresco de Daily.",
 )
 async def api_video(
     request: Request,
@@ -124,7 +124,9 @@ async def api_video(
         # El reproductor lo pide así cuando el enlace que tenía dejó de servir.
         EG.olvidar_enlace(grabacion_id)
     try:
-        enlace = await EG.enlace_video(curso.course_uuid, grabacion_id)
+        # A la segunda vez que falla en el navegador, el de Daily (por si el
+        # mp4 de Bunny no se dejara ver: dominios permitidos, MP4 Fallback).
+        enlace = await EG.enlace_video(curso.course_uuid, grabacion_id, con_bunny=(fresco or 0) < 2)
     except EG.GrabacionError as exc:
         raise _error(exc) from exc
     # 302 y sin guardar: el enlace de Daily caduca, la próxima vez será otro.

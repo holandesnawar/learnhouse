@@ -25,7 +25,9 @@ Cómo va
   por, vistas: {user_id: iso}}`. `trozos` es lo que SE VE, en segundos de esa
   parte. Una parte que no se quiere enseñar no se manda. Publicar NO borra ni
   cambia nada en Daily; «Quitar» solo vacía la columna.
-- **El vídeo**: `enlace_video` pide a Daily un enlace fresco (caducan) y la
+- **El vídeo**: desde el 18/11/2026, si Bunny ya tiene la grabación, su mp4
+  (`bunny.py`: se copian solas y se pueden saltar al momento). Si no,
+  `enlace_video` pide a Daily un enlace fresco (caducan) y la
   ruta `/grabaciones/video/{id}` redirige a él. Se guarda 20 minutos en
   memoria: el reproductor pide el vídeo a trozos (cada salto es otra petición)
   y sin esa copia cada una serían dos llamadas a Daily.
@@ -39,8 +41,9 @@ Cómo va
 
 Lo que NO hace (dicho, para no creerlo hecho)
 ---------------------------------------------
-- No copia el vídeo a ningún sitio: si la grabación se borra en Daily (o Daily
-  la caduca según el plan), deja de verse.
+- Sin las claves de Bunny en Railway no copia el vídeo a ningún sitio: si la
+  grabación se borra en Daily, deja de verse. Con ellas, la copia de Bunny
+  sigue (ver `bunny.py`).
 - La campana «Ya está la grabación» (`aviso_grabacion` en tareas.py) solo mira
   las clases de vídeo del curso: una grabación publicada desde aquí no avisa
   sola. Para avisar, «Avisar a la clase».
@@ -460,13 +463,56 @@ async def estudio(course: Course, db_session: AsyncSession) -> dict:
             grabadas = await _de_la_sala(course.course_uuid)
         except salas.SalaError as exc:
             aviso = f"No se pudieron leer las grabaciones de la sala. {exc.mensaje}"
+    dias = agrupar(grabadas, semanas, publicadas)
+    bunny_info = await _con_bunny(course.course_uuid, grabadas, dias)
     return {
         "curso": course.name,
         "course_uuid": salas.uuid_curso(course.course_uuid),
-        "dias": agrupar(grabadas, semanas, publicadas),
+        "dias": dias,
         "semanas": lista_semanas,
         "aviso": aviso,
+        "bunny": bunny_info,
     }
+
+
+async def _copiar_a_bunny(course_uuid: str, ids: list[str]) -> None:
+    """En segundo plano: pide a Bunny cada grabación (ver `bunny.py`)."""
+    from src.services.salas import bunny
+
+    for gid in ids:
+        try:
+            enlace = await enlace_daily(course_uuid, gid)
+            await bunny.copiar(gid, enlace)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Bunny: no se pudo copiar la grabación %s. %s", gid, getattr(exc, "mensaje", exc))
+
+
+async def _con_bunny(course_uuid: str, grabadas: list[dict], dias: list[dict]) -> dict:
+    """Pone a cada parte en qué está en Bunny y pide las que faltan. Nunca
+    rompe el estudio: si Bunny falla, se dice y ya."""
+    from src.services.salas import bunny
+
+    if not bunny.configurado():
+        return {"activo": False}
+    try:
+        ids = [p["id"] for d in dias for p in d["partes"] if not str(p["id"]).startswith(_DEMO)]
+        est = await bunny.estados(ids)
+        for d in dias:
+            for p in d["partes"]:
+                if p["id"] in est:
+                    p["bunny"] = est[p["id"]]
+        ya = {gid for gid, e in est.items() if e.get("estado") != "no"}
+        pedir = bunny.para_copiar(grabadas, ya)
+        if pedir:
+            bunny.en_segundo_plano(_copiar_a_bunny(course_uuid, pedir))
+            for d in dias:
+                for p in d["partes"]:
+                    if p["id"] in pedir:
+                        p["bunny"] = {"estado": "preparando", "progreso": 0}
+        return {"activo": True, "error": bunny.ultimo_error()}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Bunny: %s", exc)
+        return {"activo": True, "error": str(getattr(exc, "mensaje", exc))}
 
 
 async def _info(course_uuid: str, grabacion_id: str) -> dict:
@@ -484,9 +530,32 @@ async def _info(course_uuid: str, grabacion_id: str) -> dict:
     return info
 
 
-async def enlace_video(course_uuid: str, grabacion_id: str) -> str:
-    """Un enlace de Daily al vídeo, para reproducirlo. Solo de una grabación
-    de ESTA sala. Se guarda 20 minutos (ver la cabecera)."""
+_de_esta_sala: dict[tuple[str, str], float] = {}
+
+
+async def enlace_video(course_uuid: str, grabacion_id: str, con_bunny: bool = True) -> str:
+    """El vídeo para reproducirlo: el mp4 de Bunny si ya está listo (se puede
+    saltar al momento, ver `bunny.py`) y si no, el de Daily. Solo de una
+    grabación de ESTA sala. `con_bunny=False` (el reproductor ya falló dos
+    veces) va directo a Daily."""
+    from src.services.salas import bunny
+
+    if con_bunny and bunny.configurado() and not es_de_ejemplo(course_uuid, grabacion_id):
+        clave = (salas.nombre_sala(course_uuid), grabacion_id)
+        if time.time() - _de_esta_sala.get(clave, 0) > _ENLACE_SEG:
+            await _info(course_uuid, grabacion_id)
+            if len(_de_esta_sala) > 500:
+                _de_esta_sala.clear()
+            _de_esta_sala[clave] = time.time()
+        mp4 = await bunny.mp4_listo(grabacion_id)
+        if mp4:
+            return mp4
+    return await enlace_daily(course_uuid, grabacion_id)
+
+
+async def enlace_daily(course_uuid: str, grabacion_id: str) -> str:
+    """Un enlace de Daily al vídeo. Solo de una grabación de ESTA sala. Se
+    guarda 20 minutos (ver la cabecera)."""
     sala = salas.nombre_sala(course_uuid)
     guardado = _enlaces.get(grabacion_id)
     if guardado and guardado[2] == sala and time.time() - guardado[0] < _ENLACE_SEG:
@@ -549,6 +618,10 @@ async def publicar(s: TareaSemana, course: Course, datos: dict, autor: str, db_s
     s.updated_at = _ahora()
     db_session.add(s)
     await db_session.commit()
+    from src.services.salas import bunny
+
+    if bunny.configurado():
+        bunny.en_segundo_plano(_copiar_a_bunny(course.course_uuid, [p["id"] for p in partes if not p["id"].startswith(_DEMO)]))
     return para_la_semana(nuevo, equipo=True) or {}
 
 
@@ -578,6 +651,10 @@ async def poner_enlace(s: TareaSemana, datos: dict, autor: str, db_session: Asyn
     s.updated_at = _ahora()
     db_session.add(s)
     await db_session.commit()
+    from src.services.salas import bunny
+
+    if bunny.configurado():
+        bunny.en_segundo_plano(_copiar_a_bunny(course.course_uuid, [p["id"] for p in partes if not p["id"].startswith(_DEMO)]))
     return para_la_semana(nuevo, equipo=True) or {}
 
 
@@ -695,8 +772,17 @@ async def diagnostico(course_uuid: str, grabacion_id: str) -> dict:
         "duracion": int(info.get("duration") or 0),
         "archivo": clave.rsplit(".", 1)[-1].lower() if "." in clave else "",
     }
+    from src.services.salas import bunny
+
+    if bunny.configurado():
+        est = (await bunny.estados([grabacion_id])).get(grabacion_id) or {}
+        mp4 = await bunny.mp4_listo(grabacion_id)
+        out["bunny"] = {**est, "mp4": bool(mp4), "error": bunny.ultimo_error()}
+        if mp4:
+            out.update(status=200, veredicto="Se ve desde Bunny: ya se puede saltar al momento a cualquier minuto.")
+            return out
     olvidar_enlace(grabacion_id)
-    enlace = await enlace_video(course_uuid, grabacion_id)
+    enlace = await enlace_daily(course_uuid, grabacion_id)
     if enlace.startswith("/"):
         out.update(veredicto="Es el vídeo de ejemplo de la escuela de pruebas.", status=200)
         return out

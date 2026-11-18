@@ -65,6 +65,8 @@ def _grabacion(gid, dia, hora, dur, sala=SALA, estado="finished", minuto=0):
 def _sin_copias(monkeypatch):
     EG._enlaces.clear()
     monkeypatch.setenv("LEARNHOUSE_DAILY_API_KEY", "clave-de-prueba")
+    for n in ("LIBRARY_ID_BUNNY", "LIBRARY_API_BUNNY", "LEARNHOUSE_BUNNY_LIBRARY_ID", "LEARNHOUSE_BUNNY_API_KEY"):
+        monkeypatch.delenv(n, raising=False)
     yield
     EG._enlaces.clear()
 
