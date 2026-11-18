@@ -10,9 +10,10 @@
 # El registro es PÚBLICO: el script solo escribe cifras.
 name: Llamadas de Zoom a Drive
 
+# 18/11/2026: el usuario no pudo crear la clave de Google (la organización
+# nawar.es la bloquea de serie) y se pasó a herramientas/zoom-a-drive.gs
+# (Google Apps Script, en su propio Drive). Esto queda solo a mano.
 on:
-  schedule:
-    - cron: '17 3 * * *'
   workflow_dispatch:
     inputs:
       prueba:
