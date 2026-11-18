@@ -7836,6 +7836,19 @@ puede saltar (ver «El vídeo del recorte se queda congelado a mitad»).
   `bunny.explicar`: sin copiar → la pide; preparando con %; lista sin mp4 →
   rehaciendo; 403 → Security de la biblioteca; sin CDN → `LIBRARY_CDN_BUNNY`)
   y luego lo de Daily.
+- ⚠️ **Y aun así no se veía (18/11, tarde): ahora se ve por HLS.** Bunny hace
+  SIEMPRE la lista `https://<cdn>/<guid>/playlist.m3u8` (con o sin MP4
+  Fallback) y se salta al momento. El editor y el reproductor del alumno ya no
+  ponen el `<video src>` a `/grabaciones/video/{id}`: piden
+  `/grabaciones/fuente/{id}` (`EG.fuente_video` → `bunny.fuente_lista`:
+  `{tipo: mp4|hls|daily, url}`) y lo ponen con `useFuenteSala`
+  (`components/Pages/Grabaciones/useFuenteSala.ts`) + `lib/nawar/videoFuente.ts`:
+  Safari reproduce HLS solo; Chrome/Firefox con **hls.js 1.5.20** (dependencia
+  nueva, cargada solo cuando hace falta). Fallo grave de hls.js → `alFallar`
+  del reproductor (a la segunda, Daily). Con HLS bueno ya no se pide
+  «reencode» (rehacer deja la clase un rato sin verse). `/grabaciones/video`
+  sigue para «Abrirlo en otra pestaña». Test en `test_bunny_grabaciones.py`.
+  Sin probar contra Bunny de verdad.
 - Pendiente (paso 2, si se quiere): un vídeo cortado de verdad en Bunny (un
   proceso en GitHub con ffmpeg), para usarlo fuera de la escuela.
 

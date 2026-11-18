@@ -22,8 +22,11 @@ Cómo va
   pocas cada vez), y las partes que se publican.
 - **El recorte sigue siendo virtual** (los trozos que se ven, en
   `tarea_semana.grabacion_sala`): lo que cambia es de DÓNDE sale el vídeo.
-  Cuando Bunny la tiene lista, `/grabaciones/video/{id}` redirige a su mp4
-  (MP4 Fallback, que se puede saltar al momento) en vez de a Daily. Mientras
+  Cuando Bunny la tiene lista, el reproductor la pide a `/grabaciones/fuente/{id}`
+  y la ve desde Bunny: su mp4 (MP4 Fallback) si existe y, si no, su lista
+  HLS (`playlist.m3u8`, la hace siempre; en el navegador con hls.js). Las dos
+  se pueden saltar al momento. `/grabaciones/video/{id}` sigue redirigiendo
+  al mp4 o a Daily (para «Abrirlo en otra pestaña»). Mientras
   Bunny la prepara, o si algo falla, sigue saliendo la de Daily: nunca peor que
   antes.
 
@@ -156,6 +159,14 @@ def mp4_de(host: str, guid: str, resoluciones: Any) -> str:
             altos.append(int(m.group(1)))
     alto = max(altos) if altos else 720
     return f"https://{host}/{guid}/play_{alto}p.mp4"
+
+
+def hls_de(host: str, guid: str) -> str:
+    """La lista HLS del vídeo: Bunny la hace SIEMPRE (con MP4 Fallback o sin
+    él) y se puede saltar al momento a cualquier minuto (18/11/2026)."""
+    if not host or not guid:
+        return ""
+    return f"https://{host}/{guid}/playlist.m3u8"
 
 
 def para_copiar(grabaciones: list[dict], ya: set[str], ahora: Optional[datetime] = None, limite: int = POR_VEZ) -> list[str]:
@@ -346,8 +357,15 @@ async def detalle(grabacion_id: str) -> dict:
         url = mp4_de(host, guid, v.get("availableResolutions"))
         out["mp4_url"] = url
         out["mp4_code"] = await _responde(url) if url else 0
+        hls = hls_de(host, guid)
+        out["hls_url"] = hls
+        out["hls_code"] = 0
+        if out["mp4_code"] not in (200, 206) and hls:
+            out["hls_code"] = await _responde(hls)
         out["sin_cdn"] = not host
-        if out["mp4_code"] == 404:
+        # Solo se le pide que la rehaga si TAMPOCO se ve por HLS: rehacer una
+        # clase larga la deja un rato sin verse.
+        if out["mp4_code"] == 404 and out["hls_code"] not in (200, 206):
             out["rehaciendo"] = await rehacer(guid) or time.time() - _rehaciendo.get(guid, 0) < _REHACER_SEG
     elif v and r["estado"] == "error":
         out["motivo"] = str(v.get("statusMessage") or v.get("errorMessage") or "")
@@ -371,7 +389,7 @@ def explicar(d: dict) -> str:
         return f"Bunny no pudo convertir esta grabación{': ' + d['motivo'] if d.get('motivo') else ''}. Hay que borrarla en Bunny para que la escuela la vuelva a pedir."
     if e == "lista":
         code = d.get("mp4_code")
-        if code in (200, 206):
+        if code in (200, 206) or d.get("hls_code") in (200, 206):
             return "Se ve desde Bunny: ya se puede saltar al momento a cualquier minuto."
         if d.get("sin_cdn"):
             return ("Está lista en Bunny, pero la escuela no sabe la dirección de su CDN. Pon en Railway "
@@ -379,12 +397,30 @@ def explicar(d: dict) -> str:
         if code == 404:
             return ("Está lista en Bunny, pero sin el archivo mp4: MP4 Fallback se encendió después de copiarla. "
                     "La escuela ya le ha pedido a Bunny que la rehaga; en un rato (hasta una hora) se verá bien.")
-        if code in (401, 403):
+        if code in (401, 403) or d.get("hls_code") in (401, 403):
             return ("Está lista en Bunny, pero Bunny no deja abrirla desde la escuela (403). En Bunny → la "
                     "biblioteca → Security: apaga «Token Authentication» o añade app.holandesnawar.com a los "
                     "dominios permitidos.")
         return f"Está lista en Bunny, pero su mp4 no responde ({code or 'sin respuesta'})."
     return ""
+
+
+async def fuente_lista(grabacion_id: str) -> dict:
+    """{tipo: "mp4"|"hls", url} si Bunny ya la deja ver; {} si no. El mp4
+    primero (va en cualquier navegador sin nada más); si no, la lista HLS."""
+    if not configurado():
+        return {}
+    try:
+        d = await detalle(grabacion_id)
+        if d.get("estado") != "lista":
+            return {}
+        if d.get("mp4_code") in (200, 206):
+            return {"tipo": "mp4", "url": str(d.get("mp4_url") or "")}
+        if d.get("hls_code") in (200, 206):
+            return {"tipo": "hls", "url": str(d.get("hls_url") or "")}
+    except Exception as exc:  # noqa: BLE001 - nunca romper el vídeo por Bunny
+        logger.warning("Bunny: %s", exc)
+    return {}
 
 
 async def mp4_listo(grabacion_id: str) -> str:
