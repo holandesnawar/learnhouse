@@ -590,6 +590,10 @@ class EnlaceContrasena(BaseModel):
     enviar: bool = True
 
 
+class CorreoAcceso(BaseModel):
+    email: str
+
+
 @router.post(
     "/org/{org_id}/alumnos/{user_id}/enlace-contrasena",
     summary="Un enlace nuevo de «crear contraseña» para un alumno (7 días), y si se pide, el correo (administradores).",
@@ -611,6 +615,33 @@ async def api_enlace_contrasena(
         return await dar_enlace(org_id, user_id, data.enviar, db_session)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.put(
+    "/org/{org_id}/alumnos/{user_id}/correo",
+    summary="Cambia el correo con el que entra un alumno (administradores).",
+)
+async def api_cambiar_correo(
+    request: Request,
+    org_id: int,
+    user_id: int,
+    data: CorreoAcceso,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel.enlace_contrasena import cambiar_correo
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    try:
+        return await cambiar_correo(org_id, user_id, data.email, db_session)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.get(

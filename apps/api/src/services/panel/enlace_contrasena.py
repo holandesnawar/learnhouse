@@ -19,6 +19,8 @@ traga el error: la lección de la noche de las facturas).
 from __future__ import annotations
 
 import logging
+import re
+from datetime import datetime
 from urllib.parse import quote
 
 from sqlmodel import select
@@ -81,3 +83,68 @@ async def dar_enlace(org_id: int, user_id: int, enviar: bool, db_session: AsyncS
         "correo_enviado": enviado,
         "motivo": motivo,
     }
+
+
+# ── Cambiar el correo con el que entra (18/11/2026) ─────────────────────────
+#
+# Usuario: «entró una alumna nueva y hay que cambiarle el mail de acceso, pero
+# ya creó cuenta… poder editar el mail con el que entran, solo admin».
+#
+# Solo cambia el correo de la CUENTA (con el que entra y al que le llegan los
+# correos de la escuela). Su contraseña, sus clases, su progreso y sus grupos
+# no se tocan: van por el id de la cuenta, no por el correo.
+#
+# Lo que NO se toca, a propósito: el pago (la matrícula y la factura de Stripe
+# guardan el correo con el que pagó) y la ficha de Contactos (las notas, las
+# llamadas y lo que hizo en la web van por ese correo de antes). Mover el pago
+# al correo nuevo dejaría la ficha vieja sin «pagó» y volvería a salir como
+# lead para llamar en Matrículas. Por eso su ficha sigue con el correo de antes.
+#
+# Solo a cuentas de alumno de esta escuela (nunca a un administrador ni al
+# superadmin), y nunca a un correo que ya use otra cuenta.
+
+_CORREO = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def correo_valido(texto: str) -> str:
+    """El correo limpio (sin espacios, en minúsculas) o ValueError."""
+    nuevo = (texto or "").strip().lower()
+    if len(nuevo) > 255 or not _CORREO.match(nuevo):
+        raise ValueError("Ese correo no parece bien escrito")
+    return nuevo
+
+
+async def cambiar_correo(org_id: int, user_id: int, texto: str, db_session: AsyncSession) -> dict:
+    """Cambia el correo de acceso de una cuenta de alumno. ValueError con el motivo."""
+    from sqlalchemy import func
+
+    nuevo = correo_valido(texto)
+    user = (await db_session.execute(select(User).where(User.id == user_id))).scalars().first()
+    if user is None:
+        raise LookupError("No existe esa cuenta")
+    uo = (
+        await db_session.execute(
+            select(UserOrganization).where(UserOrganization.user_id == user_id, UserOrganization.org_id == org_id)
+        )
+    ).scalars().first()
+    if uo is None:
+        raise LookupError("Esa cuenta no es de esta escuela")
+    if user.is_superadmin or uo.role_id in (1, 2):
+        raise PermissionError("El correo de un administrador no se cambia desde aquí")
+    antes = (user.email or "").strip().lower()
+    if nuevo == antes:
+        return {"ok": True, "email": nuevo, "antes": antes, "cambiado": False}
+    otra = (
+        await db_session.execute(select(User.id).where(func.lower(User.email) == nuevo, User.id != user_id))
+    ).first()
+    if otra:
+        raise ValueError("Ese correo ya lo usa otra cuenta de la escuela")
+    user.email = nuevo
+    # El administrador responde por el correo nuevo: si quedara sin verificar,
+    # en algunos sitios no podría entrar.
+    user.email_verified = True
+    user.update_date = str(datetime.now())
+    db_session.add(user)
+    await db_session.commit()
+    logger.info("Correo de acceso cambiado para la cuenta %s", user_id)
+    return {"ok": True, "email": nuevo, "antes": antes, "cambiado": True}

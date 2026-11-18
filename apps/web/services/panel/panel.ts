@@ -611,6 +611,10 @@ export interface EnlaceContrasena {
 export const darEnlaceContrasena = (orgId: number, userId: number, enviar: boolean, t: string) =>
   pedir<EnlaceContrasena>(`panel/org/${orgId}/alumnos/${userId}/enlace-contrasena`, 'POST', { enviar }, t)
 
+/** Cambia el correo con el que entra un alumno (18/11/2026, solo administradores). */
+export const cambiarCorreoAlumno = (orgId: number, userId: number, email: string, t: string) =>
+  pedir<{ ok: boolean; email: string; antes: string; cambiado: boolean }>(`panel/org/${orgId}/alumnos/${userId}/correo`, 'PUT', { email }, t)
+
 export const apuntarWhatsappAlumno = (orgId: number, userId: number, t: string) =>
   pedir<{ sent_at: string; tipo: string; por: string }>(`panel/org/${orgId}/alumnos/${userId}/whatsapp`, 'POST', {}, t)
 
