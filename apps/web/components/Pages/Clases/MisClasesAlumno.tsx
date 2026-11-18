@@ -144,7 +144,7 @@ function TarjetaSemana({
   const { hora, profe, duracion } = useRecuadro(courseUuid)
   const ruta = (p: string) => getUriWithOrg(org?.slug || '', p)
   const esHoy = semana.fecha === hoy
-  const pasos = pasosDeSemana(semana, courseUuid, ruta, hoy)
+  const pasos = pasosDeSemana(semana, courseUuid, ruta, hoy, curso)
   const hechos = pasos.filter((p) => p.estado === 'hecho').length
   const cuando = semana.fecha ? `${DIAS[dia(semana.fecha).getDay()]} ${dia(semana.fecha).getDate()} ${MESES[dia(semana.fecha).getMonth()]}` : ''
   const meta = [curso, hora, profe ? `con ${profe}` : '', duracion].filter(Boolean).join(' · ')

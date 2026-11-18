@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
 import { readFaqRoot, readFaqRoots } from '@components/Pages/Consultas/ConsultasFaq'
 import { FORMACION_FAQ, FORMACION_FAQ_INTRO } from '@components/Pages/Guides/faqContent'
+import { textosDeClase } from '@/lib/nawar/palabraClase'
 
 interface FAQ {
   q: string
@@ -115,9 +116,11 @@ interface CourseFAQProps {
   conGrabadas?: boolean
   /** Compact = sidebar variant: smaller header, tighter paddings. */
   compact?: boolean
+  /** El nombre del curso: en el Spreek Club se dice «sesión», no «clase» (18/11/2026). */
+  nombreCurso?: string
 }
 
-export default function CourseFAQ({ courseUuid, compact = false, enDirecto = false, conSala = false, conGrabadas = true }: CourseFAQProps) {
+export default function CourseFAQ({ courseUuid, compact = false, enDirecto = false, conSala = false, conGrabadas = true, nombreCurso }: CourseFAQProps) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const { isAdmin } = (useAdminStatus() as any) || {}
@@ -134,7 +137,9 @@ export default function CourseFAQ({ courseUuid, compact = false, enDirecto = fal
   const propias = COURSE_FAQS[key] && !conSala ? COURSE_FAQS[key] : undefined
   // Sin clases grabadas (Spreekclub, Masterclass), fuera la respuesta que
   // manda a «Sesiones grabadas»: esa sección no está en la página.
-  const directo = conGrabadas ? FAQ_DIRECTO : { ...FAQ_DIRECTO, items: FAQ_DIRECTO.items.filter((i) => !/grabad/i.test(i.a)) }
+  const conGrab = conGrabadas ? FAQ_DIRECTO : { ...FAQ_DIRECTO, items: FAQ_DIRECTO.items.filter((i) => !/grabad/i.test(i.a)) }
+  const palabra = textosDeClase(nombreCurso)
+  const directo = { ...conGrab, items: conGrab.items.map((i) => ({ ...i, q: palabra(i.q), a: palabra(i.a) })) }
   const hardcoded = key ? (propias ?? (enDirecto ? directo : DEFAULT_COURSE_FAQ)) : undefined
 
   // Las preguntas de cada curso viven en su propio hueco dentro del objeto faq

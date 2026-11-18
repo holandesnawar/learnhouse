@@ -11,6 +11,7 @@ import { WEEKDAYS, nextBroadcastLabel } from '@/lib/course/weeklyClass'
 import { CURSO_CLASE_SEMANAL_UUID, ajustesDirecto } from '@/lib/nawar/cursos'
 import { getSala, guardarRecuadro, rutaSala } from '@services/salas/salas'
 import { useSemanasClase } from './SemanasClase'
+import { textosDeClase } from '@/lib/nawar/palabraClase'
 
 // Cada clase en directo tiene su recuadro (27/10/2026: la clase semanal se
 // parte en dos grupos, cada uno con su día y su profe). Se guarda por curso en
@@ -30,8 +31,11 @@ const POR_CONFIRMAR = 'Por confirmar'
 export default function WeeklyClassBanner({
   courseUuid,
   grabadas = true,
+  nombreCurso,
 }: {
   courseUuid: string
+  /** El nombre del curso: en el Spreek Club se dice «sesión», no «clase» (18/11/2026). */
+  nombreCurso?: string
   /** La página enseña las clases grabadas: si no, fuera «Clases anteriores» (27/10). */
   grabadas?: boolean
 }) {
@@ -288,7 +292,7 @@ export default function WeeklyClassBanner({
       <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
         {botonEntrar(
           'inline-flex items-center justify-center gap-2 bg-[#0b2da0] hover:bg-[#0a2690] text-white font-bold py-3.5 px-8 rounded-lg text-[15px] transition-colors',
-          enDirecto ? 'Entrar ahora' : 'Entrar a la clase'
+          enDirecto ? 'Entrar ahora' : textosDeClase(nombreCurso)('Entrar a la clase')
         )}
         <div className="flex items-center justify-center sm:justify-start gap-4">
           {grabadas ? (
@@ -296,7 +300,7 @@ export default function WeeklyClassBanner({
               onClick={goToRecordings}
               className="inline-flex items-center gap-1.5 text-[14px] font-bold text-[#0b2da0] hover:text-[#0B1033] transition-colors"
             >
-              <ListVideo size={15} /> Clases anteriores
+              <ListVideo size={15} /> {textosDeClase(nombreCurso)('Clases anteriores')}
             </button>
           ) : null}
           {/* El recuadro (día, hora, profe) lo cambia el equipo, también los profes (02/11/2026). */}

@@ -16,6 +16,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { urlPdfConNotas } from '@services/pizarra/pizarra'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
 import PaginasPdf from '@components/Objects/Activities/DocumentPdf/PaginasPdf'
+import { textosDeClase } from '@/lib/nawar/palabraClase'
 
 export const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 export const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
@@ -42,7 +43,19 @@ export type PasoSemana = {
 }
 
 /** Lo que toca en una semana, en orden: lo usan «Esta semana» y el Inicio. */
-export function pasosDeSemana(semana: Semana, courseUuid: string, ruta: (p: string) => string, hoy: string): PasoSemana[] {
+export function pasosDeSemana(
+  semana: Semana,
+  courseUuid: string,
+  ruta: (p: string) => string,
+  hoy: string,
+  /** El nombre del curso: en el Spreek Club se dice «sesión», no «clase» (18/11/2026). */
+  nombreCurso?: string
+): PasoSemana[] {
+  const t = textosDeClase(nombreCurso)
+  return pasosSinPalabra(semana, courseUuid, ruta, hoy).map((p) => ({ ...p, titulo: t(p.titulo), detalle: p.detalle ? t(p.detalle) : p.detalle }))
+}
+
+function pasosSinPalabra(semana: Semana, courseUuid: string, ruta: (p: string) => string, hoy: string): PasoSemana[] {
   const actividad = (c: ClaseSemana) => ruta(`/course/${sinPrefijo(courseUuid)}/activity/${c.activity_uuid.replace('activity_', '')}`)
   const clases = semana.clases || []
   const ejercicios = clases.filter((c) => c.tipo === 'ejercicios')
