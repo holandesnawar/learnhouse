@@ -13,6 +13,7 @@ import {
   CaretLeft,
   CaretRight,
   Check,
+  Copy,
   Cursor,
   Eraser,
   Eye,
@@ -20,6 +21,7 @@ import {
   FilePdf,
   Hand,
   Highlighter,
+  Minus,
   MagnifyingGlassMinus,
   MagnifyingGlassPlus,
   PencilSimple,
@@ -40,13 +42,21 @@ import {
   TAMANOS,
   ajustarAlPdf,
   cajaDeLinea,
+  cambiarTamano,
+  duplicarTrazo,
+  escalarTrazo,
+  esquinas,
+  factorEscala,
   horaCorta,
   moverTrazo,
+  recolorear,
   paraLosAlumnos,
   simplificar,
   tocaLinea,
   trazoEnPunto,
+  type Caja01,
   type DocPizarra,
+  type Esquina,
   type EstiloTexto,
   type Herramienta,
   type PaginaPizarra,
@@ -176,8 +186,11 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   // errores). `pendiente`: con la herramienta Texto, hasta que el ratón se
   // mueve un poco no es un arrastre (un clic abre el texto para cambiarlo).
   const gestoRef = useRef<{
-    tipo: 'borrar' | 'mover'
+    tipo: 'borrar' | 'mover' | 'escalar'
     i?: number
+    /** Al estirar una esquina: el punto que no se mueve y dónde estaba la esquina. */
+    fija?: { x: number; y: number }
+    esquina?: { x: number; y: number }
     x0?: number
     y0?: number
     orig?: Trazo
@@ -186,8 +199,22 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   } | null>(null)
   // Lo que hay debajo del ratón o se está moviendo: para el cursor y el recuadro.
   const [sobre, setSobre] = useState(-1)
+  // Lo elegido (18/11/2026, como en Canva): un clic en un texto o un dibujo lo
+  // elige, salen las esquinas para agrandarlo o achicarlo y una barra con su
+  // color, su tamaño, duplicar y borrar. -1 = nada.
+  const [sel, setSel] = useState(-1)
+  const selRef = useRef(-1)
+  selRef.current = sel
+  // Lo que estaba elegido al bajar el dedo: un segundo clic sobre el mismo texto lo abre para escribir.
+  const elegidoAlBajar = useRef(-1)
+  // Al cerrar un texto con Esc, queda elegido (para estirarlo o cambiarle el color).
+  const elegirAlCerrar = useRef(false)
   const arrastradoAt = useRef(0)
   useEffect(() => setSobre(-1), [idx, herramienta])
+  useEffect(() => setSel(-1), [idx])
+  useEffect(() => {
+    if (herramienta !== 'mover' && herramienta !== 'texto') setSel(-1)
+  }, [herramienta])
   const atras = useRef<{ idx: number; trazos: Trazo[] }[]>([])
   const adelante = useRef<{ idx: number; trazos: Trazo[] }[]>([])
   const sucio = useRef(0)
@@ -654,8 +681,14 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     },
     [ensuciar]
   )
-  const deshacer = useCallback(() => volver(atras, adelante), [volver])
-  const rehacer = useCallback(() => volver(adelante, atras), [volver])
+  const deshacer = useCallback(() => {
+    setSel(-1)
+    volver(atras, adelante)
+  }, [volver])
+  const rehacer = useCallback(() => {
+    setSel(-1)
+    volver(adelante, atras)
+  }, [volver])
 
   // ── El texto ────────────────────────────────────────────────────────────
   const cerrarTexto = useCallback(() => {
@@ -666,15 +699,28 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     editRef.current = null
     const trazos = docRef.current.paginas[idxRef.current]?.trazos || []
     const texto = e.texto.replace(/\s+$/g, '')
+    const elegir = elegirAlCerrar.current
+    elegirAlCerrar.current = false
     if (e.i == null) {
-      if (texto.trim()) poner([...trazos, { t: 'texto', x: e.x, y: e.y, texto, color: e.color, tam: e.tam, estilo: e.estilo }])
+      if (texto.trim()) {
+        poner([...trazos, { t: 'texto', x: e.x, y: e.y, texto, color: e.color, tam: e.tam, estilo: e.estilo }])
+        setSel(elegir ? trazos.length : -1)
+      }
       return
     }
     const viejo = trazos[e.i] as TrazoTexto | undefined
     if (!viejo) return
-    if (!texto.trim()) poner(trazos.filter((_, k) => k !== e.i))
-    else if (texto !== viejo.texto) poner(trazos.map((t, k) => (k === e.i ? { ...viejo, texto } : t)))
+    // Lo cambiado mientras se escribía (color, tamaño, estilo) también cuenta.
+    const nuevo: TrazoTexto = { ...viejo, texto, color: e.color, tam: e.tam, estilo: e.estilo }
+    const igual = nuevo.texto === viejo.texto && nuevo.color === viejo.color && nuevo.tam === viejo.tam && nuevo.estilo === viejo.estilo
+    if (!texto.trim()) {
+      poner(trazos.filter((_, k) => k !== e.i))
+      setSel(-1)
+      return
+    }
+    if (!igual) poner(trazos.map((t, k) => (k === e.i ? nuevo : t)))
     else repintar()
+    setSel(elegir ? e.i : -1)
   }, [poner, repintar])
 
   const textoEn = useCallback((x: number, y: number): number => {
@@ -717,10 +763,13 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       const trazos = docRef.current.paginas[idxRef.current]?.trazos || []
       if (i >= 0) {
         const t = trazos[i] as TrazoTexto
+        setSel(i)
         setEditando({ i, x: t.x, y: t.y, texto: t.texto, estilo: t.estilo, tam: t.tam, color: t.color })
       } else {
-        const oscuro = color === BLANCO ? COLORES[1] : color
-        setEditando({ i: null, x, y, texto: '', estilo, tam: TAMANOS[tamTexto], color: estilo === 'nota' ? COLORES[0] : estilo === 'titulo' ? color : oscuro })
+        setSel(-1)
+        // Antes, una Nota salía siempre azul aunque se eligiera otro color (18/11/2026).
+        const sobreBlanco = color === BLANCO && estilo !== 'titulo' ? COLORES[1] : color
+        setEditando({ i: null, x, y, texto: '', estilo, tam: TAMANOS[tamTexto], color: sobreBlanco })
       }
     },
     [color, estilo, tamTexto, textoEn]
@@ -746,6 +795,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   }
 
   const alBajar = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    elegidoAlBajar.current = selRef.current
     if (editRef.current || !pagina) return
     if (herramienta === 'mano') {
       const el = areaRef.current
@@ -769,12 +819,17 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       gestoRef.current = { tipo: 'borrar' }
       borrarEn(x, y)
     } else if (herramienta === 'mover' || (herramienta === 'texto' && e.pointerType !== 'touch')) {
-      // Mover un texto o un dibujo arrastrándolo (16/11/2026). Con la
-      // herramienta Texto, solo los textos y solo si de verdad se arrastra.
+      // Elegir y mover un texto o un dibujo arrastrándolo (16/11/2026; elegir,
+      // 18/11/2026). Con la herramienta Texto, solo los textos. Hasta que el
+      // dedo se mueve un poco no es un arrastre: un clic solo lo elige.
       const i = trazoEn(x, y, herramienta === 'texto')
-      if (i < 0) return
+      if (i < 0) {
+        if (herramienta === 'mover') setSel(-1)
+        return
+      }
       e.currentTarget.setPointerCapture(e.pointerId)
-      gestoRef.current = { tipo: 'mover', i, x0: x, y0: y, orig: docRef.current.paginas[idx].trazos[i], pendiente: herramienta === 'texto' }
+      gestoRef.current = { tipo: 'mover', i, x0: x, y0: y, orig: docRef.current.paginas[idx].trazos[i], pendiente: true }
+      setSel(i)
       setSobre(i)
     }
   }
@@ -807,6 +862,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       return
     }
     if (g.tipo === 'borrar') borrarEn(x, y)
+    else if (g.tipo === 'escalar') escalarA(x, y)
     else if (g.tipo === 'mover' && g.i != null && g.orig) {
       const dx = x - (g.x0 ?? x)
       const dy = y - (g.y0 ?? y)
@@ -847,13 +903,146 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     if (Date.now() - cerradoAt.current < 350) return
     if (Date.now() - arrastradoAt.current < 350) return
     const [x, y] = donde(e)
+    const i = textoEn(x, y)
+    if (i >= 0) {
+      // Primer clic: lo elige (esquinas para estirarlo, su barra). Segundo: a escribir.
+      if (elegidoAlBajar.current === i) abrirTexto(x, y)
+      else setSel(i)
+      return
+    }
+    // Con algo elegido, un clic fuera solo lo suelta (como en Canva).
+    if (elegidoAlBajar.current >= 0) {
+      setSel(-1)
+      return
+    }
     abrirTexto(x, y)
   }
 
   const alDobleClic = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (herramienta !== 'mover') return
+    if (herramienta !== 'mover' && herramienta !== 'texto') return
     const [x, y] = donde(e)
     if (textoEn(x, y) >= 0) abrirTexto(x, y)
+  }
+
+  // ── Lo elegido: estirar por una esquina, color, tamaño, duplicar, borrar ──
+  /** La caja de un trazo en 0-1 de la página (los textos, con la letra de verdad). */
+  const cajaDe = useCallback((t?: Trazo): Caja01 | null => {
+    const c = notasRef.current
+    if (!t || !c || !c.width) return null
+    if (t.t === 'texto') {
+      const k = cajaDeTexto(c.getContext('2d')!, t, c.width, c.height, letras())
+      return { x: k.x / c.width, y: k.y / c.height, w: k.w / c.width, h: k.h / c.height }
+    }
+    return cajaDeLinea(t, c.height / c.width)
+  }, [])
+
+  const empezarEscalar = (e: React.PointerEvent<HTMLElement>, cual: Esquina) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const i = selRef.current
+    const t = docRef.current.paginas[idxRef.current]?.trazos[i]
+    const caja = cajaDe(t)
+    if (!t || !caja) return
+    const q = esquinas(caja)[cual]
+    e.currentTarget.setPointerCapture(e.pointerId)
+    gestoRef.current = { tipo: 'escalar', i, orig: t, fija: q.fija, esquina: { x: q.x, y: q.y } }
+  }
+
+  const escalarA = (x: number, y: number) => {
+    const g = gestoRef.current
+    const c = notasRef.current
+    if (!g || g.tipo !== 'escalar' || g.i == null || !g.orig || !g.fija || !g.esquina || !c) return
+    const trazos = docRef.current.paginas[idxRef.current]?.trazos
+    if (!trazos?.[g.i]) return
+    const f = factorEscala(g.fija.x, g.fija.y, g.esquina.x, g.esquina.y, x, y, c.height / c.width)
+    const nuevo = escalarTrazo(g.orig, f, g.fija.x, g.fija.y)
+    poner(
+      trazos.map((o, k) => (k === g.i ? nuevo : o)),
+      !g.apuntado
+    )
+    g.apuntado = true
+  }
+
+  const moverEsquina = (e: React.PointerEvent<HTMLElement>) => {
+    if (gestoRef.current?.tipo !== 'escalar') return
+    const [x, y] = donde(e)
+    escalarA(x, y)
+  }
+
+  const soltarEsquina = () => {
+    if (gestoRef.current?.tipo === 'escalar') gestoRef.current = null
+  }
+
+  /** Cambia lo elegido (o el texto que se está escribiendo) con `fn`. */
+  const cambiarElegido = useCallback(
+    (fn: (t: Trazo) => Trazo) => {
+      const ed = editRef.current
+      if (ed) {
+        const t = fn({ t: 'texto', x: ed.x, y: ed.y, texto: ed.texto, color: ed.color, tam: ed.tam, estilo: ed.estilo })
+        if (t.t === 'texto') setEditando({ ...ed, x: t.x, y: t.y, color: t.color, tam: t.tam, estilo: t.estilo })
+        return
+      }
+      const i = selRef.current
+      const trazos = docRef.current.paginas[idxRef.current]?.trazos || []
+      if (!trazos[i]) return
+      poner(trazos.map((o, k) => (k === i ? fn(o) : o)))
+    },
+    [poner]
+  )
+
+  /** El tipo de lo elegido (o del texto que se escribe): decide qué colores tiene. */
+  const elegido: Trazo | null = editando
+    ? { t: 'texto', x: editando.x, y: editando.y, texto: editando.texto, color: editando.color, tam: editando.tam, estilo: editando.estilo }
+    : (pagina?.trazos[sel] ?? null)
+
+  /** Un color: para lo que se escribe a partir de ahora y, si hay algo elegido, también para eso. */
+  const elegirColor = (c: string) => {
+    const tipo = elegido?.t ?? (herramienta === 'rotulador' ? 'rotulador' : 'lapiz')
+    if (tipo === 'rotulador') setColorRot(c)
+    else setColor(c)
+    if (elegido && (elegido.t === 'rotulador') === COLORES_ROTULADOR.includes(c as any)) cambiarElegido((t) => recolorear(t, c))
+  }
+
+  const elegirEstilo = (es: EstiloTexto) => {
+    setEstilo(es)
+    if (elegido?.t === 'texto') cambiarElegido((t) => (t.t === 'texto' ? { ...t, estilo: es } : t))
+  }
+
+  const elegirTamTexto = (k: keyof typeof TAMANOS) => {
+    setTamTexto(k)
+    if (elegido?.t === 'texto') cambiarElegido((t) => (t.t === 'texto' ? { ...t, tam: TAMANOS[k] } : t))
+  }
+
+  const elegirGrosor = (g: keyof typeof GROSORES) => {
+    setGrosor(g)
+    if (elegido?.t === 'lapiz') cambiarElegido((t) => (t.t === 'lapiz' ? { ...t, grosor: GROSORES[g] } : t))
+  }
+
+  const duplicarElegido = () => {
+    const i = selRef.current
+    const trazos = docRef.current.paginas[idxRef.current]?.trazos || []
+    if (!trazos[i] || editRef.current) return
+    poner([...trazos, duplicarTrazo(trazos[i])])
+    setSel(trazos.length)
+  }
+
+  const borrarElegido = () => {
+    const i = selRef.current
+    const trazos = docRef.current.paginas[idxRef.current]?.trazos || []
+    if (!trazos[i] || editRef.current) return
+    poner(trazos.filter((_, k) => k !== i))
+    setSel(-1)
+  }
+
+  const editarElegido = () => {
+    const t = docRef.current.paginas[idxRef.current]?.trazos[selRef.current]
+    if (t?.t !== 'texto') return
+    setEditando({ i: selRef.current, x: t.x, y: t.y, texto: t.texto, estilo: t.estilo, tam: t.tam, color: t.color })
+  }
+
+  const elegirHerramienta = (h: Herramienta) => {
+    if (editRef.current) cerrarTexto()
+    setHerramienta(h)
   }
 
   // ── Páginas ─────────────────────────────────────────────────────────────
@@ -892,6 +1081,8 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   }
 
   // ── Teclas ──────────────────────────────────────────────────────────────
+  const accionesRef = useRef({ borrar: borrarElegido, duplicar: duplicarElegido, editar: editarElegido, herramienta: elegirHerramienta })
+  accionesRef.current = { borrar: borrarElegido, duplicar: duplicarElegido, editar: editarElegido, herramienta: elegirHerramienta }
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null
@@ -902,7 +1093,26 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
         else deshacer()
         return
       }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd' && selRef.current >= 0) {
+        e.preventDefault()
+        accionesRef.current.duplicar()
+        return
+      }
       if (e.metaKey || e.ctrlKey || e.altKey) return
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selRef.current >= 0) {
+        e.preventDefault()
+        accionesRef.current.borrar()
+        return
+      }
+      if (e.key === 'Escape' && selRef.current >= 0) {
+        setSel(-1)
+        return
+      }
+      if (e.key === 'Enter' && selRef.current >= 0) {
+        e.preventDefault()
+        accionesRef.current.editar()
+        return
+      }
       if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault()
         ir(idxRef.current + 1)
@@ -920,7 +1130,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       } else {
         const atajo: Record<string, Herramienta> = { v: 'mover', l: 'lapiz', r: 'rotulador', t: 'texto', b: 'borrador', h: 'mano' }
         const h = atajo[e.key.toLowerCase()]
-        if (h) setHerramienta(h)
+        if (h) accionesRef.current.herramienta(h)
       }
     }
     window.addEventListener('keydown', tecla)
@@ -1211,7 +1421,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
                   <div
                     ref={hojaRef}
                     className="relative m-auto shrink-0 bg-white"
-                    style={{ width: escena.w, height: escena.h, boxShadow: '0 0 0 1px #DDE6F5', marginTop: zoom > 1 ? 12 : undefined, marginBottom: zoom > 1 ? 12 : undefined }}
+                    style={{ width: escena.w, height: escena.h, boxShadow: '0 0 0 1px #DDE6F5, 0 1px 3px rgba(10,22,86,0.07)', marginTop: zoom > 1 ? 12 : undefined, marginBottom: zoom > 1 ? 12 : undefined }}
                   >
                     <canvas ref={fondoRef} className="absolute inset-0 h-full w-full" />
                     <canvas
@@ -1243,8 +1453,33 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
                       onClick={alPulsar}
                       onDoubleClick={alDobleClic}
                     />
-                    {sobre >= 0 && !editando && (herramienta === 'mover' || herramienta === 'texto') ? (
-                      <RecuadroSeleccion trazo={pagina.trazos[sobre]} lienzo={notasRef.current} densidad={densidad} letras={letras()} />
+                    {sobre >= 0 && sobre !== sel && !editando && (herramienta === 'mover' || herramienta === 'texto') ? (
+                      <MarcoCaja caja={cajaDe(pagina.trazos[sobre])} W={escena.w} H={escena.h} suave />
+                    ) : null}
+                    {sel >= 0 && !editando && pagina.trazos[sel] ? (
+                      <MarcoCaja
+                        caja={cajaDe(pagina.trazos[sel])}
+                        W={escena.w}
+                        H={escena.h}
+                        onEsquina={empezarEscalar}
+                        onMoverEsquina={moverEsquina}
+                        onSoltarEsquina={soltarEsquina}
+                      />
+                    ) : null}
+                    {elegido && (sel >= 0 || editando) ? (
+                      <BarraElegido
+                        trazo={elegido}
+                        caja={cajaDe(elegido)}
+                        W={escena.w}
+                        H={escena.h}
+                        escribiendo={!!editando}
+                        onColor={elegirColor}
+                        onEstilo={elegirEstilo}
+                        onTam={(f) => cambiarElegido((t) => cambiarTamano(t, f))}
+                        onEditar={editarElegido}
+                        onDuplicar={duplicarElegido}
+                        onBorrar={borrarElegido}
+                      />
                     ) : null}
                     {editando && (
                       <CajaDeTexto
@@ -1253,6 +1488,9 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
                         alto={escena.h}
                         onChange={(texto) => setEditando((v) => (v ? { ...v, texto } : v))}
                         onCerrar={cerrarTexto}
+                        onListo={() => {
+                          elegirAlCerrar.current = true
+                        }}
                       />
                     )}
                     {pagina.oculta && (
@@ -1265,109 +1503,137 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
               )}
             </div>
 
-            {/* Las herramientas */}
-            <div className="shrink-0 overflow-x-auto border-t border-[#E2E8F4] bg-white">
-              <div className={`mx-auto flex items-center gap-1 px-3 py-2 ${apretada ? 'flex-wrap justify-center' : 'w-max'}`}>
-                <Boton activo={herramienta === 'mover'} onClick={() => setHerramienta('mover')} titulo="Mover (V): arrastra un texto o un dibujo">
-                  <Cursor size={18} />
-                </Boton>
-                <Boton activo={herramienta === 'lapiz'} onClick={() => setHerramienta('lapiz')} titulo="Lápiz (L)">
-                  <PencilSimple size={18} />
-                </Boton>
-                <Boton activo={herramienta === 'rotulador'} onClick={() => setHerramienta('rotulador')} titulo="Rotulador para resaltar (R)">
-                  <Highlighter size={18} />
-                </Boton>
-                <Boton activo={herramienta === 'texto'} onClick={() => setHerramienta('texto')} titulo="Escribir con el teclado (T)">
-                  <TextT size={18} />
-                </Boton>
-                <Boton activo={herramienta === 'borrador'} onClick={() => setHerramienta('borrador')} titulo="Borrador (B)">
-                  <Eraser size={18} />
-                </Boton>
-                <Boton activo={herramienta === 'mano'} onClick={() => setHerramienta('mano')} titulo="Mano: mover la página con zoom (H)">
-                  <Hand size={18} />
-                </Boton>
-                <Raya />
-                {herramienta === 'rotulador'
-                  ? COLORES_ROTULADOR.map((c) => <Color key={c} c={c} elegido={colorRot === c} onClick={() => setColorRot(c)} />)
-                  : [...COLORES, BLANCO].map((c) => <Color key={c} c={c} elegido={color === c} onClick={() => setColor(c)} />)}
-                {herramienta === 'lapiz' && (
-                  <>
-                    <Raya />
-                    {(Object.keys(GROSORES) as (keyof typeof GROSORES)[]).map((g) => (
-                      <button
-                        key={g}
-                        onClick={() => setGrosor(g)}
-                        title={`Trazo ${g}`}
-                        className={`flex h-9 w-8 items-center justify-center rounded-lg ${grosor === g ? 'bg-[#EAF0FE]' : ''}`}
-                      >
-                        <span className="rounded-full" style={{ width: g === 'fino' ? 4 : g === 'medio' ? 7 : 11, height: g === 'fino' ? 4 : g === 'medio' ? 7 : 11, background: trazoColor === BLANCO ? '#0a1656' : trazoColor }} />
-                      </button>
-                    ))}
-                  </>
-                )}
-                {herramienta === 'texto' && (
-                  <>
-                    <Raya />
-                    <Opcion activa={estilo === 'texto'} onClick={() => setEstilo('texto')}>Texto</Opcion>
-                    <Opcion activa={estilo === 'titulo'} onClick={() => setEstilo('titulo')}>Título</Opcion>
-                    <Opcion activa={estilo === 'nota'} onClick={() => setEstilo('nota')}>Nota</Opcion>
-                    <Raya />
-                    <Opcion activa={tamTexto === 'pequeno'} onClick={() => setTamTexto('pequeno')}>A−</Opcion>
-                    <Opcion activa={tamTexto === 'normal'} onClick={() => setTamTexto('normal')}>A</Opcion>
-                    <Opcion activa={tamTexto === 'grande'} onClick={() => setTamTexto('grande')}>A+</Opcion>
-                  </>
-                )}
-                <Raya />
-                <Boton onClick={deshacer} apagado={!historia.atras} titulo="Deshacer (Ctrl+Z)">
-                  <ArrowCounterClockwise size={18} />
-                </Boton>
-                <Boton onClick={rehacer} apagado={!historia.adelante} titulo="Rehacer">
-                  <ArrowClockwise size={18} />
-                </Boton>
-                <Boton onClick={limpiarPagina} apagado={!pagina?.trazos.length} titulo="Borrar todo lo escrito en esta página">
-                  <Trash size={18} />
-                </Boton>
-                <Raya />
-                <Boton onClick={esconder} activo={!!pagina?.oculta} titulo={pagina?.oculta ? 'Volver a enseñar esta página a los alumnos' : 'Que los alumnos no vean esta página'}>
-                  {pagina?.oculta ? <EyeSlash size={18} /> : <Eye size={18} />}
-                </Boton>
-                <button onClick={paginaEnBlanco} className={`flex h-9 items-center gap-1.5 rounded-lg px-2 text-[12.5px] font-semibold text-[#0b2da0] ${apretada ? '' : 'lg:hidden'}`} title="Añadir una página en blanco para notas">
-                  <Plus size={14} weight="bold" /> Página
-                </button>
-                {pagina?.origen == null && (
-                  <button onClick={quitarPagina} className="h-9 rounded-lg px-2 text-[12.5px] font-medium text-[#5B6B8C] hover:text-[#B4413C]">
-                    Quitar página
-                  </button>
-                )}
-                <Raya />
-                <Boton onClick={() => ponerZoom(zoom / 1.25)} apagado={zoom <= 1} titulo="Alejar (−)">
-                  <MagnifyingGlassMinus size={18} />
-                </Boton>
-                <button
-                  onClick={() => ponerZoom(1)}
-                  title="Página entera (0)"
-                  className="h-9 min-w-[52px] rounded-lg px-1.5 text-[12.5px] font-semibold tabular-nums text-[#0a1656] hover:text-[#0b2da0]"
-                >
-                  {Math.round(zoom * 100)} %
-                </button>
-                <Boton onClick={() => ponerZoom(zoom * 1.25)} apagado={zoom >= ZOOM_MAX} titulo="Acercar (+)">
-                  <MagnifyingGlassPlus size={18} />
-                </Boton>
-                {zoomAncho > 1.02 && (
-                  <Boton onClick={() => ponerZoom(zoomAncho, 0.5, 0)} activo={Math.abs(zoom - zoomAncho) < 0.02} titulo="Ajustar al ancho de la pantalla">
-                    <ArrowsHorizontal size={18} />
+            {/* Las herramientas (18/11/2026: por grupos, como Canva o Miro) */}
+            <div className="shrink-0 border-t border-[#E2E8F4] bg-white">
+              <div className="mx-auto flex flex-wrap items-center justify-center gap-2 px-3 py-2">
+                <Grupo>
+                  <Boton activo={herramienta === 'mover'} onClick={() => elegirHerramienta('mover')} titulo="Elegir y mover (V): toca un texto o un dibujo para moverlo, estirarlo o cambiarle el color">
+                    <Cursor size={18} />
                   </Boton>
+                  <Boton activo={herramienta === 'lapiz'} onClick={() => elegirHerramienta('lapiz')} titulo="Lápiz (L)">
+                    <PencilSimple size={18} />
+                  </Boton>
+                  <Boton activo={herramienta === 'rotulador'} onClick={() => elegirHerramienta('rotulador')} titulo="Rotulador para resaltar (R)">
+                    <Highlighter size={18} />
+                  </Boton>
+                  <Boton activo={herramienta === 'texto'} onClick={() => elegirHerramienta('texto')} titulo="Texto (T): un clic para escribir; sobre un texto, lo elige; otro clic, a escribir">
+                    <TextT size={18} />
+                  </Boton>
+                  <Boton activo={herramienta === 'borrador'} onClick={() => elegirHerramienta('borrador')} titulo="Borrador (B)">
+                    <Eraser size={18} />
+                  </Boton>
+                  <Boton activo={herramienta === 'mano'} onClick={() => elegirHerramienta('mano')} titulo="Mano: mover la página con zoom (H)">
+                    <Hand size={18} />
+                  </Boton>
+                </Grupo>
+
+                {/* Color y tamaño: de lo elegido, o de lo que se escribe a partir de ahora */}
+                {herramienta !== 'borrador' && herramienta !== 'mano' && (herramienta !== 'mover' || elegido) && (
+                  <Grupo propiedades>
+                    {(elegido ? elegido.t === 'rotulador' : herramienta === 'rotulador')
+                      ? COLORES_ROTULADOR.map((c) => <Color key={c} c={c} elegido={(elegido ? elegido.color : colorRot) === c} onClick={() => elegirColor(c)} />)
+                      : [...COLORES, BLANCO].map((c) => <Color key={c} c={c} elegido={(elegido ? elegido.color : color) === c} onClick={() => elegirColor(c)} />)}
+                    {(elegido ? elegido.t === 'lapiz' : herramienta === 'lapiz') && (
+                      <>
+                        <Raya />
+                        {(Object.keys(GROSORES) as (keyof typeof GROSORES)[]).map((g) => {
+                          const activo = elegido?.t === 'lapiz' ? Math.abs(elegido.grosor - GROSORES[g]) < 0.0005 : grosor === g
+                          const c = elegido ? elegido.color : trazoColor
+                          return (
+                            <button
+                              key={g}
+                              onClick={() => elegirGrosor(g)}
+                              title={`Trazo ${g}`}
+                              aria-label={`Trazo ${g}`}
+                              className={`flex h-8 w-8 items-center justify-center rounded-md ${activo ? 'bg-white ring-1 ring-[#C9D5EE]' : 'hover:bg-white'}`}
+                            >
+                              <span className="rounded-full" style={{ width: g === 'fino' ? 4 : g === 'medio' ? 7 : 11, height: g === 'fino' ? 4 : g === 'medio' ? 7 : 11, background: c === BLANCO ? '#0a1656' : c }} />
+                            </button>
+                          )
+                        })}
+                      </>
+                    )}
+                    {(elegido ? elegido.t === 'texto' : herramienta === 'texto') && (
+                      <>
+                        <Raya />
+                        <Opcion activa={(elegido?.t === 'texto' ? elegido.estilo : estilo) === 'texto'} onClick={() => elegirEstilo('texto')}>Texto</Opcion>
+                        <Opcion activa={(elegido?.t === 'texto' ? elegido.estilo : estilo) === 'titulo'} onClick={() => elegirEstilo('titulo')}>Título</Opcion>
+                        <Opcion activa={(elegido?.t === 'texto' ? elegido.estilo : estilo) === 'nota'} onClick={() => elegirEstilo('nota')}>Nota</Opcion>
+                        {!elegido && (
+                          <>
+                            <Raya />
+                            <Opcion activa={tamTexto === 'pequeno'} onClick={() => elegirTamTexto('pequeno')} titulo="Letra pequeña">A−</Opcion>
+                            <Opcion activa={tamTexto === 'normal'} onClick={() => elegirTamTexto('normal')} titulo="Letra normal">A</Opcion>
+                            <Opcion activa={tamTexto === 'grande'} onClick={() => elegirTamTexto('grande')} titulo="Letra grande">A+</Opcion>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </Grupo>
                 )}
-                <Raya />
-                <Boton onClick={() => ir(idx - 1)} apagado={idx === 0} titulo="Página anterior (←)">
-                  <CaretLeft size={18} />
-                </Boton>
-                <span className="min-w-[54px] text-center text-[13px] font-semibold tabular-nums text-[#0a1656]">
-                  {total ? idx + 1 : 0} / {total}
-                </span>
-                <Boton onClick={() => ir(idx + 1)} apagado={idx >= total - 1} titulo="Página siguiente (→)">
-                  <CaretRight size={18} />
-                </Boton>
+
+                <Grupo>
+                  <Boton onClick={deshacer} apagado={!historia.atras} titulo="Deshacer (Ctrl+Z)">
+                    <ArrowCounterClockwise size={18} />
+                  </Boton>
+                  <Boton onClick={rehacer} apagado={!historia.adelante} titulo="Rehacer (Ctrl+Mayús+Z)">
+                    <ArrowClockwise size={18} />
+                  </Boton>
+                  <Boton onClick={limpiarPagina} apagado={!pagina?.trazos.length} titulo="Borrar todo lo escrito en esta página">
+                    <Trash size={18} />
+                  </Boton>
+                </Grupo>
+
+                <Grupo>
+                  <Boton onClick={esconder} activo={!!pagina?.oculta} titulo={pagina?.oculta ? 'Volver a enseñar esta página a los alumnos' : 'Que los alumnos no vean esta página'}>
+                    {pagina?.oculta ? <EyeSlash size={18} /> : <Eye size={18} />}
+                  </Boton>
+                  <button
+                    onClick={paginaEnBlanco}
+                    className={`flex h-8 items-center gap-1.5 rounded-md px-2 text-[12.5px] font-semibold text-[#0b2da0] hover:bg-white ${apretada ? '' : 'lg:hidden'}`}
+                    title="Añadir una página en blanco para notas"
+                  >
+                    <Plus size={14} weight="bold" /> Página
+                  </button>
+                  {pagina?.origen == null && (
+                    <button onClick={quitarPagina} className="h-8 rounded-md px-2 text-[12.5px] font-medium text-[#5B6B8C] hover:bg-white hover:text-[#B4413C]">
+                      Quitar página
+                    </button>
+                  )}
+                </Grupo>
+
+                <Grupo>
+                  <Boton onClick={() => ponerZoom(zoom / 1.25)} apagado={zoom <= 1} titulo="Alejar (−)">
+                    <MagnifyingGlassMinus size={18} />
+                  </Boton>
+                  <button
+                    onClick={() => ponerZoom(1)}
+                    title="Página entera (0)"
+                    className="h-8 min-w-[50px] rounded-md px-1.5 text-[12.5px] font-semibold tabular-nums text-[#0a1656] hover:bg-white"
+                  >
+                    {Math.round(zoom * 100)} %
+                  </button>
+                  <Boton onClick={() => ponerZoom(zoom * 1.25)} apagado={zoom >= ZOOM_MAX} titulo="Acercar (+)">
+                    <MagnifyingGlassPlus size={18} />
+                  </Boton>
+                  {zoomAncho > 1.02 && (
+                    <Boton onClick={() => ponerZoom(zoomAncho, 0.5, 0)} activo={Math.abs(zoom - zoomAncho) < 0.02} titulo="Ajustar al ancho de la pantalla">
+                      <ArrowsHorizontal size={18} />
+                    </Boton>
+                  )}
+                </Grupo>
+
+                <Grupo>
+                  <Boton onClick={() => ir(idx - 1)} apagado={idx === 0} titulo="Página anterior (←)">
+                    <CaretLeft size={18} />
+                  </Boton>
+                  <span className="min-w-[50px] text-center text-[12.5px] font-semibold tabular-nums text-[#0a1656]">
+                    {total ? idx + 1 : 0} / {total}
+                  </span>
+                  <Boton onClick={() => ir(idx + 1)} apagado={idx >= total - 1} titulo="Página siguiente (→)">
+                    <CaretRight size={18} />
+                  </Boton>
+                </Grupo>
               </div>
             </div>
           </div>
@@ -1400,27 +1666,192 @@ function Marco({ children, dentro }: { children: React.ReactNode; dentro?: boole
 }
 
 /**
- * El recuadro de lo que se va a mover (16/11/2026). Va en la página, no en el
- * lienzo: así no sale en lo que ven los alumnos en la sala.
+ * El recuadro de lo que hay debajo del ratón (`suave`) o de lo elegido, con
+ * sus cuatro esquinas para estirarlo (18/11/2026, como en Canva). Va en la
+ * página y no en el lienzo: así no sale en lo que ven los alumnos en la sala.
  */
-function RecuadroSeleccion({ trazo, lienzo, densidad, letras }: { trazo?: Trazo; lienzo: HTMLCanvasElement | null; densidad: number; letras: Letras }) {
-  if (!trazo || !lienzo || !lienzo.width) return null
-  const W = lienzo.width / densidad
-  const H = lienzo.height / densidad
-  let c: { x: number; y: number; w: number; h: number }
-  if (trazo.t === 'texto') {
-    const k = cajaDeTexto(lienzo.getContext('2d')!, trazo, lienzo.width, lienzo.height, letras)
-    c = { x: k.x / densidad, y: k.y / densidad, w: k.w / densidad, h: k.h / densidad }
-  } else {
-    const k = cajaDeLinea(trazo, lienzo.height / lienzo.width)
-    c = { x: k.x * W, y: k.y * H, w: k.w * W, h: k.h * H }
+function MarcoCaja({
+  caja,
+  W,
+  H,
+  suave,
+  onEsquina,
+  onMoverEsquina,
+  onSoltarEsquina,
+}: {
+  caja: Caja01 | null
+  W: number
+  H: number
+  suave?: boolean
+  onEsquina?: (e: React.PointerEvent<HTMLElement>, cual: Esquina) => void
+  onMoverEsquina?: (e: React.PointerEvent<HTMLElement>) => void
+  onSoltarEsquina?: () => void
+}) {
+  if (!caja) return null
+  const m = 5
+  const x = caja.x * W - m
+  const y = caja.y * H - m
+  const w = caja.w * W + m * 2
+  const h = caja.h * H + m * 2
+  if (suave) {
+    return <div className="pointer-events-none absolute rounded-[3px] border border-[#0b2da0]/45" style={{ left: x, top: y, width: w, height: h }} />
   }
-  const m = 4
+  const puntos: [Esquina, number, number, string][] = [
+    ['no', x, y, 'nwse-resize'],
+    ['ne', x + w, y, 'nesw-resize'],
+    ['so', x, y + h, 'nesw-resize'],
+    ['se', x + w, y + h, 'nwse-resize'],
+  ]
+  return (
+    <>
+      <div className="pointer-events-none absolute rounded-[3px] border-[1.5px] border-[#0b2da0]" style={{ left: x, top: y, width: w, height: h }} />
+      {onEsquina &&
+        puntos.map(([cual, px, py, cursor]) => (
+          // La zona que se toca es grande (28 px, el dedo y el lápiz); el punto que se ve, pequeño.
+          <span
+            key={cual}
+            role="button"
+            aria-label="Estirar"
+            title="Arrastra para agrandar o achicar"
+            onPointerDown={(e) => onEsquina(e, cual)}
+            onPointerMove={onMoverEsquina}
+            onPointerUp={onSoltarEsquina}
+            onPointerCancel={onSoltarEsquina}
+            className="absolute z-[2] flex h-7 w-7 items-center justify-center"
+            style={{ left: px - 14, top: py - 14, cursor, touchAction: 'none' }}
+          >
+            <span className="block h-[11px] w-[11px] rounded-[3px] border-[1.5px] border-[#0b2da0] bg-white" />
+          </span>
+        ))}
+    </>
+  )
+}
+
+/**
+ * La barra pequeña encima de lo elegido (18/11/2026): color, tamaño, estilo
+ * del texto, escribir, duplicar y borrar. Los botones no quitan el foco a la
+ * caja de escribir (`onMouseDown` sin hacer nada): así el color se cambia
+ * también mientras se escribe.
+ */
+function BarraElegido({
+  trazo,
+  caja,
+  W,
+  H,
+  escribiendo,
+  onColor,
+  onEstilo,
+  onTam,
+  onEditar,
+  onDuplicar,
+  onBorrar,
+}: {
+  trazo: Trazo
+  caja: Caja01 | null
+  W: number
+  H: number
+  escribiendo: boolean
+  onColor: (c: string) => void
+  onEstilo: (e: EstiloTexto) => void
+  onTam: (factor: number) => void
+  onEditar: () => void
+  onDuplicar: () => void
+  onBorrar: () => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [medida, setMedida] = useState({ w: 0, h: 0 })
+  React.useLayoutEffect(() => {
+    const el = ref.current
+    if (el && (el.offsetWidth !== medida.w || el.offsetHeight !== medida.h)) setMedida({ w: el.offsetWidth, h: el.offsetHeight })
+  })
+  if (!caja) return null
+  const colores = trazo.t === 'rotulador' ? [...COLORES_ROTULADOR] : [...COLORES, BLANCO]
+  const texto = trazo.t === 'texto'
+  // Encima de lo elegido; si no cabe, debajo. Nunca fuera de la página por los lados.
+  const arriba = caja.y * H - 12 - medida.h
+  const top = arriba >= 4 ? arriba : Math.min(H - medida.h - 4, (caja.y + caja.h) * H + 12)
+  const centro = (caja.x + caja.w / 2) * W
+  const left = Math.max(4, Math.min(W - medida.w - 4, centro - medida.w / 2))
+  const parar = (e: React.SyntheticEvent) => e.stopPropagation()
   return (
     <div
-      className="pointer-events-none absolute rounded-[4px] border border-dashed border-[#0b2da0]"
-      style={{ left: c.x - m, top: c.y - m, width: c.w + m * 2, height: c.h + m * 2, background: 'rgba(11,45,160,0.04)' }}
-    />
+      ref={ref}
+      onMouseDown={(e) => e.preventDefault()}
+      onPointerDown={parar}
+      onClick={parar}
+      onDoubleClick={parar}
+      className="absolute z-[3] flex flex-wrap items-center gap-0.5 rounded-xl border border-[#DDE6F5] bg-white p-1 text-[#0a1656]"
+      style={{ left, top, maxWidth: Math.max(160, W - 8), boxShadow: '0 6px 18px -6px rgba(10,22,86,0.22)', visibility: medida.w ? 'visible' : 'hidden' }}
+    >
+      {colores.map((c) => (
+        <Color key={c} c={c} elegido={trazo.color === c} onClick={() => onColor(c)} chico />
+      ))}
+      <Raya chica />
+      <BotonBarra onClick={() => onTam(1 / 1.15)} titulo={texto ? 'Letra más pequeña' : 'Trazo más fino'}>
+        <Minus size={15} />
+      </BotonBarra>
+      <span className="min-w-[30px] text-center text-[12px] font-semibold tabular-nums text-[#0a1656]" title={texto ? 'Tamaño de la letra' : 'Grosor'}>
+        {texto ? Math.round((trazo as TrazoTexto).tam * 1000) : Math.round((trazo as TrazoLinea).grosor * 1000)}
+      </span>
+      <BotonBarra onClick={() => onTam(1.15)} titulo={texto ? 'Letra más grande' : 'Trazo más grueso'}>
+        <Plus size={15} />
+      </BotonBarra>
+      {texto && (
+        <>
+          <Raya chica />
+          {(['texto', 'titulo', 'nota'] as EstiloTexto[]).map((es) => (
+            <button
+              key={es}
+              onClick={() => onEstilo(es)}
+              className={`h-7 rounded-md px-2 text-[12px] font-semibold ${(trazo as TrazoTexto).estilo === es ? 'bg-[#EAF0FE] text-[#0b2da0]' : 'text-[#0a1656] hover:bg-[#F4F7FD]'}`}
+            >
+              {es === 'texto' ? 'Texto' : es === 'titulo' ? 'Título' : 'Nota'}
+            </button>
+          ))}
+        </>
+      )}
+      {!escribiendo && (
+        <>
+          <Raya chica />
+          {texto && (
+            <BotonBarra onClick={onEditar} titulo="Cambiar el texto (Intro)">
+              <PencilSimple size={15} />
+            </BotonBarra>
+          )}
+          <BotonBarra onClick={onDuplicar} titulo="Duplicar (Ctrl+D)">
+            <Copy size={15} />
+          </BotonBarra>
+          <BotonBarra onClick={onBorrar} titulo="Borrar (Supr)" peligro>
+            <Trash size={15} />
+          </BotonBarra>
+        </>
+      )}
+    </div>
+  )
+}
+
+function BotonBarra({ children, onClick, titulo, peligro }: { children: React.ReactNode; onClick: () => void; titulo: string; peligro?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      title={titulo}
+      aria-label={titulo}
+      className={`flex h-7 w-7 items-center justify-center rounded-md ${peligro ? 'text-[#0a1656] hover:bg-[#FBEDEC] hover:text-[#B4413C]' : 'text-[#0a1656] hover:bg-[#F4F7FD]'}`}
+    >
+      {children}
+    </button>
+  )
+}
+
+/** Un grupo de botones de la barra de abajo. Los de color y tamaño no le quitan el foco al texto que se escribe. */
+function Grupo({ children, propiedades }: { children: React.ReactNode; propiedades?: boolean }) {
+  return (
+    <div
+      onMouseDown={propiedades ? (e) => e.preventDefault() : undefined}
+      className="flex shrink-0 items-center gap-0.5 rounded-xl border border-[#E2E8F4] bg-[#F7F9FD] p-1"
+    >
+      {children}
+    </div>
   )
 }
 
@@ -1446,31 +1877,39 @@ function Boton({ children, onClick, activo, apagado, titulo }: { children: React
       disabled={apagado}
       title={titulo}
       aria-label={titulo}
-      className={`flex h-9 w-9 items-center justify-center rounded-lg ${activo ? 'bg-[#0b2da0] text-white' : 'text-[#0a1656] hover:text-[#0b2da0]'} disabled:opacity-30`}
+      aria-pressed={activo}
+      className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+        activo ? 'bg-[#0b2da0] text-white' : 'text-[#0a1656] hover:bg-white hover:text-[#0b2da0]'
+      } disabled:pointer-events-none disabled:opacity-30`}
     >
       {children}
     </button>
   )
 }
 
-function Opcion({ children, onClick, activa }: { children: React.ReactNode; onClick: () => void; activa: boolean }) {
+function Opcion({ children, onClick, activa, titulo }: { children: React.ReactNode; onClick: () => void; activa: boolean; titulo?: string }) {
   return (
-    <button onClick={onClick} className={`h-9 rounded-lg px-2.5 text-[12.5px] font-semibold ${activa ? 'bg-[#EAF0FE] text-[#0b2da0]' : 'text-[#0a1656]'}`}>
+    <button
+      onClick={onClick}
+      title={titulo}
+      className={`h-8 rounded-md px-2.5 text-[12.5px] font-semibold ${activa ? 'bg-white text-[#0b2da0] ring-1 ring-[#C9D5EE]' : 'text-[#0a1656] hover:bg-white'}`}
+    >
       {children}
     </button>
   )
 }
 
-function Raya() {
-  return <span className="mx-1.5 h-6 w-px shrink-0 bg-[#E2E8F4]" />
+function Raya({ chica }: { chica?: boolean }) {
+  return <span className={`shrink-0 bg-[#E2E8F4] ${chica ? 'mx-1 h-5 w-px' : 'mx-1 h-5 w-px'}`} />
 }
 
-function Color({ c, elegido, onClick }: { c: string; elegido: boolean; onClick: () => void }) {
+function Color({ c, elegido, onClick, chico }: { c: string; elegido: boolean; onClick: () => void; chico?: boolean }) {
+  const borde = c === BLANCO ? '#0a1656' : c
   return (
-    <button onClick={onClick} title="Color" className="flex h-9 w-7 items-center justify-center">
+    <button onClick={onClick} title="Color" aria-label="Color" aria-pressed={elegido} className={`flex items-center justify-center ${chico ? 'h-7 w-6' : 'h-8 w-7'}`}>
       <span
-        className="h-5 w-5 rounded-full"
-        style={{ background: c, boxShadow: elegido ? `0 0 0 2px #fff, 0 0 0 4px ${c === BLANCO ? '#0a1656' : c}` : c === BLANCO ? 'inset 0 0 0 1px #B7C3DA' : 'none' }}
+        className={`${chico ? 'h-[18px] w-[18px]' : 'h-5 w-5'} rounded-full`}
+        style={{ background: c, boxShadow: elegido ? `0 0 0 2px #fff, 0 0 0 3.5px ${borde}` : c === BLANCO ? 'inset 0 0 0 1px #B7C3DA' : 'inset 0 0 0 1px rgba(10,22,86,0.08)' }}
       />
     </button>
   )
@@ -1503,7 +1942,22 @@ function Miniatura({ n, pagina, src, tam, elegida, onClick }: { n: number; pagin
 }
 
 /** Donde se escribe un texto: una caja con la misma letra y en el mismo sitio en que quedará. */
-function CajaDeTexto({ e, ancho, alto, onChange, onCerrar }: { e: Editando; ancho: number; alto: number; onChange: (t: string) => void; onCerrar: () => void }) {
+function CajaDeTexto({
+  e,
+  ancho,
+  alto,
+  onChange,
+  onCerrar,
+  onListo,
+}: {
+  e: Editando
+  ancho: number
+  alto: number
+  onChange: (t: string) => void
+  onCerrar: () => void
+  /** Esc o Ctrl+Intro: el texto queda elegido al cerrarse. */
+  onListo?: () => void
+}) {
   const ref = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {
     const el = ref.current
@@ -1525,6 +1979,7 @@ function CajaDeTexto({ e, ancho, alto, onChange, onCerrar }: { e: Editando; anch
       onKeyDown={(ev) => {
         if (ev.key === 'Escape' || (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey))) {
           ev.preventDefault()
+          onListo?.()
           ;(ev.target as HTMLTextAreaElement).blur()
         }
         ev.stopPropagation()
