@@ -56,6 +56,12 @@ export default function EstudioGrabaciones({ courseUuid }: { courseUuid: string 
         <p className="mt-3 rounded-lg border border-[#F0E2C0] bg-[#FFFBF2] px-3.5 py-2.5 text-[13px] text-[#8A6A2A]">{data.aviso}</p>
       ) : null}
 
+      {data.bunny?.activo && data.bunny.error ? (
+        <p className="mt-3 rounded-lg border border-[#F0E2C0] bg-[#FFFBF2] px-3.5 py-2.5 text-[13px] text-[#8A6A2A]">
+          No se pudo hablar con Bunny, así que las grabaciones siguen saliendo de la sala. Lo que dijo Bunny: {data.bunny.error}
+        </p>
+      ) : null}
+
       {!data.dias.length && !data.aviso ? (
         <div className="mt-4 rounded-xl border border-dashed border-[#D5DEEE] bg-white px-5 py-8 text-center">
           <p className="text-[14.5px] font-semibold text-[#0B1033]">La sala de esta clase aún no ha grabado nada</p>
@@ -89,6 +95,7 @@ export default function EstudioGrabaciones({ courseUuid }: { courseUuid: string 
                     {dia.partes[0]?.hora ? ` · desde las ${dia.partes[0].hora}` : ''}
                     {procesando ? ` · ${procesando === dia.partes.length ? 'aún se está procesando' : `${procesando} aún se procesa`}` : ''}
                   </p>
+                  <EstadoBunny partes={dia.partes} />
                   {publicada ? (
                     <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-medium text-[#15803D]">
                       <CheckCircle2 size={15} /> Publicada · los alumnos ven {duracionCorta(publicada.segundos)}
@@ -155,5 +162,29 @@ export default function EstudioGrabaciones({ courseUuid }: { courseUuid: string 
         />
       ) : null}
     </div>
+  )
+}
+
+
+/** Si las partes del día ya están en Bunny (se copian solas, 18/11/2026). */
+function EstadoBunny({ partes }: { partes: DiaGrabado['partes'] }) {
+  const con = partes.filter((p) => p.bunny && p.bunny.estado !== 'no')
+  if (!con.length) return null
+  const listas = con.filter((p) => p.bunny?.estado === 'lista').length
+  const error = con.some((p) => p.bunny?.estado === 'error')
+  const prep = con.filter((p) => p.bunny?.estado === 'preparando')
+  if (error)
+    return <p className="mt-1 text-[12.5px] text-[#B4413C]">Bunny no pudo preparar una parte: se sigue viendo desde la sala.</p>
+  if (!prep.length)
+    return (
+      <p className="mt-1 text-[12.5px] text-[#15803D]">
+        {listas === partes.length ? 'Lista en Bunny: se puede saltar a cualquier minuto' : `${listas} de ${partes.length} partes listas en Bunny`}
+      </p>
+    )
+  const pct = Math.round(prep.reduce((t, p) => t + (p.bunny?.progreso || 0), 0) / prep.length)
+  return (
+    <p className="mt-1 text-[12.5px] text-[#5A6480]">
+      Bunny la está preparando{pct ? ` (${pct} %)` : ''}. Mientras, se ve desde la sala; puedes recortar igual.
+    </p>
   )
 }

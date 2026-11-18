@@ -38,6 +38,8 @@ export interface ParteGrabada {
   personas: number
   /** Si está publicada, con qué recorte. */
   trozos: Trozo[] | null
+  /** En qué está su copia en Bunny (18/11/2026); sin claves de Bunny, no viene. */
+  bunny?: { estado: 'no' | 'preparando' | 'lista' | 'error'; progreso: number }
 }
 
 export interface DiaGrabado {
@@ -63,6 +65,7 @@ export interface Estudio {
   dias: DiaGrabado[]
   semanas: SemanaDelEstudio[]
   aviso: string
+  bunny?: { activo: boolean; error?: string }
 }
 
 const base = () => `${getAPIUrl()}grabaciones`
@@ -103,6 +106,7 @@ export type DiagnosticoVideo = {
   cajas?: string[]
   servidor?: string
   veredicto: string
+  bunny?: { estado?: string; progreso?: number; mp4?: boolean; error?: string }
 }
 export const diagnosticoVideo = (courseUuid: string, grabacionId: string, token: string) =>
   pedir<DiagnosticoVideo>(`${base()}/diagnostico/${encodeURIComponent(grabacionId)}?course=${sin(courseUuid)}`, token)
