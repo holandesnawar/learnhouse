@@ -424,6 +424,14 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
       /* el iPhone no deja: se queda a toda la ventana */
     }
   }
+  // En pantalla completa, la barra de arriba y la lateral de la escuela se
+  // escondían por encima de la llamada (18/11/2026, «se medio rompe»): la caja
+  // de la sala no puede salir de su sitio (la llamada se cortaría), así que lo
+  // que se esconde es el marco de la escuela (`html.sala-grande` en globals.css).
+  useEffect(() => {
+    document.documentElement.classList.toggle('sala-grande', grande)
+    return () => document.documentElement.classList.remove('sala-grande')
+  }, [grande])
   useEffect(() => {
     const alCambiar = () => {
       if (!document.fullscreenElement) setGrande(false)
@@ -894,7 +902,7 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
             {grande ? (
               <button
                 onClick={alternarGrande}
-                className="absolute top-3 right-3 inline-flex items-center gap-1.5 h-9 px-3 rounded-md bg-white/90 text-[13px] font-semibold text-[#0a1656] hover:bg-white"
+                className="absolute top-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-white/90 text-[12.5px] font-semibold text-[#0a1656] shadow-sm hover:bg-white"
               >
                 <Minimize2 size={14} /> Salir de pantalla completa
               </button>
