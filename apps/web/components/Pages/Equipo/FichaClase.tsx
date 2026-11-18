@@ -29,7 +29,8 @@ import Confirmados from './Confirmados'
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { Check, FileText, Link2, Trash2, UploadCloud, X } from 'lucide-react'
+import { CalendarDays, Check, Clock3, FileText, Link2, Trash2, UploadCloud, User, X } from 'lucide-react'
+import PresentacionAlumnos from '@components/Pages/Courses/PresentacionAlumnos'
 import {
   abrirArchivoProfe,
   borrarSemana,
@@ -47,7 +48,6 @@ import {
   type Gemela,
   type MaterialProfe,
 } from '@services/tareas/tareas'
-import { createFileActivity, updateActivity } from '@services/courses/activities'
 import { cuando, diaLegible, estadoDeClase, quienDa, tieneDocumento, type SemanaEquipo } from '@/lib/nawar/salaProfes'
 import { confirmar } from '@/lib/nawar/confirmar'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
@@ -58,17 +58,36 @@ import type { ClaseEquipo } from './useClasesEquipo'
 import { POPPINS } from './estilo'
 
 const BOTON =
-  'shrink-0 h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg border border-[#DDE3EF] bg-white text-[13.5px] font-semibold text-[#0b2da0] hover:border-[#0b2da0]'
-const BOTON_AZUL = 'shrink-0 h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg bg-[#0b2da0] text-white text-[13.5px] font-semibold hover:bg-[#0a2690]'
-const CAMPO = 'w-full rounded-lg border border-[#DDE3EF] bg-white px-3 py-2 text-[14px] text-[#0B1033] outline-none focus:border-[#0b2da0]'
-const ETIQUETA = 'text-[13px] font-semibold text-[#3B4262]'
-const TITULO = 'text-[12px] font-semibold uppercase tracking-[0.08em] text-[#0b2da0]'
+  'shrink-0 h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg border border-[#E2E7F0] bg-white text-[13.5px] font-semibold text-[#0B1033] transition-colors hover:border-[#C9D3E6] hover:bg-[#F7F9FD]'
+const BOTON_AZUL = 'shrink-0 h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg bg-[#0b2da0] text-white text-[13.5px] font-semibold transition-colors hover:bg-[#0a2690]'
+const CAMPO =
+  'w-full rounded-lg border border-[#E2E7F0] bg-white px-3 py-2 text-[14px] text-[#0B1033] outline-none transition-colors placeholder:text-[#9AA1B9] hover:border-[#C9D3E6] focus:border-[#0b2da0] focus:ring-[3px] focus:ring-[#0b2da0]/10'
+const ETIQUETA = 'text-[13px] font-medium text-[#3B4262]'
 
-const TONO: Record<string, string> = {
-  'por-preparar': 'border-[#E9DCC0] bg-[#FFFBF2] text-[#8A6A2A]',
-  lista: 'border-[#BFE3CB] bg-[#F3FBF5] text-[#15803D]',
-  hoy: 'border-[#0b2da0] bg-[#0b2da0] text-white',
-  dada: 'border-[#DDE3EF] bg-[#F6F8FC] text-[#3B4262]',
+// El estado, como un punto y su texto (sin cajitas de colores).
+const PUNTO: Record<string, string> = {
+  'por-preparar': '#D9A23B',
+  lista: '#16A34A',
+  hoy: '#0b2da0',
+  dada: '#9AA1B9',
+}
+
+/** Una parte de la ficha: título, para qué sirve y lo de dentro. */
+function Seccion({ titulo, ayuda, children, derecha }: { titulo: string; ayuda?: string; children: React.ReactNode; derecha?: React.ReactNode }) {
+  return (
+    <section className="px-5 py-6 sm:px-7 border-b border-[#EEF1F6] last:border-b-0">
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[15px] font-semibold text-[#0B1033]" style={POPPINS}>
+            {titulo}
+          </h3>
+          {ayuda ? <p className="mt-0.5 text-[13px] leading-relaxed text-[#6B7393]">{ayuda}</p> : null}
+        </div>
+        {derecha}
+      </div>
+      <div className="mt-3.5">{children}</div>
+    </section>
+  )
 }
 
 function Linea({ hecho, titulo, detalle, accion }: { hecho: boolean; titulo: string; detalle?: string; accion?: React.ReactNode }) {
@@ -124,7 +143,6 @@ function FichaDentro({
   const [lista, setLista] = useState(false)
   const [archivosTocados, setArchivosTocados] = useState(false)
   const entrada = useRef<HTMLInputElement>(null)
-  const entradaAlumnos = useRef<HTMLInputElement>(null)
   // La misma clase en el otro grupo (10/11/2026): se edita una vez.
   const [gemela, setGemela] = useState<Gemela | null>(null)
   const [tambien, setTambien] = useState(true)
@@ -217,24 +235,6 @@ function FichaDentro({
       setOcupado('')
     }
   }
-  const subirParaAlumnos = async (f?: File | null) => {
-    if (!f || !semana.chapterId) return
-    setOcupado('alumnos')
-    try {
-      const act: any = await createFileActivity(f, 'documentpdf', { name: 'Presentación' }, semana.chapterId, token)
-      if (!act?.activity_uuid) throw new Error('No se ha podido subir la presentación')
-      await updateActivity({ published: true }, act.activity_uuid, token)
-      setPresentaciones((n) => n + 1)
-      setArchivosTocados(true)
-      toast.success('Los alumnos ya la pueden ver')
-    } catch (e: any) {
-      toast.error(e?.message || 'No se ha podido subir')
-    } finally {
-      setOcupado('')
-      if (entradaAlumnos.current) entradaAlumnos.current.value = ''
-    }
-  }
-
   const cambiado =
     tema.trim() !== semana.tema ||
     fecha !== semana.fecha ||
@@ -288,99 +288,284 @@ function FichaDentro({
     }
   }
 
+  // La ficha tiene dos caras: preparar la clase y lo de después. Ya dada,
+  // se abre en «Después» (lo que queda es ver qué pasó).
+  const [cara, setCara] = useState<'preparar' | 'despues'>(yaFue && !esHoy ? 'despues' : 'preparar')
+  const pendientesDespues = (semana.porCorregir || 0) + (pizarra?.guardada_at && !pizarra?.publicada_at ? 1 : 0)
+
   const despuesDeLaClase = yaFue ? (
-    <section className="px-5 sm:px-6 py-5 border-b border-[#EEF1F7]">
-      <p className={TITULO}>{esHoy ? 'Hoy, al terminar' : 'Después de la clase'}</p>
-      <ul className="mt-1.5 divide-y divide-[#EEF1F7]">
-        <Linea
-          hecho={!!semana.lista?.pasada}
-          titulo={semana.lista?.pasada ? `Asistencia: vinieron ${semana.lista.vinieron}` : 'Asistencia: la cuenta la sala sola'}
-          detalle={semana.lista?.pasada ? undefined : 'Quien entra a la sala cuenta. Si alguien vino por otro sitio, corrígelo.'}
-          accion={
-            <button onClick={() => setLista(true)} className={BOTON}>
-              {semana.lista?.pasada ? 'Ver la lista' : 'Corregir'}
-            </button>
-          }
-        />
-        <Linea
-          hecho={!!pizarra?.publicada_at}
-          titulo={
-            pizarra?.publicada_at
-              ? `Pizarra: los alumnos ya tienen las notas de la clase (${pizarra.paginas || 0} páginas)`
-              : pizarra?.guardada_at
-                ? 'Pizarra: hay cosas escritas, sin guardar para los alumnos'
-                : 'Pizarra: no se escribió nada'
-          }
-          accion={
-            hayPdf || pizarra?.guardada_at ? (
-              <a href={`/pizarra/${semana.semanaId}`} className={BOTON}>
-                Abrir
-              </a>
-            ) : null
-          }
-        />
-        {semana.tieneTarea ? (
+    <>
+      <Seccion titulo={esHoy ? 'Hoy, al terminar' : 'Lo que pasó en la clase'} ayuda="Lo que queda por cerrar de esta clase. Se marca solo cuando está hecho.">
+        <ul className="divide-y divide-[#EEF1F6] rounded-xl border border-[#E6EAF2] bg-white px-4">
           <Linea
-            hecho={!semana.porCorregir}
-            titulo={semana.porCorregir ? `${semana.porCorregir} ${semana.porCorregir === 1 ? 'tarea por corregir' : 'tareas por corregir'}` : 'Tareas: nada por corregir'}
+            hecho={!!semana.lista?.pasada}
+            titulo={semana.lista?.pasada ? `Asistencia: vinieron ${semana.lista.vinieron}` : 'Asistencia: la cuenta la sala sola'}
+            detalle={semana.lista?.pasada ? undefined : 'Quien entra a la sala cuenta. Si alguien vino por otro sitio, corrígelo.'}
             accion={
-              semana.porCorregir ? (
-                <Link href={ruta('/seguimiento')} className={BOTON}>
-                  Corregir
-                </Link>
+              <button onClick={() => setLista(true)} className={BOTON}>
+                {semana.lista?.pasada ? 'Ver la lista' : 'Corregir'}
+              </button>
+            }
+          />
+          <Linea
+            hecho={!!pizarra?.publicada_at}
+            titulo={
+              pizarra?.publicada_at
+                ? `Pizarra: los alumnos de este grupo ya ven la versión de la clase`
+                : pizarra?.guardada_at
+                  ? 'Pizarra: hay cosas escritas, sin guardar para los alumnos'
+                  : 'Pizarra: no se escribió nada'
+            }
+            detalle={pizarra?.publicada_at ? `${pizarra.paginas || 0} páginas, en lugar de la presentación de antes` : undefined}
+            accion={
+              hayPdf || pizarra?.guardada_at ? (
+                <a href={`/pizarra/${semana.semanaId}`} className={BOTON}>
+                  Abrir
+                </a>
               ) : null
             }
           />
-        ) : null}
-      </ul>
-      {/* Lo que grabó la sala ese día, para publicarlo o recortarlo. */}
-      <GrabacionDeSala semana={{ id: semana.semanaId, tema: semana.tema, fecha: semana.fecha }} courseUuid={uuid} hoy={hoy} />
-      <label className="block mt-4">
-        <span className={ETIQUETA}>Cómo fue la clase</span>
+          {semana.tieneTarea ? (
+            <Linea
+              hecho={!semana.porCorregir}
+              titulo={semana.porCorregir ? `${semana.porCorregir} ${semana.porCorregir === 1 ? 'tarea por corregir' : 'tareas por corregir'}` : 'Tareas: nada por corregir'}
+              accion={
+                semana.porCorregir ? (
+                  <Link href={ruta('/seguimiento')} className={BOTON}>
+                    Corregir
+                  </Link>
+                ) : null
+              }
+            />
+          ) : null}
+        </ul>
+      </Seccion>
+      <Seccion titulo="La grabación" ayuda="Lo que grabó la sala ese día. Recórtala y publícala, o pega el enlace si se grabó en otro sitio.">
+        <GrabacionDeSala semana={{ id: semana.semanaId, tema: semana.tema, fecha: semana.fecha }} courseUuid={uuid} hoy={hoy} />
+      </Seccion>
+      <Seccion titulo="Cómo fue la clase" ayuda="Dos líneas para quien dé la siguiente.">
         <textarea
           value={despues}
           onChange={(e) => setDespues(e.target.value)}
-          rows={2}
-          placeholder="Dos líneas: hasta dónde llegasteis, qué costó, qué repetir la próxima vez."
-          className={`${CAMPO} mt-1 resize-y`}
+          rows={3}
+          placeholder="Hasta dónde llegasteis, qué costó, qué repetir la próxima vez."
+          className={`${CAMPO} resize-y`}
         />
-        {semana.material?.despues?.por ? <span className="block mt-1 text-[12.5px] text-[#6B7393]">Lo escribió {semana.material.despues.por}.</span> : null}
-      </label>
-    </section>
+        {semana.material?.despues?.por ? <span className="mt-1.5 block text-[12.5px] text-[#6B7393]">Lo escribió {semana.material.despues.por}.</span> : null}
+      </Seccion>
+    </>
   ) : null
 
+  const preparar = (
+    <>
+      <Seccion titulo="La clase">
+        <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
+          <label className="block">
+            <span className={ETIQUETA}>Tema</span>
+            <input value={tema} onChange={(e) => setTema(e.target.value)} placeholder="Se puede poner después" className={`${CAMPO} mt-1.5`} />
+          </label>
+          <label className="block">
+            <span className={ETIQUETA}>Día</span>
+            <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className={`${CAMPO} mt-1.5`} />
+          </label>
+        </div>
+        {admin ? (
+          <div className="mt-4 space-y-4">
+            <label className="block">
+              <span className={ETIQUETA}>Quién la da</span>
+              <input
+                value={profe}
+                onChange={(e) => setProfe(e.target.value)}
+                list="nawar-ficha-nombres"
+                placeholder={profeClase ? `Vacío = ${profeClase} (quien da esta clase)` : 'Nombre del profe o del monitor'}
+                className={`${CAMPO} mt-1.5`}
+              />
+              <datalist id="nawar-ficha-nombres">
+                {nombres.map((n) => (
+                  <option key={n} value={n} />
+                ))}
+              </datalist>
+              <span className="mt-1.5 block text-[12.5px] text-[#6B7393]">Su nombre de pila, como en su cuenta. Le sale en su sala de profes.</span>
+            </label>
+            <label className="block">
+              <span className={ETIQUETA}>Mensaje para quien la da</span>
+              <textarea
+                value={mensaje}
+                onChange={(e) => setMensaje(e.target.value)}
+                rows={2}
+                placeholder="Lo verá arriba de esta clase, con tu nombre, y lo marcará como leído."
+                className={`${CAMPO} mt-1.5 resize-y`}
+              />
+              {semana.material?.mensaje?.texto ? (
+                <span className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-[#6B7393]">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: semana.material.mensaje.leido_por ? '#16A34A' : '#D9A23B' }} />
+                  {semana.material.mensaje.leido_por ? `Leído por ${semana.material.mensaje.leido_por}.` : 'Aún sin leer.'}
+                </span>
+              ) : null}
+            </label>
+          </div>
+        ) : null}
+      </Seccion>
+
+      <Seccion titulo="Documento para dar la clase" ayuda="Solo lo ve el equipo. Si es un PDF, es lo que se abre al pulsar «Pizarra» en la sala, listo para escribir encima.">
+        {material.archivos.length ? (
+          <ul className="mb-2.5 divide-y divide-[#EEF1F6] rounded-xl border border-[#E6EAF2]">
+            {material.archivos.map((a) => (
+              <li key={a.id} className="flex items-center gap-3 px-3.5 py-2.5">
+                {a.tipo === 'enlace' ? <Link2 size={17} className="shrink-0 text-[#6B7393]" /> : <FileText size={17} className="shrink-0 text-[#6B7393]" />}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-medium text-[#0B1033]">{a.nombre}</span>
+                  {a.por ? <span className="block text-[12px] text-[#8A91AD]">Lo añadió {a.por}</span> : null}
+                </span>
+                <button onClick={() => abrirArchivoProfe(semana.semanaId, a, token).catch((e) => toast.error(e?.message || 'No se ha podido abrir'))} className={BOTON}>
+                  Abrir
+                </button>
+                <button onClick={() => quitar(a)} disabled={ocupado === a.id} aria-label="Quitar" title="Quitar" className="rounded-lg p-1.5 text-[#8A91AD] transition-colors hover:bg-[#FBEDEC] hover:text-[#B42323]">
+                  <X size={16} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <input
+          ref={entrada}
+          type="file"
+          multiple
+          accept=".pdf,.pptx,.ppt,.key,.odp,.docx,.doc,.png,.jpg,.jpeg,.webp,.mp3,.m4a,.mp4"
+          className="hidden"
+          onChange={(e) => subir(e.target.files)}
+        />
+        <button
+          type="button"
+          onClick={() => entrada.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setEncima(true)
+          }}
+          onDragLeave={() => setEncima(false)}
+          onDrop={(e) => {
+            e.preventDefault()
+            setEncima(false)
+            subir(e.dataTransfer.files)
+          }}
+          disabled={!!ocupado}
+          className={`flex w-full items-center gap-3.5 rounded-xl border border-dashed px-4 py-4 text-left transition-colors ${
+            encima ? 'border-[#0b2da0] bg-[#F5F8FF]' : 'border-[#CDD5E5] bg-[#FAFBFD] hover:border-[#0b2da0] hover:bg-[#F7F9FF]'
+          }`}
+        >
+          <UploadCloud size={22} strokeWidth={1.6} className="shrink-0 text-[#0b2da0]" />
+          <span className="min-w-0">
+            <span className="block text-[14px] font-semibold text-[#0B1033]">{ocupado === 'subir' ? 'Subiendo…' : 'Arrastra aquí el documento o pulsa para elegirlo'}</span>
+            <span className="block text-[12.5px] text-[#6B7393]">PDF para la pizarra. También PowerPoint, Keynote, Word, audio… hasta 80 MB.</span>
+          </span>
+        </button>
+        {conEnlace ? (
+          <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
+            <input value={nombreEnlace} onChange={(e) => setNombreEnlace(e.target.value)} placeholder="Nombre (opcional)" className={CAMPO} />
+            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Enlace (Google Slides, Canva, un vídeo…)" className={CAMPO} />
+            <button onClick={anadirEnlace} disabled={!url.trim() || !!ocupado} className={`${BOTON} disabled:opacity-50`}>
+              Añadir
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setConEnlace(true)} className="mt-2 text-[13px] font-semibold text-[#0b2da0] hover:underline">
+            O añadir un enlace
+          </button>
+        )}
+      </Seccion>
+
+      <Seccion titulo="Presentación para los alumnos" ayuda={`Lo que ven los alumnos de ${semana.curso} en su semana. Solo este grupo: el otro tiene la suya.`}>
+        <PresentacionAlumnos
+          semanaId={semana.semanaId}
+          chapterId={semana.chapterId}
+          courseUuid={semana.courseUuid}
+          fecha={semana.fecha}
+          hoy={hoy}
+          presentaciones={semana.presentaciones}
+          publicadaAt={pizarra?.publicada_at || ''}
+          paginas={pizarra?.paginas || 0}
+          token={token}
+          ruta={ruta}
+          onCambio={() => {
+            setPresentaciones((n) => Math.max(n, 1))
+            onCambio()
+          }}
+        />
+      </Seccion>
+
+      <Seccion titulo="Notas para quien la da" ayuda="Cómo dar la clase, qué repasar, qué hacer si sobra tiempo. Solo las ve el equipo.">
+        <textarea value={notas} onChange={(e) => setNotas(e.target.value)} rows={4} placeholder="Escribe aquí…" className={`${CAMPO} resize-y`} />
+        {gemela ? (
+          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[#E6EAF2] bg-[#FAFBFD] px-4 py-3.5">
+            <input type="checkbox" checked={tambien} onChange={(e) => setTambien(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#0b2da0]" />
+            <span className="text-[13px] leading-snug text-[#3B4262]">
+              <span className="block text-[13.5px] font-semibold text-[#0B1033]">
+                Guardar también en {gemela.curso} ({diaLegible(gemela.fecha)})
+              </span>
+              {gemela.mismo_tema === false ? <>Ojo: allí el tema es «{gemela.tema || 'sin tema'}». Márcalo solo si es la misma clase. </> : null}
+              El tema, la tarea, las notas y el documento del profe (lo vacío aquí no se borra allí). Cada grupo conserva su día, quién la da, su presentación de alumnos, su pizarra y su grabación.
+            </span>
+          </label>
+        ) : null}
+        {admin ? (
+          <button onClick={quitarClase} disabled={!!ocupado} className="mt-6 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#B42323] hover:underline">
+            <Trash2 size={14} /> Quitar esta clase
+          </button>
+        ) : null}
+      </Seccion>
+    </>
+  )
+
+  const meta = [
+    fecha ? { icono: <CalendarDays size={15} />, texto: esHoy ? `Hoy, ${diaLegible(fecha)}` : diaLegible(fecha) } : null,
+    clase?.hora || semana.hora ? { icono: <Clock3 size={15} />, texto: clase?.hora || semana.hora } : null,
+    { icono: <User size={15} />, texto: da || 'Sin profe puesto' },
+  ].filter(Boolean) as { icono: React.ReactNode; texto: string }[]
+
   return (
-    <div className="fixed inset-0 z-[90] flex justify-end bg-[#0a1656]/40" onClick={cerrar}>
-      <div className="w-full sm:max-w-[640px] h-full overflow-y-auto bg-white" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[90] flex justify-end bg-[#0B1033]/35 backdrop-blur-[1px]" onClick={cerrar}>
+      <div
+        className="flex h-full w-full flex-col bg-white sm:max-w-[700px]"
+        style={{ boxShadow: '-24px 0 48px -24px rgba(16,24,64,0.25)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Cabecera */}
-        <header className="sticky top-0 z-10 bg-white px-5 sm:px-6 pt-5 pb-4 border-b border-[#EEF1F7]">
-          <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[#5B6382]">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: semana.color }} />
-                <span className="truncate">{semana.curso}</span>
-              </p>
-              <h2 className="mt-1 text-[21px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
-                {tema.trim() || 'Sin tema todavía'}
-              </h2>
-              <p className="mt-1 text-[13.5px] text-[#3B4262] first-letter:uppercase">
-                {[fecha ? (esHoy ? `hoy, ${diaLegible(fecha)}` : diaLegible(fecha)) : '', clase?.hora || semana.hora, da ? `la da ${da}` : 'sin profe puesto'].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-            <span className={`shrink-0 mt-0.5 inline-flex h-7 items-center rounded-full border px-2.5 text-[12.5px] font-semibold ${TONO[estado.estado]}`}>{estado.texto}</span>
-            <button onClick={cerrar} aria-label="Cerrar" className="shrink-0 -mr-1.5 p-1.5 rounded-lg text-[#6B7393] hover:text-[#0B1033]">
+        <header className="shrink-0 px-5 pt-5 sm:px-7 sm:pt-6">
+          <div className="flex items-center gap-3">
+            <p className="flex min-w-0 flex-1 items-center gap-2 text-[13px] font-medium text-[#4A5272]">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: semana.color }} />
+              <span className="truncate">{semana.curso}</span>
+            </p>
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#E6EAF2] px-2.5 py-1 text-[12.5px] font-medium text-[#3B4262]">
+              <span className="h-2 w-2 rounded-full" style={{ background: PUNTO[estado.estado] || '#9AA1B9' }} />
+              {estado.texto}
+            </span>
+            <button onClick={cerrar} aria-label="Cerrar" className="-mr-2 shrink-0 rounded-lg p-1.5 text-[#6B7393] transition-colors hover:bg-[#F2F4F8] hover:text-[#0B1033]">
               <X size={20} />
             </button>
           </div>
+          <h2 className="mt-2 text-[24px] font-bold leading-tight text-[#0B1033]" style={POPPINS}>
+            {tema.trim() || <span className="text-[#9AA1B9]">Sin tema todavía</span>}
+          </h2>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13.5px] text-[#3B4262]">
+            {meta.map((m, i) => (
+              <span key={i} className="inline-flex items-center gap-1.5 first-letter:uppercase">
+                <span className="text-[#8A91AD]">{m.icono}</span>
+                {m.texto}
+              </span>
+            ))}
+          </div>
           {!yaFue || esHoy ? (
-            <div className="mt-2">
+            <div className="mt-2.5">
               <Confirmados c={semana.confirmaciones} compacto />
             </div>
           ) : null}
           {estado.faltan.length && estado.estado !== 'dada' ? (
-            <p className="mt-2 text-[13px] text-[#8A6A2A]">Falta: {estado.faltan.join(', ')}.</p>
+            <p className="mt-2.5 flex items-center gap-1.5 text-[13px] text-[#8A6A2A]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#D9A23B]" /> Falta: {estado.faltan.join(', ')}.
+            </p>
           ) : null}
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             {esHoy ? (
               <Link href={ruta(`/sala/${uuid}`)} className={BOTON_AZUL}>
                 Entrar a la sala
@@ -395,212 +580,58 @@ function FichaDentro({
               Página de la clase
             </Link>
           </div>
+          {/* Las dos caras de la ficha */}
+          {yaFue ? (
+            <nav className="-mx-1 mt-5 flex gap-1 border-b border-[#EEF1F6]" role="tablist">
+              {(
+                [
+                  ['preparar', 'Preparar'],
+                  ['despues', 'Después de la clase'],
+                ] as const
+              ).map(([k, t]) => (
+                <button
+                  key={k}
+                  role="tab"
+                  aria-selected={cara === k}
+                  onClick={() => setCara(k)}
+                  className={`relative -mb-px flex items-center gap-1.5 px-3 pb-3 pt-1 text-[14px] font-semibold transition-colors ${
+                    cara === k ? 'text-[#0B1033]' : 'text-[#8A91AD] hover:text-[#3B4262]'
+                  }`}
+                >
+                  {t}
+                  {k === 'despues' && pendientesDespues ? (
+                    <span className="rounded-full bg-[#F2F4F8] px-1.5 text-[11.5px] font-semibold text-[#3B4262]">{pendientesDespues}</span>
+                  ) : null}
+                  {cara === k ? <span className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-[#0b2da0]" /> : null}
+                </button>
+              ))}
+            </nav>
+          ) : (
+            <div className="mt-5 border-b border-[#EEF1F6]" />
+          )}
         </header>
 
-        {/* El mensaje del administrador, tal como lo ve el profe */}
-        {!admin && semana.material?.mensaje?.texto ? (
-          <div className="px-5 sm:px-6 pt-1 pb-4 border-b border-[#EEF1F7]">
-            <MensajeDelAdmin semana={semana} admin={false} token={token} onLeido={onCambio} />
-          </div>
-        ) : null}
-
-        {/* Ya dada: lo primero es lo que pasó. Si es hoy, va al final (primero se prepara). */}
-        {yaFue && !esHoy ? despuesDeLaClase : null}
-
-        {/* La clase */}
-        <section className="px-5 sm:px-6 py-5 border-b border-[#EEF1F7]">
-          <p className={TITULO}>La clase</p>
-          <div className="mt-2.5 grid gap-3 sm:grid-cols-[1fr_170px]">
-            <label className="block">
-              <span className={ETIQUETA}>Tema</span>
-              <input value={tema} onChange={(e) => setTema(e.target.value)} placeholder="Se puede poner después" className={`${CAMPO} mt-1`} />
-            </label>
-            <label className="block">
-              <span className={ETIQUETA}>Día</span>
-              <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className={`${CAMPO} mt-1`} />
-            </label>
-          </div>
-          {admin ? (
-            <div className="mt-3 space-y-3">
-              <label className="block">
-                <span className={ETIQUETA}>Quién la da</span>
-                <input
-                  value={profe}
-                  onChange={(e) => setProfe(e.target.value)}
-                  list="nawar-ficha-nombres"
-                  placeholder={profeClase ? `Vacío = ${profeClase} (quien da esta clase)` : 'Nombre del profe o del monitor'}
-                  className={`${CAMPO} mt-1`}
-                />
-                <datalist id="nawar-ficha-nombres">
-                  {nombres.map((n) => (
-                    <option key={n} value={n} />
-                  ))}
-                </datalist>
-                <span className="block mt-1 text-[12.5px] text-[#6B7393]">Su nombre de pila, como en su cuenta. Le sale en su sala de profes.</span>
-              </label>
-              <label className="block">
-                <span className={ETIQUETA}>Mensaje para quien la da</span>
-                <textarea
-                  value={mensaje}
-                  onChange={(e) => setMensaje(e.target.value)}
-                  rows={2}
-                  placeholder="Lo verá arriba de esta clase, con tu nombre, y lo marcará como leído."
-                  className={`${CAMPO} mt-1 resize-y`}
-                />
-                {semana.material?.mensaje?.texto ? (
-                  <span className="block mt-1 text-[12.5px] text-[#6B7393]">
-                    {semana.material.mensaje.leido_por ? `Leído por ${semana.material.mensaje.leido_por}.` : 'Aún sin leer.'}
-                  </span>
-                ) : null}
-              </label>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {/* El mensaje del administrador, tal como lo ve el profe */}
+          {!admin && semana.material?.mensaje?.texto ? (
+            <div className="px-5 pt-5 sm:px-7">
+              <MensajeDelAdmin semana={semana} admin={false} token={token} onLeido={onCambio} />
             </div>
           ) : null}
-        </section>
+          {yaFue && cara === 'despues' ? despuesDeLaClase : preparar}
+        </div>
 
-        {/* El documento de la clase */}
-        <section className="px-5 sm:px-6 py-5 border-b border-[#EEF1F7]">
-          <p className={TITULO}>El documento de la clase</p>
-          <p className="mt-1 text-[13px] text-[#5B6382]">
-            Solo lo ve el equipo. Si es un PDF, es lo que se abre al pulsar «Pizarra» en la sala, listo para escribir encima.
-          </p>
-          {material.archivos.length ? (
-            <ul className="mt-2.5 divide-y divide-[#EEF1F7] rounded-xl border border-[#E4E8F2]">
-              {material.archivos.map((a) => (
-                <li key={a.id} className="flex items-center gap-2.5 px-3 py-2.5">
-                  {a.tipo === 'enlace' ? <Link2 size={16} className="text-[#0b2da0] shrink-0" /> : <FileText size={16} className="text-[#0b2da0] shrink-0" />}
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[14px] font-semibold text-[#0B1033] truncate">{a.nombre}</span>
-                    <span className="block text-[12px] text-[#6B7393]">{a.por ? `Lo añadió ${a.por}` : ''}</span>
-                  </span>
-                  <button onClick={() => abrirArchivoProfe(semana.semanaId, a, token).catch((e) => toast.error(e?.message || 'No se ha podido abrir'))} className={BOTON}>
-                    Abrir
-                  </button>
-                  <button onClick={() => quitar(a)} disabled={ocupado === a.id} aria-label="Quitar" className="p-1.5 rounded-lg text-[#8A91AD] hover:text-[#B42323]">
-                    <X size={16} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <input
-            ref={entrada}
-            type="file"
-            multiple
-            accept=".pdf,.pptx,.ppt,.key,.odp,.docx,.doc,.png,.jpg,.jpeg,.webp,.mp3,.m4a,.mp4"
-            className="hidden"
-            onChange={(e) => subir(e.target.files)}
-          />
-          <button
-            type="button"
-            onClick={() => entrada.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault()
-              setEncima(true)
-            }}
-            onDragLeave={() => setEncima(false)}
-            onDrop={(e) => {
-              e.preventDefault()
-              setEncima(false)
-              subir(e.dataTransfer.files)
-            }}
-            disabled={!!ocupado}
-            className={`mt-2.5 w-full rounded-xl border-2 border-dashed px-4 py-5 text-center transition-colors ${
-              encima ? 'border-[#0b2da0] bg-[#F3F6FE]' : 'border-[#D5DEEE] hover:border-[#0b2da0]'
-            }`}
-          >
-            <UploadCloud size={22} strokeWidth={1.7} className="mx-auto text-[#0b2da0]" />
-            <span className="mt-1.5 block text-[14px] font-semibold text-[#0B1033]">{ocupado === 'subir' ? 'Subiendo…' : 'Arrastra aquí el documento o pulsa para elegirlo'}</span>
-            <span className="block text-[12.5px] text-[#6B7393]">PDF para la pizarra. También PowerPoint, Keynote, Word, audio… hasta 80 MB.</span>
-          </button>
-          {conEnlace ? (
-            <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
-              <input value={nombreEnlace} onChange={(e) => setNombreEnlace(e.target.value)} placeholder="Nombre (opcional)" className={CAMPO} />
-              <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Enlace (Google Slides, Canva, un vídeo…)" className={CAMPO} />
-              <button onClick={anadirEnlace} disabled={!url.trim() || !!ocupado} className={`${BOTON} disabled:opacity-50`}>
-                Añadir
-              </button>
-            </div>
-          ) : (
-            <button onClick={() => setConEnlace(true)} className="mt-2 text-[13px] font-semibold text-[#0b2da0] hover:underline">
-              O añadir un enlace
-            </button>
-          )}
-        </section>
-
-        {/* Para los alumnos */}
-        <section className="px-5 sm:px-6 py-5 border-b border-[#EEF1F7]">
-          <p className={TITULO}>Para los alumnos</p>
-          <ul className="mt-1.5">
-            <Linea
-              hecho={presentaciones > 0}
-              titulo={presentaciones > 0 ? 'Presentación para mirar antes de la clase, subida' : 'Sin presentación para mirar antes de la clase'}
-              detalle={
-                presentaciones > 0
-                  ? 'La ven en la página de su clase.'
-                  : 'Opcional. Un PDF que los alumnos ven en su clase antes de que empiece; el documento de arriba no lo ven.'
-              }
-              accion={
-                semana.chapterId ? (
-                  <button onClick={() => entradaAlumnos.current?.click()} disabled={!!ocupado} className={BOTON}>
-                    {ocupado === 'alumnos' ? 'Subiendo…' : presentaciones > 0 ? 'Subir otra' : 'Subir PDF'}
-                  </button>
-                ) : (
-                  <Link href={ruta(`/course/${uuid}`)} className={BOTON}>
-                    En la clase
-                  </Link>
-                )
-              }
-            />
-          </ul>
-          <input ref={entradaAlumnos} type="file" accept=".pdf" className="hidden" onChange={(e) => subirParaAlumnos(e.target.files?.[0])} />
-        </section>
-
-        {esHoy ? despuesDeLaClase : null}
-
-        {/* Notas */}
-        <section className="px-5 sm:px-6 py-5">
-          <label className="block">
-            <span className={TITULO}>Notas para quien la da</span>
-            <textarea
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              rows={4}
-              placeholder="Cómo dar la clase, qué repasar, a quién preguntar, qué hacer si sobra tiempo…"
-              className={`${CAMPO} mt-2 resize-y`}
-            />
-          </label>
-
-          {gemela ? (
-            <label className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#E4EBF8] bg-[#F5F8FE] px-3.5 py-3 cursor-pointer">
-              <input type="checkbox" checked={tambien} onChange={(e) => setTambien(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#0b2da0]" />
-              <span className="text-[13.5px] leading-snug text-[#2B3150]">
-                <span className="font-semibold text-[#0B1033]">
-                  Guardar también en {gemela.curso} ({diaLegible(gemela.fecha)})
-                </span>
-                <br />
-                {gemela.mismo_tema === false ? (
-                  <>
-                    Ojo: allí el tema es «{gemela.tema || 'sin tema'}». Márcalo solo si es la misma clase.{' '}
-                  </>
-                ) : null}
-                El tema, la tarea, las notas y el documento (lo que aquí está vacío no se borra allí). Cada grupo conserva su día, quién la da, su grabación y sus entregas.
-              </span>
-            </label>
-          ) : null}
-
-          {admin ? (
-            <button onClick={quitarClase} disabled={!!ocupado} className="mt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#B42323] hover:underline">
-              <Trash2 size={14} /> Quitar esta clase
-            </button>
-          ) : null}
-        </section>
-
-        <footer className="sticky bottom-0 bg-white border-t border-[#EEF1F7] px-5 sm:px-6 py-3 flex items-center justify-end gap-2">
+        <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-[#EEF1F6] bg-white px-5 py-3 sm:px-7">
           {semana.fecha > hoy ? <span className="mr-auto text-[12.5px] text-[#6B7393] first-letter:uppercase">{cuando(semana.fecha, hoy)}</span> : null}
-          <button onClick={cerrar} className="h-10 px-4 rounded-lg border border-[#DDE3EF] text-[14px] font-semibold text-[#3B4262]">
+          {cambiado ? <span className="mr-auto text-[12.5px] text-[#8A6A2A] sm:mr-2">Cambios sin guardar</span> : null}
+          <button onClick={cerrar} className="h-10 rounded-lg border border-[#E2E7F0] px-4 text-[14px] font-semibold text-[#3B4262] transition-colors hover:bg-[#F7F9FD]">
             Cerrar
           </button>
-          <button onClick={guardar} disabled={!!ocupado || !cambiado} className="h-10 px-4 rounded-lg bg-[#0b2da0] text-white text-[14px] font-semibold disabled:opacity-50">
+          <button
+            onClick={guardar}
+            disabled={!!ocupado || !cambiado}
+            className="h-10 rounded-lg bg-[#0b2da0] px-5 text-[14px] font-semibold text-white transition-colors hover:bg-[#0a2690] disabled:opacity-40"
+          >
             {ocupado === 'guardar' ? 'Guardando…' : 'Guardar'}
           </button>
         </footer>

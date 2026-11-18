@@ -103,7 +103,7 @@ export interface Semana {
   /** La grabación de la sala publicada en esta semana (10/11/2026). Al alumno, solo con la clase ya dada. */
   grabacion_sala?: GrabacionSala | null
   /** La presentación con lo que el profe escribió en clase (10/11/2026, la pizarra). */
-  notas_clase?: { at: string; paginas: number } | null
+  notas_clase?: { at: string; paginas: number; semana_id?: number } | null
 }
 
 export interface ArchivoProfe {
@@ -400,6 +400,13 @@ export interface Gemela {
   curso: string
   /** Si las dos semanas tienen el mismo tema (si no, la casilla nace quitada). */
   mismo_tema?: boolean
+  /** Para cambiar también allí la presentación de los alumnos (18/11/2026). */
+  chapter_id?: number | null
+  presentaciones?: { activity_uuid: string; nombre: string }[]
+  /** Su clase ya pasó (o es hoy): sus alumnos ya están con la versión de su clase. */
+  pasada?: boolean
+  hoy?: boolean
+  con_notas?: boolean
 }
 
 export const getGemela = (id: number, token: string) => pedir<{ gemela: Gemela | null }>(`${base()}/semana/${id}/gemela`, token)

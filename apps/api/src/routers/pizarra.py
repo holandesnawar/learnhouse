@@ -162,10 +162,20 @@ async def api_quitar_publicada(
 
 
 async def _puede_verla(request: Request, s, current_user, db_session: AsyncSession) -> bool:
-    """El equipo siempre; el alumno que ve la clase, desde el día de la clase."""
+    """El equipo siempre; el alumno que ve la clase, desde el día de la clase.
+
+    Y el alumno que esa semana va a la clase del otro grupo (cambio_semana.py,
+    18/11/2026): ve la versión de la clase a la que fue, no la de su grupo."""
     from src.services.panel.tandas import hoy_nl
 
-    curso = await _curso(request, s.course_uuid, current_user, db_session)
+    try:
+        curso = await _curso(request, s.course_uuid, current_user, db_session)
+    except HTTPException:
+        from src.services.tareas.cambio_semana import invitados
+
+        if int(getattr(current_user, "id", 0) or 0) in await invitados(s, db_session):
+            return T.abierta(s.fecha, hoy_nl())
+        raise
     equipo, _admin = await _roles(current_user, curso.org_id, db_session)
     return equipo or T.abierta(s.fecha, hoy_nl())
 

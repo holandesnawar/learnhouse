@@ -36,7 +36,7 @@ import {
   Video,
 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import { pasosDeSemana, FilaPaso } from '@components/Pages/Clases/pasosSemana'
+import { pasosDeSemana, FilaPaso, VisorPresentacionClase } from '@components/Pages/Clases/pasosSemana'
 import { Vienes } from '@components/Pages/Clases/Vienes'
 import { getUriWithOrg } from '@services/config/config'
 import toast from 'react-hot-toast'
@@ -133,6 +133,27 @@ const Hecho = ({ texto = 'Hecho' }: { texto?: string }) => (
   </span>
 )
 
+/** La presentación de la clase (la que guardó el profe desde la pizarra): se abre aquí mismo. */
+function FilaVersionClase({ semanaId, detalle }: { semanaId: number; detalle: string }) {
+  const [abierta, setAbierta] = useState(false)
+  return (
+    <>
+      <button type="button" onClick={() => setAbierta(true)} className="block w-full text-left transition-colors hover:bg-[#F8FAFF]">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Icono tipo="presentacion" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[14.5px] font-semibold text-gray-900">Presentación de la clase</p>
+            <p className="text-[12.5px] leading-snug text-[#6B7280]">{detalle}</p>
+          </div>
+          <div className="shrink-0 text-[12.5px] font-bold text-[#0b2da0]">Ábrela</div>
+          <ChevronRight size={15} className="shrink-0 text-[#B9C6DC]" />
+        </div>
+      </button>
+      {abierta ? <VisorPresentacionClase semanaId={semanaId} onClose={() => setAbierta(false)} /> : null}
+    </>
+  )
+}
+
 /** Lo que se abre el día de la clase, dicho en una línea: «Ejercicios y tarea». */
 function queSeAbre(semana: Semana): string {
   const hay = [(semana.ocultas || 0) > 0 ? 'ejercicios' : '', semana.tiene_tarea ? 'tarea' : ''].filter(Boolean)
@@ -167,16 +188,28 @@ function ContenidoSemana({
   const estadoTarea = semana.tarea?.estado || 'sin-tarea'
   const cerrada = semana.abierta === false
 
-  const filasPresentacion = presentaciones.map((c) => (
+  // Una sola presentación por grupo (18/11/2026): cuando el profe de esta
+  // clase la guarda desde la pizarra, el alumno ve esa versión EN LUGAR de la
+  // de antes. El equipo ve las dos.
+  const notas = semana.notas_clase
+  const filasAntes = presentaciones.map((c) => (
     <Fila
       key={c.activity_uuid}
       tipo="presentacion"
       titulo={c.nombre || 'Presentación'}
-      detalle="Para mirar antes de la clase"
+      detalle={admin && notas ? 'La de antes de la clase (los alumnos ya ven la de abajo)' : 'Para mirar antes de la clase'}
       estado={c.hecha ? <Hecho texto="Vista" /> : <span className="text-[#0b2da0]">Ábrela</span>}
       href={rutaClase(c)}
     />
   ))
+  const filaClase = notas ? (
+    <FilaVersionClase
+      key="version-clase"
+      semanaId={notas.semana_id || semana.id}
+      detalle={`${admin ? 'La que ven los alumnos de este grupo' : 'La de tu clase'}, con lo que se escribió en ella${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`}
+    />
+  ) : null
+  const filasPresentacion = notas ? (admin ? [...filasAntes, filaClase] : [filaClase]) : filasAntes
 
   if (cerrada && !admin) {
     const seAbre = queSeAbre(semana)
@@ -478,7 +511,7 @@ export default function SemanasClase({
     // También al equipo (10/11/2026: «no lo veo»): ve lo mismo que el alumno.
     if (!semana.fecha || semana.fecha > hoy) return null
     const margen = enLista ? 'px-4' : 'px-5'
-    const encontradas = deLaMismaSemana(hermanas?.clases, semana.fecha)
+    const encontradas = deLaMismaSemana(hermanas?.clases, semana.fecha, semana.tema)
     if (!encontradas.length) {
       // Al equipo se le dice POR QUÉ no sale (12/11/2026: «sigo sin verlo»).
       if (!equipo) return null
@@ -489,7 +522,7 @@ export default function SemanasClase({
           </p>
         )
       }
-      const falta = pendienteDeLaSemana(hermanas?.clases, semana.fecha)
+      const falta = pendienteDeLaSemana(hermanas?.clases, semana.fecha, semana.tema)
       if (!falta) return null
       return (
         <div className={`border-t border-[#EEF1F7] ${margen} py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4`}>
@@ -613,7 +646,7 @@ export default function SemanasClase({
           <div className="min-w-0 flex-1">
             <p className="text-[14.5px] font-semibold text-gray-900 truncate">{tituloDeClase(s.tema, s.fecha)}</p>
             <p className="text-[12.5px] text-[#6B7280] truncate">
-              {[queTuvo(s) || 'Clase', deLaMismaSemana(hermanas?.clases, s.fecha).length ? 'Grabación del otro grupo' : ''].filter(Boolean).join(' · ')}
+              {[queTuvo(s) || 'Clase', deLaMismaSemana(hermanas?.clases, s.fecha, s.tema).length ? 'Grabación del otro grupo' : ''].filter(Boolean).join(' · ')}
             </p>
           </div>
           {/* Un solo estado por línea. Lo de antes de que entrara no cuenta
@@ -745,6 +778,10 @@ export default function SemanasClase({
       {editando ? (
         <EditarSemana
           semana={editando}
+          courseUuid={courseUuid}
+          hoy={hoy}
+          ruta={rutaOrg}
+          onCambio={recargar}
           puedeQuitar={admin}
           onClose={() => setEditando(null)}
           onGuardada={() => {

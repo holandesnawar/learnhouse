@@ -366,7 +366,33 @@ async def api_gemela(
         return {"gemela": None}
     # Con temas distintos, la pantalla deja la casilla quitada (16/11/2026).
     mismo = T.mismo_tema(s.tema, g.tema) or (T.normal(s.tema) == T.normal(g.tema))
-    return {"gemela": {"id": g.id, "tema": g.tema, "fecha": g.fecha, "curso": curso, "mismo_tema": mismo}}
+    # Para cambiar la presentación de los alumnos en los dos grupos a la vez
+    # (18/11/2026): su capítulo, sus presentaciones y si su clase ya pasó
+    # (entonces sus alumnos ya están con la versión de su clase).
+    from sqlmodel import select
+
+    from src.db.courses.chapters import Chapter
+    from src.services.panel.tandas import hoy_nl
+
+    capitulo = None
+    if g.chapter_uuid:
+        capitulo = (await db_session.execute(select(Chapter).where(Chapter.chapter_uuid == g.chapter_uuid))).scalars().first()
+    clases = (await T._clases([g.chapter_uuid], db_session)).get(g.chapter_uuid, []) if g.chapter_uuid else []
+    hoy = hoy_nl()
+    return {
+        "gemela": {
+            "id": g.id,
+            "tema": g.tema,
+            "fecha": g.fecha,
+            "curso": curso,
+            "mismo_tema": mismo,
+            "chapter_id": capitulo.id if capitulo is not None else None,
+            "presentaciones": [{"activity_uuid": c["activity_uuid"], "nombre": c["nombre"]} for c in clases if c["tipo"] == "presentacion"],
+            "pasada": bool(g.fecha) and g.fecha < hoy,
+            "hoy": bool(g.fecha) and g.fecha == hoy,
+            "con_notas": T._notas_clase(g.material_profe) is not None,
+        }
+    }
 
 
 @router.post("/semana/{semana_id}/gemela/igualar", summary="Copia a la semana del otro grupo el tema, la tarea, las notas y la presentación completa (equipo).")

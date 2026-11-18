@@ -747,10 +747,23 @@ async def semanas_para_alumno(
         s["voy"] = (confs.get(s["id"]) or {}).get(str(user_id), {}).get("va")
         if not equipo and por_id.get(s["id"]) is not None and getattr(por_id[s["id"]], "cambios", ""):
             s["cambio"] = await cambio_de(por_id[s["id"]], user_id, db_session)
+            # Va a la clase del otro grupo: la versión de la clase que ve es
+            # la de esa clase (18/11/2026), no la de su grupo.
+            if s.get("cambio"):
+                destino = await db_session.get(TareaSemana, s["cambio"]["semana_id"])
+                notas = _notas_clase(getattr(destino, "material_profe", "")) if destino is not None else None
+                # Antes de la clase a la que va, ninguna: ni la de su grupo.
+                s["notas_clase"] = {**notas, "semana_id": destino.id} if notas and abierta(destino.fecha, hoy) else None
+                s["_notas_cambio"] = s["notas_clase"]
         if equipo:
             s["confirmaciones"] = resumen_confirmaciones(confs.get(s["id"]) or {}, nombres_conf)
     if not equipo:
         semanas = [s if s["abierta"] else solo_antes_de_la_clase(s) for s in semanas]
+        for s in semanas:
+            # La clase del otro grupo, a la que fue, ya pasó aunque la suya no.
+            n = s.pop("_notas_cambio", None)
+            if n:
+                s["notas_clase"] = n
     else:
         # Al equipo, si ya se pasó la lista y cuántos vinieron (07/11/2026).
         listas = {f.id: leer_asistencia(getattr(f, "asistencia", "")) for f in filas}

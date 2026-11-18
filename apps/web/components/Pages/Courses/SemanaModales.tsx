@@ -12,6 +12,7 @@
  * editor, como siempre.
  */
 
+import PresentacionAlumnos from './PresentacionAlumnos'
 import React, { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
@@ -40,25 +41,33 @@ const PARTES: { id: string; nombre: string }[] = [
 const ENUNCIADO_EJEMPLO = '1. Escribe 5 frases sobre…\n2. Grábate 30 segundos contando…'
 
 const CAMPO =
-  'w-full rounded-lg border border-[#DDE6F5] px-3 py-2 text-[14px] text-gray-900 outline-none focus:border-[#0b2da0] bg-white'
-const ETIQUETA = 'block text-[12px] font-semibold text-[#5A6480] mb-1'
+  'w-full rounded-lg border border-[#E2E7F0] bg-white px-3 py-2 text-[14px] text-[#0B1033] outline-none transition-colors placeholder:text-[#9AA1B9] hover:border-[#C9D3E6] focus:border-[#0b2da0] focus:ring-[3px] focus:ring-[#0b2da0]/10'
+const ETIQUETA = 'block text-[13px] font-medium text-[#3B4262] mb-1.5'
 
 function Ventana({ titulo, onClose, children }: { titulo: string; onClose: () => void; children: React.ReactNode }) {
+  React.useEffect(() => {
+    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', tecla)
+    return () => window.removeEventListener('keydown', tecla)
+  }, [onClose])
   return (
-    <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-[#0B1033]/35 p-0 backdrop-blur-[1px] sm:items-center sm:p-4" onClick={onClose}>
       <div
-        className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white p-5 sm:p-6"
+        className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white sm:max-w-[600px] sm:rounded-2xl"
+        style={{ boxShadow: '0 1px 2px rgba(16,24,64,0.06), 0 24px 64px -24px rgba(16,24,64,0.35)' }}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[17px] font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
+        <div className="flex shrink-0 items-center justify-between border-b border-[#EEF1F6] px-5 py-4 sm:px-6">
+          <h3 className="text-[17px] font-semibold text-[#0B1033]" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>
             {titulo}
           </h3>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-700" aria-label="Cerrar">
+          <button onClick={onClose} className="-mr-1.5 rounded-lg p-1.5 text-[#6B7393] transition-colors hover:bg-[#F2F4F8] hover:text-[#0B1033]" aria-label="Cerrar">
             <X size={18} />
           </button>
         </div>
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
       </div>
     </div>
   )
@@ -399,10 +408,19 @@ export function EditarSemana({
   onClose,
   onGuardada,
   puedeQuitar = true,
+  courseUuid,
+  hoy,
+  ruta,
+  onCambio,
 }: {
   semana: Semana
   onClose: () => void
   onGuardada: () => void
+  /** Para cambiar la presentación de los alumnos aquí mismo (18/11/2026). */
+  courseUuid?: string
+  hoy?: string
+  ruta?: (p: string) => string
+  onCambio?: () => void
   /** Quitar la semana borra la tarea y las entregas: solo administradores. */
   puedeQuitar?: boolean
 }) {
@@ -471,9 +489,25 @@ export function EditarSemana({
           </div>
         </div>
         <CasillasCampana presentacion={avisarP} grabacion={avisarG} onPresentacion={setAvisarP} onGrabacion={setAvisarG} />
-        <p className="text-[12px] text-[#6B7280]">
-          La presentación, la grabación y los ejercicios se cambian en el editor del curso («Añadir clases»).
-        </p>
+        {courseUuid && semana.chapter_id ? (
+          <div>
+            <label className={ETIQUETA}>Presentación para los alumnos de este grupo</label>
+            <PresentacionAlumnos
+              semanaId={semana.id}
+              chapterId={semana.chapter_id}
+              courseUuid={courseUuid}
+              fecha={semana.fecha}
+              hoy={hoy || ''}
+              presentaciones={(semana.clases || []).filter((c) => c.tipo === 'presentacion').map((c) => ({ activity_uuid: c.activity_uuid, nombre: c.nombre }))}
+              publicadaAt={semana.material_profe?.pizarra?.publicada_at || ''}
+              paginas={semana.material_profe?.pizarra?.paginas || 0}
+              token={token}
+              ruta={ruta}
+              onCambio={onCambio}
+            />
+          </div>
+        ) : null}
+        <p className="text-[12px] text-[#6B7280]">La grabación y los ejercicios se cambian en el editor del curso («Añadir clases»).</p>
         <div className="flex items-center justify-between gap-3">
           {puedeQuitar ? (
             <button onClick={quitar} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#B91C1C] hover:underline">
