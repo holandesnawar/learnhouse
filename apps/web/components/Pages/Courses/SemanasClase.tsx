@@ -559,7 +559,7 @@ export default function SemanasClase({
             </div>
           ) : pasos.length ? (
             <span className="shrink-0 mt-1 text-[13px] font-semibold text-[#8A91AD] tabular-nums">
-              {hechos} de {pasos.length}
+              {hechos} de {pasos.filter((p) => p.estado !== 'cerrado').length}
             </span>
           ) : null}
         </div>

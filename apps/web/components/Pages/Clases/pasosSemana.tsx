@@ -52,15 +52,19 @@ export function pasosDeSemana(semana: Semana, courseUuid: string, ruta: (p: stri
     out.push({ key: c.activity_uuid, titulo: NOMBRE.presentacion, detalle: 'Antes de la clase, para llegar con el tema visto', href: actividad(c), estado: c.hecha ? 'hecho' : 'pendiente' })
   // Si esa semana va a la clase del otro grupo (08/11/2026), su día y su sala.
   const fechaClase = semana.cambio?.fecha || semana.fecha
-  if (fechaClase) {
-    const pasada = fechaClase < hoy
+  const pasada = !!fechaClase && fechaClase < hoy
+  // Ya pasada, la clase no sale como paso (18/11/2026, usuario: "quita lo de
+  // «Clase en directo», mejor tipo grabación de la sala"): el check verde solo
+  // decía que la fecha había pasado, no que hubiera ido. En su sitio, la
+  // grabación (abajo) o, si aún no está, que se publicará.
+  if (fechaClase && !pasada) {
     out.push({
       key: 'clase',
-      titulo: fechaClase === hoy ? 'Ven a la clase, es hoy' : pasada ? 'Clase en directo' : 'Ven a la clase en directo',
+      titulo: fechaClase === hoy ? 'Ven a la clase, es hoy' : 'Ven a la clase en directo',
       detalle:
         `${DIAS[dia(fechaClase).getDay()]} ${diaCorto(fechaClase).replace(/^\S+\s/, '')}` + (semana.cambio ? ' · con el otro grupo' : ''),
       href: semana.cambio && fechaClase === hoy ? ruta(`/sala/${sinPrefijo(semana.cambio.course_uuid)}`) : ruta(`/course/${sinPrefijo(courseUuid)}`),
-      estado: pasada ? 'hecho' : 'pendiente',
+      estado: 'pendiente',
     })
   }
   for (const c of grab) out.push({ key: c.activity_uuid, titulo: NOMBRE.grabacion, detalle: 'Por si no pudiste venir o quieres repasar', href: actividad(c), estado: c.hecha ? 'hecho' : 'pendiente' })
@@ -74,6 +78,13 @@ export function pasosDeSemana(semana: Semana, courseUuid: string, ruta: (p: stri
       detalle: `${sala.titulo || 'Por si no pudiste venir o quieres repasar'}${sala.segundos ? ` · ${duracionCorta(sala.segundos)}` : ''}`,
       estado: sala.vista ? 'hecho' : 'pendiente',
       sala: { courseUuid, semana: { id: semana.id, tema: semana.tema, fecha: semana.fecha }, grabacion: sala },
+    })
+  if (pasada && !grab.length && !sala)
+    out.push({
+      key: 'grabacion-pendiente',
+      titulo: 'La grabación de la clase',
+      detalle: 'Aún no está publicada: te sale aquí en cuanto lo esté',
+      estado: 'cerrado',
     })
   // Lo que el profe escribió encima de la presentación en clase (10/11/2026).
   if (semana.notas_clase)

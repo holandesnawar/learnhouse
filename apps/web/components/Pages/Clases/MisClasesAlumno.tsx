@@ -189,7 +189,7 @@ function TarjetaSemana({
           <div className="flex items-center justify-between px-5 pt-3 pb-1">
             <span className="text-[12px] font-semibold text-[#8A91AD]">Tu semana</span>
             <span className="text-[12px] text-[#8A91AD]">
-              {hechos} de {pasos.length}
+              {hechos} de {pasos.filter((p) => p.estado !== 'cerrado').length}
             </span>
           </div>
           <div className="pb-2">
