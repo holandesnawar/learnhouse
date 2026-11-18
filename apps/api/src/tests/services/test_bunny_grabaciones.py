@@ -93,7 +93,7 @@ async def test_se_copia_y_cuando_esta_lista_se_ve_desde_bunny(db, org, monkeypat
     monkeypatch.setattr(salas, "_daily", DailyFalso([_grabacion("rec-aaaa-1111", hoy, 8, 2000)]))
     falso = BunnyFalso()
     monkeypatch.setattr(bunny, "_bunny", falso)
-    respuestas = {"ok": True}
+    respuestas = {"ok": 206}
 
     async def responde(url):
         return respuestas["ok"]
@@ -126,10 +126,18 @@ async def test_se_copia_y_cuando_esta_lista_se_ve_desde_bunny(db, org, monkeypat
     # A la segunda vez que falla en el navegador, el de Daily.
     assert (await EG.enlace_video(CURSO, "rec-aaaa-1111", con_bunny=False)).startswith("https://video.daily.co/")
 
-    # Si el mp4 no responde (MP4 Fallback apagado), Daily, sin romper nada.
-    respuestas["ok"] = False
+    # Si el mp4 no existe (MP4 Fallback encendido después), Daily, sin romper
+    # nada, y se le pide a Bunny que la rehaga (una vez).
+    respuestas["ok"] = 404
     bunny._mp4_ok.clear()
+    bunny._rehaciendo.clear()
     assert (await EG.enlace_video(CURSO, "rec-aaaa-1111")).startswith("https://video.daily.co/")
+    assert await EG.enlace_video(CURSO, "rec-aaaa-1111")
+    assert len([x for x in falso.llamadas if x[1] == "/videos/guid-1/reencode"]) == 1
+    d = await bunny.detalle("rec-aaaa-1111")
+    assert "rehaga" in bunny.explicar(d)
+    respuestas["ok"] = 403
+    assert "403" in bunny.explicar(await bunny.detalle("rec-aaaa-1111"))
 
     # Una grabación de otra sala, ni con Bunny.
     with pytest.raises(EG.GrabacionError):
