@@ -21,6 +21,8 @@ import { getDiscussions, toggleReaction, type DiscussionWithAuthor } from '@serv
 import { EMOJI_ME_GUSTA, conMeGusta, meGusta, repartirFeed } from '@/lib/nawar/inicioFeed'
 import { hiloDe, sinTituloRepetido } from '@/lib/communities/delChat'
 import { getMiSemana, diaCorto, type MiSemana } from '@services/tareas/tareas'
+import { textosDeClase } from '@/lib/nawar/palabraClase'
+import { tipoDeClase } from '@/lib/nawar/visitaGuiada'
 import { getUserAvatarMediaDirectory } from '@services/media/media'
 import { splitChannelEmoji } from '@/lib/communities/channelEmoji'
 import { esCanalEsencial } from '@/lib/nawar/empiezaAqui'
@@ -111,10 +113,11 @@ function UnaSiguiente({ uuid, nombre, orgslug }: { uuid: string; nombre: string;
   const esHoy = semana.fecha === hoy
   const cuando = esHoy ? 'Hoy' : fechaLarga(semana.fecha)
   const detalle = [semana.tema, r.teacher ? `con ${r.teacher}` : ''].filter(Boolean).join(' · ')
+  const t = textosDeClase(nombre)
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 px-5 py-4">
       <Link href={getUriWithOrg(orgslug, `/course/${uuid.replace(/^course_/, '')}`)} className="group min-w-0 flex-1">
-        <p className="text-[12.5px] text-[#6B7393]">Tu próxima clase · {nombre}</p>
+        <p className="text-[12.5px] text-[#6B7393]">{t('Tu próxima clase')} · {nombre}</p>
         <p className="mt-0.5 text-[16.5px] font-semibold text-[#0B1033] first-letter:uppercase group-hover:text-[#0b2da0]">
           {cuando}
           {hora ? `, ${hora}` : ''}
@@ -130,7 +133,7 @@ function UnaSiguiente({ uuid, nombre, orgslug }: { uuid: string; nombre: string;
             href={getUriWithOrg(orgslug, `/sala/${String(semana.cambio?.course_uuid || uuid).replace(/^course_/, '')}`)}
             className="inline-flex items-center h-9 px-4 rounded-lg bg-[#0b2da0] text-white text-[13.5px] font-semibold hover:bg-[#0a2690]"
           >
-            Entrar a la clase
+            {t('Entrar a la clase')}
           </Link>
         ) : (
           <span className="text-[13px] text-[#6B7393] hidden md:inline">¿Vienes?</span>
@@ -168,9 +171,14 @@ export function ProximaClase({ orgslug }: { orgslug: string }) {
     staleTime: 30_000,
     retry: 1,
   })
-  if (!data || !data.clases.length) return null
-  const config = org?.config?.config
   const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam' }).format(new Date())
+  // La Masterclass y el Spreek Club (18/11/2026): antes de la sesión no hay
+  // nada que hacer («la presentación no la tienen que ver antes»): la fecha y
+  // «Entrar» ya salen arriba, en «Tu próxima clase». Su semana sale aquí cuando
+  // ya se ha dado (la grabación, la presentación de la sesión).
+  const clases = (data?.clases || []).filter((c) => tipoDeClase(c.curso || '') === 'semanal' || !(c.semana.fecha && c.semana.fecha >= hoy))
+  if (!data || !clases.length) return null
+  const config = org?.config?.config
   const ruta = (p: string) => getUriWithOrg(orgslug, p)
   return (
     <section className={TARJETA}>
@@ -182,13 +190,14 @@ export function ProximaClase({ orgslug }: { orgslug: string }) {
           Mis clases
         </Link>
       </div>
-      {data.clases.map((c) => {
+      {clases.map((c) => {
         const s = c.semana
+        const t = textosDeClase(c.curso)
         const a = ajustesDirecto(config, c.course_uuid)
         const r: any = a.banner || (c.course_uuid === CURSO_CLASE_SEMANAL_UUID ? config?.weekly_class_banner : null) || {}
         const porVenir = !!s.fecha && s.fecha >= hoy
         const linea = [s.fecha ? diaCorto(s.fecha) : '', String(r.schedule || '').trim(), r.teacher ? `con ${r.teacher}` : ''].filter(Boolean).join(' · ')
-        const pasos = pasosDeSemana(s, c.course_uuid, ruta, hoy)
+        const pasos = pasosDeSemana(s, c.course_uuid, ruta, hoy, c.curso)
         const quedan = pasos.filter((p) => p.estado === 'pendiente').length
         return (
           <div key={c.course_uuid} className="mt-3 border-t border-[#EEF1F7] first:border-t-0">
@@ -197,15 +206,15 @@ export function ProximaClase({ orgslug }: { orgslug: string }) {
                 // La fecha, el tema y «¿Vienes?» / «Entrar a la clase» ya salen
                 // justo encima, en «Tu próxima clase» (16/11/2026: salía dos
                 // veces seguida). Aquí, solo de qué clase son los pasos.
-                <p className="text-[12.5px] font-semibold text-[#0b2da0]">{c.curso || 'Tu clase'}</p>
+                <p className="text-[12.5px] font-semibold text-[#0b2da0]">{c.curso || t('Tu clase')}</p>
               ) : (
                 <>
                   <p className="text-[12.5px] font-semibold text-[#0b2da0] first-letter:uppercase">
-                    Clase de esta semana
+                    {t('Clase de esta semana')}
                     {linea ? <span className="text-[#8A91AD] font-medium"> · {linea}</span> : null}
                   </p>
                   <h3 className="mt-1 text-[19px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
-                    {s.tema || 'Clase de la semana'}
+                    {s.tema || t('Clase de la semana')}
                   </h3>
                 </>
               )}

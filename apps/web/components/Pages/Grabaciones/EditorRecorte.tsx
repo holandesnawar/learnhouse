@@ -62,7 +62,15 @@ import {
 import { diaCorto } from '@services/tareas/tareas'
 import { diagnosticoVideo, publicarGrabacion, quitarGrabacion, urlVideoSala, type DiaGrabado, type DiagnosticoVideo, type SemanaDelEstudio } from '@services/grabaciones/grabaciones'
 
-const PX_POR_SEGUNDO_MAX = 14
+const PX_POR_SEGUNDO_MAX = 100
+/** Lo que se puede ver de un golpe en la línea (18/11/2026). */
+const VENTANAS: { texto: string; seg: number | null }[] = [
+  { texto: 'Todo', seg: null },
+  { texto: '30 min', seg: 1800 },
+  { texto: '5 min', seg: 300 },
+  { texto: '1 min', seg: 60 },
+  { texto: '10 s', seg: 10 },
+]
 const REINTENTOS = 3
 /** Las partes más cortas que esto nacen fuera si no hay nada publicado. */
 const PARTE_MINIMA = 60
@@ -139,6 +147,8 @@ function EditorRecorteDentro({
   const [marcaB, setMarcaB] = useState<number | null>(null)
   const [zoom, setZoom] = useState(1)
   const [ancho, setAncho] = useState(800)
+  // Dónde está la línea desplazada (para la miniatura de arriba y la regla).
+  const [desde, setDesde] = useState(0)
   const [semanaId, setSemanaId] = useState<number | null>(dia.publicada?.semana_id ?? dia.semana?.id ?? null)
   const [titulo, setTitulo] = useState(
     () => semanas.find((x) => x.id === dia.publicada?.semana_id)?.grabacion_sala?.titulo || ''
@@ -176,23 +186,87 @@ function EditorRecorteDentro({
     return () => ro?.disconnect()
   }, [])
 
-  // El cabezal siempre a la vista: al reproducir y al cambiar el zoom.
+  // El cabezal a la vista cuando se MUEVE (al reproducir o saltar). Al
+  // cambiar el zoom no: ahí manda el punto donde se acercó (el ratón).
+  const tVisto = useRef(t)
   useEffect(() => {
     const el = carril.current
-    if (!el || arrastrando.current || anchoPista <= ancho) return
+    const movido = tVisto.current !== t
+    tVisto.current = t
+    if (!movido || !el || arrastrando.current || anchoPista <= ancho) return
     const x = t * px
     if (x < el.scrollLeft + 24 || x > el.scrollLeft + ancho - 24) el.scrollLeft = Math.max(0, x - ancho * 0.25)
-  }, [t, px, ancho, anchoPista])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t])
 
-  function ponerZoom(z: number) {
+  /**
+   * Acercar o alejar la línea (18/11/2026, usuario: "el Spreek uur dura 3
+   * horas… como Final Cut, hacer zoom en la línea de vídeo para coger el
+   * segundo"). Con `ancla` (un punto de la pantalla: el ratón) ese segundo se
+   * queda debajo del ratón; sin ancla, el cabezal rojo se queda en el centro.
+   */
+  // El zoom de verdad, sin esperar a pintar: con la rueda llegan varios
+  // avisos seguidos y cada uno tiene que partir del anterior.
+  const zoomRef = useRef(1)
+  const zoomPendiente = useRef<{ seg: number; dx: number | null } | null>(null)
+  function ponerZoom(z: number, ancla?: number) {
+    const el = carril.current
+    const viejo = zoomRef.current
     const nuevo = Math.min(zoomMax, Math.max(1, z))
+    const caja = el?.getBoundingClientRect()
+    const dx = ancla !== undefined && caja ? Math.max(0, Math.min(ancho, ancla - caja.left)) : null
+    const pxViejo = total > 0 ? Math.max(ancho, ancho * viejo) / total : 0
+    const p = zoomPendiente.current
+    // El segundo que se queda quieto: el que hay bajo el ratón (o el cabezal).
+    const seg = p && p.dx === dx ? p.seg : dx !== null && el && pxViejo > 0 ? (el.scrollLeft + dx) / pxViejo : t
+    zoomRef.current = nuevo
+    zoomPendiente.current = { seg, dx }
     setZoom(nuevo)
-    // Con el zoom nuevo, el cabezal al centro.
-    requestAnimationFrame(() => {
-      const el = carril.current
-      if (el && total > 0) el.scrollLeft = Math.max(0, (t / total) * Math.max(ancho, ancho * nuevo) - ancho / 2)
-    })
   }
+  // Con el zoom nuevo ya pintado, la línea se coloca para que ese segundo siga
+  // en su sitio.
+  React.useLayoutEffect(() => {
+    const p = zoomPendiente.current
+    const el = carril.current
+    zoomPendiente.current = null
+    if (!p || !el || total <= 0) return
+    el.scrollLeft = Math.max(0, p.seg * (Math.max(ancho, ancho * zoom) / total) - (p.dx ?? ancho / 2))
+    setDesde(el.scrollLeft)
+  }, [zoom, ancho, total])
+  /** La miniatura del día: llevar lo que se ve abajo al punto tocado. */
+  function irAlMapa(e: React.PointerEvent<HTMLDivElement>) {
+    const caja = e.currentTarget.getBoundingClientRect()
+    const el = carril.current
+    if (!el || !caja.width) return
+    const f = Math.max(0, Math.min(1, (e.clientX - caja.left) / caja.width))
+    el.scrollLeft = Math.max(0, f * anchoPista - ancho / 2)
+  }
+  /** Que en la línea se vean `seg` segundos alrededor del cabezal («10 min», «1 min»…). */
+  function verVentana(seg: number | null) {
+    ponerZoom(seg && total > seg ? total / seg : 1)
+  }
+  // Ctrl + rueda (o pellizcar el trackpad) acerca donde está el ratón; con
+  // zoom, la rueda normal mueve la línea a los lados. Va con un oyente nativo
+  // porque React no deja parar el desplazamiento de la página desde onWheel.
+  const zoomVivo = useRef({ zoom, ponerZoom })
+  zoomVivo.current = { zoom, ponerZoom }
+  useEffect(() => {
+    const el = carril.current
+    if (!el) return
+    const rueda = (e: WheelEvent) => {
+      const { ponerZoom: poner } = zoomVivo.current
+      const z = zoomRef.current
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        poner(z * Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025)), e.clientX)
+      } else if (z > 1 && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault()
+        el.scrollLeft += e.deltaY * (e.deltaMode === 1 ? 30 : 1)
+      }
+    }
+    el.addEventListener('wheel', rueda, { passive: false })
+    return () => el.removeEventListener('wheel', rueda)
+  }, [])
 
   // ── Moverse por la línea (cambia de parte si hace falta) ─────────────────
   const irA = useCallback(
@@ -442,13 +516,18 @@ function EditorRecorteDentro({
     irA(segundoEn(e.clientX))
   }
 
+  // Solo las marcas de lo que se ve (y un poco a cada lado): con mucho zoom,
+  // una clase de 3 h serían miles.
   const marcas = useMemo(() => {
     if (!total || !px) return []
     const paso = pasoDeRegla(px)
+    const a = Math.max(0, Math.floor((desde - ancho) / px / paso) * paso)
+    const b = Math.min(total, (desde + 2 * ancho) / px)
     const out: number[] = []
-    for (let s = 0; s <= total && out.length < 1500; s += paso) out.push(s)
+    for (let s = a; s <= b && out.length < 600; s += paso) out.push(s)
     return out
-  }, [total, px])
+  }, [total, px, desde, ancho])
+  const visto = px > 0 ? Math.min(total, ancho / px) : total
 
   // Las etiquetas de las partes: solo donde caben dentro de su parte y sin
   // pisarse (una parte de 30 s es una raya sin etiqueta; la dicen los botones
@@ -774,8 +853,87 @@ function EditorRecorteDentro({
               </button>
             </div>
 
+            {/* Encima de la línea: cuánto se ve y el zoom, como en un editor de vídeo */}
+            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <p className="text-[12.5px] text-[#6B7393]">
+                Se ve <b className="font-semibold text-[#0B1033] tabular-nums">{duracionCorta(visto)}</b> de {duracionCorta(total)}
+              </p>
+              <div className="inline-flex rounded-lg border border-[#E2E7F0] bg-white p-0.5" role="group" aria-label="Cuánto se ve en la línea">
+                {VENTANAS.filter((v) => v.seg === null || v.seg < total * 0.8).map((v) => {
+                  const activo = v.seg === null ? zoom <= 1.01 : Math.abs(visto - v.seg) / v.seg < 0.15
+                  return (
+                    <button
+                      key={v.texto}
+                      onClick={() => verVentana(v.seg)}
+                      className={`h-7 rounded-md px-2.5 text-[12.5px] font-semibold transition-colors ${
+                        activo ? 'bg-[#0b2da0] text-white' : 'text-[#3B4262] hover:bg-[#F2F5FB]'
+                      }`}
+                      title={v.seg === null ? 'Ver el día entero' : `Acercar hasta ver ${v.texto} alrededor de la línea roja`}
+                    >
+                      {v.texto}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="ml-auto flex items-center gap-1.5">
+                <button onClick={() => ponerZoom(zoom / 1.6)} disabled={zoom <= 1} className={`${BOTON} h-8 w-8 px-0`} aria-label="Alejar" title="Alejar (−)">
+                  <Minus size={16} strokeWidth={2.25} />
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={zoomMax > 1 ? Math.round((Math.log(zoom) / Math.log(zoomMax)) * 100) : 0}
+                  onChange={(e) => ponerZoom(Math.pow(zoomMax, Number(e.target.value) / 100))}
+                  disabled={zoomMax <= 1}
+                  aria-label="Zoom de la línea de tiempo"
+                  className="h-1.5 w-24 sm:w-36 cursor-pointer accent-[#0b2da0]"
+                />
+                <button onClick={() => ponerZoom(zoom * 1.6)} disabled={zoom >= zoomMax} className={`${BOTON} h-8 w-8 px-0`} aria-label="Acercar" title="Acercar (+)">
+                  <Plus size={16} strokeWidth={2.25} />
+                </button>
+              </div>
+            </div>
+
+            {/* El día entero en pequeño: el recuadro es lo que se ve abajo.
+                Se arrastra para ir a otra hora sin perder el zoom. */}
+            {zoom > 1.01 ? (
+              <div
+                className="relative mt-2 h-7 cursor-grab select-none overflow-hidden rounded-lg border border-[#E2E7F0] bg-[#EEF2FA] active:cursor-grabbing"
+                style={{ touchAction: 'none' }}
+                onPointerDown={(e) => {
+                  e.currentTarget.setPointerCapture(e.pointerId)
+                  irAlMapa(e)
+                }}
+                onPointerMove={(e) => {
+                  if (e.currentTarget.hasPointerCapture(e.pointerId)) irAlMapa(e)
+                }}
+                title="El día entero: arrastra el recuadro para ir a otra hora"
+              >
+                <div className="absolute inset-y-1 inset-x-0 mx-0 rounded" style={{ background: 'linear-gradient(180deg, #5C7BDB 0%, #3E5FC8 100%)' }} />
+                {cortes.map(([a, b]) => (
+                  <div key={`m${a}-${b}`} className="absolute inset-y-1 bg-[#EEF1F7]" style={{ left: `${(a / total) * 100}%`, width: `${((b - a) / total) * 100}%`, ...RAYAS }} />
+                ))}
+                {varias
+                  ? listas.map((p, i) =>
+                      i ? <div key={`mp${p.id}`} className="absolute inset-y-0 w-px bg-[#0B1033]/60" style={{ left: `${(ini[i] / total) * 100}%` }} /> : null
+                    )
+                  : null}
+                <div className="absolute inset-y-0 w-0.5 bg-[#E5484D]" style={{ left: `${(t / total) * 100}%` }} />
+                <div
+                  className="absolute inset-y-0 rounded-md border-2 border-[#0B1033] bg-white/25 shadow-[0_0_0_9999px_rgba(244,247,253,0.55)]"
+                  style={{ left: `${(desde / anchoPista) * 100}%`, width: `${Math.max(1.2, (ancho / anchoPista) * 100)}%` }}
+                />
+              </div>
+            ) : null}
+
             {/* Línea de tiempo */}
-            <div ref={carril} className="mt-4 overflow-x-auto overscroll-x-contain rounded-xl border border-[#E6EAF2] bg-[#FAFBFD]" style={{ touchAction: 'pan-x' }}>
+            <div
+              ref={carril}
+              onScroll={(e) => setDesde(e.currentTarget.scrollLeft)}
+              className="mt-2 overflow-x-auto overscroll-x-contain rounded-xl border border-[#E6EAF2] bg-[#FAFBFD]"
+              style={{ touchAction: 'pan-x' }}
+            >
               <div
                 ref={pista}
                 className="relative h-[112px] cursor-pointer select-none"
@@ -863,27 +1021,9 @@ function EditorRecorteDentro({
               </span>
             </div>
 
-            {/* Zoom */}
-            <div className="mt-3 flex items-center gap-2">
-              <span className="text-[12px] text-[#6B7393]">Zoom</span>
-              <button onClick={() => ponerZoom(zoom / 1.6)} disabled={zoom <= 1} className={`${BOTON} h-8 w-8 px-0`} aria-label="Alejar" title="Alejar (−)">
-                <Minus size={14} />
-              </button>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={zoomMax > 1 ? Math.round((Math.log(zoom) / Math.log(zoomMax)) * 100) : 0}
-                onChange={(e) => ponerZoom(Math.pow(zoomMax, Number(e.target.value) / 100))}
-                disabled={zoomMax <= 1}
-                aria-label="Zoom de la línea de tiempo"
-                className="h-1.5 w-28 sm:w-44 cursor-pointer accent-[#0b2da0]"
-              />
-              <button onClick={() => ponerZoom(zoom * 1.6)} disabled={zoom >= zoomMax} className={`${BOTON} h-8 w-8 px-0`} aria-label="Acercar" title="Acercar (+)">
-                <Plus size={14} />
-              </button>
-              <span className="hidden sm:inline text-[11.5px] text-[#8A91AD]">Toca o arrastra en la línea para moverte</span>
-            </div>
+            <p className="mt-2 hidden text-[11.5px] text-[#8A91AD] sm:block">
+              Para afinar al segundo: acerca con <b className="font-semibold">Ctrl + rueda</b> o pellizcando el trackpad (acerca donde está el ratón), o con «1 min» y «10 s». Con zoom, la rueda mueve la línea.
+            </p>
 
             {/* Quitar un trozo de en medio */}
             <div className="mt-5 rounded-xl border border-[#E6EAF2] bg-[#FAFBFD] p-4">

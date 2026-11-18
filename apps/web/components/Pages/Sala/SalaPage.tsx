@@ -82,6 +82,8 @@ import { confirmar } from '@/lib/nawar/confirmar'
 import { useOrg } from '@components/Contexts/OrgContext'
 import EtiquetaCurso from '@components/Pages/Courses/EtiquetaCurso'
 import { ajustesDirecto } from '@/lib/nawar/cursos'
+import { textosDeClase } from '@/lib/nawar/palabraClase'
+import { useCursosEnDirecto } from '@/hooks/queries/useCursosEnDirecto'
 
 // La pizarra solo se carga si el profe la abre (pdf.js pesa).
 const PizarraClase = dynamic(() => import('@components/Pages/Pizarra/PizarraClase'), { ssr: false })
@@ -126,6 +128,10 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
   }
   const volver = `/course/${curso}`
   const org = useOrg() as any
+  // En el Spreek Club no se dice «clase» (18/11/2026): «sesión».
+  const { data: cursosDir } = useCursosEnDirecto()
+  const nombreCurso = entrada?.curso || cursosDir?.find((c) => c.uuid.replace(/^course_/, '') === curso)?.nombre || ''
+  const t = textosDeClase(nombreCurso)
   // Dentro de la llamada (entre «joined-meeting» y «left-meeting»).
   const [dentro, setDentro] = useState(false)
   const llamadaRef = useRef<any>(null)
@@ -382,8 +388,8 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
       e.stopPropagation()
       if (preguntando) return
       preguntando = true
-      confirmar('Vas a salir de la clase.\nSi sales, se corta tu llamada. ¿Quieres salir?', {
-        boton: 'Sí, salir de la clase',
+      confirmar(t('Vas a salir de la clase.\nSi sales, se corta tu llamada. ¿Quieres salir?'), {
+        boton: t('Sí, salir de la clase'),
         peligro: true,
       }).then((ok) => {
         preguntando = false
@@ -708,8 +714,8 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
           <button
             onClick={apagar}
             disabled={cambiando}
-            className={`${entrada?.anfitrion && !sinLibreria ? '' : 'ml-auto '}inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-[#D1D5DB] bg-white text-[13px] font-medium text-gray-800 hover:bg-[#F9FAFB] disabled:opacity-60`}
-            title="Al acabar la clase: que nadie más pueda entrar"
+            className={`${entrada?.anfitrion && !sinLibreria ? '' : 'ml-auto '}inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-[#DC2626] text-[13px] font-semibold text-white shadow-sm hover:bg-[#B91C1C] disabled:opacity-60`}
+            title={t('Al acabar la clase: que nadie más pueda entrar')}
           >
             <Power size={14} /> Apagar la sala
           </button>
@@ -783,7 +789,7 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
       ) : !entrada && esperando ? (
         <div className="max-w-xl rounded-2xl border border-[#DDE6F5] bg-white px-5 py-6">
           <p className="flex items-center gap-2 text-[16px] font-semibold text-[#0a1656]">
-            <Loader2 size={18} className="animate-spin text-[#0b2da0]" /> La clase aún no ha comenzado
+            <Loader2 size={18} className="animate-spin text-[#0b2da0]" /> {t('La clase aún no ha comenzado')}
           </p>
           <p className="mt-2 text-[14px] leading-relaxed text-[#171a2e]">
             Empieza en cuanto el profe abra la sala. No hace falta recargar: quédate en esta página y entrarás automáticamente.

@@ -412,10 +412,10 @@ const CourseClient = (props: any) => {
                         {/* Sin portada, la próxima clase va en su tarjeta: suelta
                             sobre el gris «quedaba separada» (08/11/2026). */}
                         {conVideo || foto ? (
-                          <WeeklyClassBanner courseUuid={uuidDeCurso(course)} grabadas={grabadas} />
+                          <WeeklyClassBanner courseUuid={uuidDeCurso(course)} grabadas={grabadas} nombreCurso={course.name} />
                         ) : (
                           <div className="rounded-2xl border border-[#E2E8F4] bg-white px-5 py-5 sm:px-7 sm:py-6">
-                            <WeeklyClassBanner courseUuid={uuidDeCurso(course)} grabadas={grabadas} />
+                            <WeeklyClassBanner courseUuid={uuidDeCurso(course)} grabadas={grabadas} nombreCurso={course.name} />
                           </div>
                         )}
                         <SalaEnDirecto courseUuid={uuidDeCurso(course)} soloAjustes />
@@ -753,6 +753,7 @@ const CourseClient = (props: any) => {
                   enDirecto={enDirecto}
                   conSala={ajustesDirecto(org?.config?.config, course.course_uuid).activo}
                   conGrabadas={grabadas}
+                  nombreCurso={course.name}
                 />
               </div>
             ) : (

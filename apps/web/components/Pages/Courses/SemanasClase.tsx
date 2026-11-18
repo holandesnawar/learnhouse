@@ -52,6 +52,7 @@ import {
 import { CasillasCampana, EditarSemana, NuevaSemana } from './SemanaModales'
 import { AvisarClase } from './AvisarClase'
 import { tipoDeClase } from '@/lib/nawar/visitaGuiada'
+import { textosDeClase } from '@/lib/nawar/palabraClase'
 import { claveDe, deLaMismaSemana, pendienteDeLaSemana, Reproductor, useMiraTambien, type Grabacion } from './MiraTambien'
 import { duracionCorta } from '@/lib/nawar/recorte'
 import { tituloDeClase } from '@/lib/nawar/salaProfes'
@@ -74,6 +75,10 @@ export function useSemanasClase(courseUuid: string, activo = true) {
 }
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
+
+/** «clase» o «sesión» (Spreek Club, 18/11/2026) en todo lo de esta página. */
+const Palabra = React.createContext<(t: string) => string>((t) => t)
+const usePalabra = () => React.useContext(Palabra)
 
 function Icono({ tipo }: { tipo: string }) {
   const props = { size: 22, strokeWidth: 1.6, className: 'text-[#0b2da0]' }
@@ -136,13 +141,14 @@ const Hecho = ({ texto = 'Hecho' }: { texto?: string }) => (
 /** La presentación de la clase (la que guardó el profe desde la pizarra): se abre aquí mismo. */
 function FilaVersionClase({ semanaId, detalle }: { semanaId: number; detalle: string }) {
   const [abierta, setAbierta] = useState(false)
+  const t = usePalabra()
   return (
     <>
       <button type="button" onClick={() => setAbierta(true)} className="block w-full text-left transition-colors hover:bg-[#F8FAFF]">
         <div className="flex items-center gap-3 px-4 py-3">
           <Icono tipo="presentacion" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[14.5px] font-semibold text-gray-900">Presentación de la clase</p>
+            <p className="truncate text-[14.5px] font-semibold text-gray-900">{t('Presentación de la clase')}</p>
             <p className="text-[12.5px] leading-snug text-[#6B7280]">{detalle}</p>
           </div>
           <div className="shrink-0 text-[12.5px] font-bold text-[#0b2da0]">Ábrela</div>
@@ -187,6 +193,7 @@ function ContenidoSemana({
   const siguienteEjercicio = ejercicios.find((c) => !c.hecha) || ejercicios[0]
   const estadoTarea = semana.tarea?.estado || 'sin-tarea'
   const cerrada = semana.abierta === false
+  const t = usePalabra()
 
   // Una sola presentación por grupo (18/11/2026): cuando el profe de esta
   // clase la guarda desde la pizarra, el alumno ve esa versión EN LUGAR de la
@@ -197,7 +204,7 @@ function ContenidoSemana({
       key={c.activity_uuid}
       tipo="presentacion"
       titulo={c.nombre || 'Presentación'}
-      detalle={admin && notas ? 'La de antes de la clase (los alumnos ya ven la de abajo)' : 'Para mirar antes de la clase'}
+      detalle={t(admin && notas ? 'La de antes de la clase (los alumnos ya ven la de abajo)' : 'Para mirar antes de la clase')}
       estado={c.hecha ? <Hecho texto="Vista" /> : <span className="text-[#0b2da0]">Ábrela</span>}
       href={rutaClase(c)}
     />
@@ -206,7 +213,7 @@ function ContenidoSemana({
     <FilaVersionClase
       key="version-clase"
       semanaId={notas.semana_id || semana.id}
-      detalle={`${admin ? 'La que ven los alumnos de este grupo' : 'La de tu clase'}, con lo que se escribió en ella${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`}
+      detalle={t(`${admin ? 'La que ven los alumnos de este grupo' : 'La de tu clase'}, con lo que se escribió en ella${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`)}
     />
   ) : null
   const filasPresentacion = notas ? (admin ? [...filasAntes, filaClase] : [filaClase]) : filasAntes
@@ -224,7 +231,7 @@ function ContenidoSemana({
           <Fila
             tipo={seAbre === 'Tarea' ? 'tarea' : 'ejercicios'}
             titulo={seAbre}
-            detalle={`Se ${seAbre === 'Tarea' ? 'abre' : 'abren'} el día de la clase`}
+            detalle={t(`Se ${seAbre === 'Tarea' ? 'abre' : 'abren'} el día de la clase`)}
             estado={<span className="text-[#9CA3AF] font-semibold">Después</span>}
           />
         ) : null}
@@ -246,7 +253,7 @@ function ContenidoSemana({
             key={c.activity_uuid}
             tipo="grabacion"
             titulo={c.suelta ? 'Grabación' : c.nombre || 'Grabación'}
-            detalle={c.profe ? `La clase grabada · con ${c.profe}` : 'La clase grabada'}
+            detalle={t(c.profe ? `La clase grabada · con ${c.profe}` : 'La clase grabada')}
             estado={c.hecha ? <Hecho texto="Vista" /> : null}
             href={rutaClase(c)}
           />
@@ -266,7 +273,7 @@ function ContenidoSemana({
         <Fila
           tipo="grabacion"
           titulo="Grabación"
-          detalle={semana.fecha >= hoy ? 'Sale después de la clase' : 'Aún no está subida'}
+          detalle={t(semana.fecha >= hoy ? 'Sale después de la clase' : 'Aún no está subida')}
           estado={<span className="text-[#9CA3AF] font-semibold">{semana.fecha >= hoy ? 'Después' : 'Pronto'}</span>}
         />
       )}
@@ -479,6 +486,7 @@ export default function SemanasClase({
   const equipo = Boolean(data.equipo || admin)
   // La Masterclass y el Spreekclub (10/11/2026): «Nueva sesión», sin ejercicios ni tarea.
   const sencilla = tipoDeClase(String(curso?.name || '')) !== 'semanal'
+  const t = textosDeClase(curso?.name)
   const archivo = conGrabadas ? data.archivo || [] : []
   if (!semanas.length && !archivo.length && !equipo) return null
 
@@ -569,7 +577,7 @@ export default function SemanasClase({
     })
   }
   const bloque = (titulo: string, semana: Semana) => {
-    const pasos = equipo ? [] : pasosDeSemana(semana, courseUuid, rutaOrg, hoy)
+    const pasos = equipo ? [] : pasosDeSemana(semana, courseUuid, rutaOrg, hoy, curso?.name)
     const hechos = pasos.filter((p) => p.estado === 'hecho').length
     return (
       <section key={`b-${semana.id}`} className="mt-6 rounded-2xl border border-[#E4E8F2] bg-white overflow-hidden">
@@ -580,7 +588,7 @@ export default function SemanasClase({
               <span className="text-[#8A91AD] font-medium"> · {diaCorto(semana.fecha)}</span>
             </p>
             <h2 className="mt-1.5 text-[21px] sm:text-[23px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
-              {semana.tema || 'Clase de la semana'}
+              {semana.tema || t('Clase de la semana')}
             </h2>
           </div>
           {/* La clase que aún no ha llegado: «¿Vienes?» en lugar de «0 de 4»
@@ -590,7 +598,7 @@ export default function SemanasClase({
               <span className="text-[13px] text-[#6B7393]">¿Vienes?</span>
               <Vienes semana={semana} courseUuid={courseUuid} segmento textos={['Asistiré', 'No puedo']} />
             </div>
-          ) : pasos.length ? (
+          ) : pasos.some((p) => p.estado !== 'cerrado') ? (
             <span className="shrink-0 mt-1 text-[13px] font-semibold text-[#8A91AD] tabular-nums">
               {hechos} de {pasos.filter((p) => p.estado !== 'cerrado').length}
             </span>
@@ -644,9 +652,9 @@ export default function SemanasClase({
         >
           <ChipFecha fecha={s.fecha} />
           <div className="min-w-0 flex-1">
-            <p className="text-[14.5px] font-semibold text-gray-900 truncate">{tituloDeClase(s.tema, s.fecha)}</p>
+            <p className="text-[14.5px] font-semibold text-gray-900 truncate">{t(tituloDeClase(s.tema, s.fecha))}</p>
             <p className="text-[12.5px] text-[#6B7280] truncate">
-              {[queTuvo(s) || 'Clase', deLaMismaSemana(hermanas?.clases, s.fecha, s.tema).length ? 'Grabación del otro grupo' : ''].filter(Boolean).join(' · ')}
+              {[queTuvo(s) || t('Clase'), deLaMismaSemana(hermanas?.clases, s.fecha, s.tema).length ? 'Grabación del otro grupo' : ''].filter(Boolean).join(' · ')}
             </p>
           </div>
           {/* Un solo estado por línea. Lo de antes de que entrara no cuenta
@@ -693,6 +701,19 @@ export default function SemanasClase({
 
   // «Clases anteriores»: las semanas pasadas y las grabaciones de antes, por
   // día. Lleva el ancla de «Clases anteriores» de la franja de arriba.
+  // La Masterclass y el Spreek Club (18/11/2026, usuario: "la semana de la
+  // masterclass no sirve de nada… mejor no crear semana hasta después, ya que
+  // no tienen que ver la presentación antes"): el alumno no ve la semana hasta
+  // que la sesión se ha dado; la fecha y «Entrar» ya están en la franja de
+  // arriba. Así el profe la puede crear antes (su documento en la pizarra)
+  // sin que al alumno le salga nada repetido. El equipo la ve siempre.
+  const seVe = (sem: Semana) =>
+    equipo ||
+    !sencilla ||
+    (!!sem.fecha && sem.fecha < hoy) ||
+    !!sem.notas_clase ||
+    !!sem.grabacion_sala ||
+    (sem.clases || []).some((c) => c.tipo === 'grabacion')
   const mesDe = (l: (typeof lineas)[number]) => {
     const f = 'semana' in l ? l.semana.fecha : l.suelta.fecha
     return (f || '').slice(0, 7)
@@ -701,10 +722,10 @@ export default function SemanasClase({
     <div id="sesiones-grabadas" className="scroll-mt-24">
       <div className="flex items-baseline justify-between gap-3 mt-8 mb-2.5">
         <h2 className="text-[18px] font-bold text-gray-900" style={POPPINS}>
-          Clases anteriores
+          {t('Clases anteriores')}
         </h2>
         <span className="text-[12.5px] font-semibold text-[#6B7280]">
-          {lineas.length} {lineas.length === 1 ? 'clase' : 'clases'}
+          {lineas.length} {t(lineas.length === 1 ? 'clase' : 'clases')}
         </span>
       </div>
       <div className="rounded-2xl border border-[#DDE6F5] bg-white overflow-hidden">
@@ -728,7 +749,7 @@ export default function SemanasClase({
             onClick={() => setTodas((v) => !v)}
             className="w-full border-t border-[#EEF2F9] px-4 py-3 text-center text-[13px] font-semibold text-[#0b2da0] hover:bg-[#F8FAFF]"
           >
-            {todas ? 'Ver menos' : `Ver todas las clases (${lineas.length})`}
+            {todas ? 'Ver menos' : t(`Ver todas las clases (${lineas.length})`)}
           </button>
         ) : null}
       </div>
@@ -736,6 +757,7 @@ export default function SemanasClase({
   ) : null
 
   return (
+    <Palabra.Provider value={t}>
     <div className="w-full">
       {equipo ? (
         <div className="flex flex-wrap items-center justify-between gap-3 mt-6 rounded-xl border border-dashed border-[#9cc7ff] px-4 py-3">
@@ -755,8 +777,8 @@ export default function SemanasClase({
         </div>
       ) : null}
 
-      {semanaActual ? bloque('Esta semana', semanaActual) : null}
-      {semanaProxima ? bloque(semanaActual ? 'La semana que viene' : 'Próxima clase', semanaProxima) : null}
+      {semanaActual && seVe(semanaActual) ? bloque('Esta semana', semanaActual) : null}
+      {semanaProxima && seVe(semanaProxima) ? bloque(semanaActual && seVe(semanaActual) ? 'La semana que viene' : t('Próxima clase'), semanaProxima) : null}
       {anterioresBloque}
       {equipo ? plegables('Más adelante', masAdelante) : null}
 
@@ -792,5 +814,6 @@ export default function SemanasClase({
       ) : null}
       {viendo ? <Reproductor courseUuid={courseUuid} g={viendo} onClose={() => setViendo(null)} /> : null}
     </div>
+    </Palabra.Provider>
   )
 }
