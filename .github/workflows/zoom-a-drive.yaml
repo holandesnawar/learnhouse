@@ -1,0 +1,59 @@
+# Las grabaciones de las llamadas de venta, de Zoom a Google Drive.
+#
+# Cada noche: audio y transcripción de cada llamada a la unidad compartida de
+# Drive, por mes y por «Compraron / No compraron / Sin identificar». El vídeo
+# de las llamadas de un mes ya terminado se borra de Zoom una vez su audio está
+# en Drive (solo llamadas con cita de Calendly; nunca clases u otras
+# reuniones). Todo explicado en .github/scripts/zoom_a_drive.py.
+#
+# Sin los secretos puestos no hace nada (sale en verde diciendo cuáles faltan).
+# El registro es PÚBLICO: el script solo escribe cifras.
+name: Llamadas de Zoom a Drive
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      prueba:
+        description: 'Prueba: solo contar, sin subir ni borrar nada'
+        type: choice
+        options: ['no', 'si']
+        default: 'no'
+      desde:
+        description: 'Desde qué día mirar en Zoom (AAAA-MM-DD). Vacío = el último año'
+        required: false
+        default: ''
+
+concurrency:
+  group: zoom-a-drive
+  cancel-in-progress: false
+
+jobs:
+  pasar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preparar
+        run: |
+          pip install --quiet requests google-auth
+          command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+      - name: Pasar las llamadas
+        env:
+          ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
+          ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
+          ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
+          SCHOOL_URL: ${{ secrets.SCHOOL_URL }}
+          SCHOOL_CRON_TOKEN: ${{ secrets.SCHOOL_CRON_TOKEN }}
+          PRUEBA: ${{ github.event.inputs.prueba || 'no' }}
+          DESDE: ${{ github.event.inputs.desde || '' }}
+          BORRAR_VIDEO: mes-anterior
+        run: python .github/scripts/zoom_a_drive.py

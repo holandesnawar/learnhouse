@@ -202,3 +202,31 @@ async def api_drip_diario(
 
     logger.info("Goteo diario: %s", resultado)
     return resultado
+
+
+class LlamadasGrabadasIn(BaseModel):
+    llamadas: list[dict] = []
+
+
+@router.post(
+    "/llamadas-grabadas",
+    summary="Quién era y si compró cada llamada grabada en Zoom. La llama el proceso de Zoom a Drive.",
+)
+async def api_llamadas_grabadas(
+    request: Request,
+    datos: LlamadasGrabadasIn,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Misma puerta que `/drip-diario` (secreto compartido). Devuelve datos de
+    personas: solo la usa el proceso de GitHub, que no los escribe en su
+    registro. Ver `services/contactos/llamadas_grabadas.py`."""
+    esperado = (os.environ.get("LEARNHOUSE_CRON_TOKEN") or "").strip()
+    if not esperado:
+        raise HTTPException(status_code=503, detail="Cron token not configured")
+    recibido = (request.headers.get(CABECERA_SECRETO) or "").strip()
+    if not recibido or not _mismo_secreto(recibido, esperado):
+        raise HTTPException(status_code=401, detail="Bad cron token")
+    from src.services.contactos.llamadas_grabadas import clasificar
+
+    return await clasificar(datos.llamadas, db_session)
+
