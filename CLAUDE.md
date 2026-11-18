@@ -7930,7 +7930,9 @@ profesional, clean y moderno, estilo Circle".
   pulsa «Guardar para los alumnos» en la pizarra, esa fila pasa a «Repasa la
   presentación de la clase» y abre la versión de la clase. Nunca las dos. Se
   abre DENTRO de la escuela (`VisorPresentacionClase` en `pasosSemana.tsx`,
-  con `PaginasPdf`), no en otra pestaña.
+  con `PaginasPdf`), no en otra pestaña. Lo mismo en «Clases anteriores»
+  (`ContenidoSemana` en `SemanasClase.tsx`, `FilaVersionClase`: antes esa
+  lista no enseñaba la versión de la clase nunca); el equipo ve las dos.
 - **Quien esa semana va a la clase del otro grupo** (cambio_semana) ve la
   versión de la clase a la que fue, y no antes de que se dé
   (`semanas_para_alumno`; `notas_clase.semana_id`); la ruta del PDF le deja
