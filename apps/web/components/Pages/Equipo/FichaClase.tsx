@@ -48,7 +48,7 @@ import {
   type Gemela,
   type MaterialProfe,
 } from '@services/tareas/tareas'
-import { cuando, diaLegible, estadoDeClase, quienDa, tieneDocumento, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import { cuando, diaLegible, estadoDeClase, quienDa, textoAsistencia, tieneDocumento, type SemanaEquipo } from '@/lib/nawar/salaProfes'
 import { confirmar } from '@/lib/nawar/confirmar'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
 import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
@@ -299,7 +299,7 @@ function FichaDentro({
         <ul className="divide-y divide-[#EEF1F6] rounded-xl border border-[#E6EAF2] bg-white px-4">
           <Linea
             hecho={!!semana.lista?.pasada}
-            titulo={semana.lista?.pasada ? `Asistencia: vinieron ${semana.lista.vinieron}` : 'Asistencia: la cuenta la sala sola'}
+            titulo={textoAsistencia(semana.lista)}
             detalle={semana.lista?.pasada ? undefined : 'Quien entra a la sala cuenta. Si alguien vino por otro sitio, corrígelo.'}
             accion={
               <button onClick={() => setLista(true)} className={BOTON}>

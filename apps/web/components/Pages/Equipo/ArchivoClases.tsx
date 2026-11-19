@@ -217,7 +217,7 @@ export default function ArchivoClases({
                         {s.grabacionSala && !s.grabaciones.length ? <span className="text-[#3B4262]">Grabación publicada</span> : null}
                         {!s.suelta && !futura && !s.grabaciones.length && !s.grabacionSala ? <span className="text-[#8A91AD]">Sin grabación</span> : null}
                         {s.tieneTarea ? <span className="text-[#3B4262]">Tarea</span> : null}
-                        {s.lista?.pasada ? <span className="text-[#3B4262]">Vinieron {s.lista.vinieron}</span> : null}
+                        {s.lista && (s.lista.pasada || s.lista.vinieron > 0) ? <span className="text-[#3B4262]">Vinieron {s.lista.vinieron}</span> : null}
                         {quienDa(s, profeDe[s.courseUuid] || s.profe) ? <span className="text-[#6B7393]">con {quienDa(s, profeDe[s.courseUuid] || s.profe)}</span> : null}
                       </div>
                       {s.material?.despues?.texto ? <p className="mt-1 text-[13px] text-[#3B4262] line-clamp-2">{s.material.despues.texto}</p> : null}

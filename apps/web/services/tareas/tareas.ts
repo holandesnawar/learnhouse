@@ -89,7 +89,7 @@ export interface Semana {
   clases?: ClaseSemana[]
   tarea?: { estado: EstadoTarea; corregida_at: string; vista: boolean }
   /** Solo al equipo: si ya se pasó la lista y cuántos vinieron (07/11/2026). */
-  lista?: { pasada: boolean; vinieron: number }
+  lista?: { pasada: boolean; vinieron: number; en_sala?: number; equipo?: { nombre: string; segundos: number; rol: number }[] }
   /** «¿Vienes a la clase?» de quien pregunta: true, false o sin contestar. */
   voy?: boolean | null
   /** Esa semana va a la clase del otro grupo (08/11/2026, solo al alumno). */

@@ -1,4 +1,8 @@
 import { NextRequest } from 'next/server'
+import { createHash } from 'crypto'
+import { existsSync } from 'fs'
+import { mkdir, readFile, rename, writeFile } from 'fs/promises'
+import path from 'path'
 import { textoParaVoz } from '@/lib/exercises-app/pronunciacion'
 
 /**
@@ -39,6 +43,19 @@ import { textoParaVoz } from '@/lib/exercises-app/pronunciacion'
  *
  * Cachea en memoria (por instancia) para no regenerar la misma palabra, y manda
  * cabeceras de cache para que el navegador la guarde entre sesiones.
+ *
+ * Más rápido (19/11/2026, "tarda unos segundos al pulsar escuchar"):
+ * - Cada audio se guarda TAMBIÉN en el disco del volumen
+ *   (`/app/api/content/cache/tts/<huella>.mp3`), así que sobrevive a los
+ *   despliegues: una palabra se le pide a ElevenLabs una sola vez en la vida y
+ *   las siguientes salen del disco al momento. La copia diaria del volumen se
+ *   salta esa carpeta (`routers/backup.py`): se puede volver a generar.
+ *   `TTS_CACHE_DIR` cambia la carpeta; sin volumen, solo memoria.
+ * - Lo que aún no está guardado se pide a ElevenLabs por su ruta `/stream` y
+ *   se va mandando al navegador según llega: empieza a sonar antes de que el
+ *   audio esté entero. A la vez se junta para guardarlo.
+ * - La pantalla de la lectura pide por adelantado los audios de la página
+ *   (`precargarVoz`), así al pulsar ya están.
  */
 
 const API_KEY = process.env.ELEVENLABS_API_KEY || process.env.LEARNHOUSE_ELEVENLABS_API_KEY || ''
@@ -54,6 +71,46 @@ const MIN_WORDS_FOR_SENTENCE = 3
 
 const cache = new Map<string, ArrayBuffer>()
 const MAX_CACHE = 600
+
+const DIR_DISCO =
+  process.env.TTS_CACHE_DIR || (existsSync('/app/api/content') ? '/app/api/content/cache/tts' : '')
+
+function huella(clave: string): string {
+  return createHash('sha256').update(clave).digest('hex').slice(0, 40)
+}
+
+async function leerDisco(clave: string): Promise<ArrayBuffer | undefined> {
+  if (!DIR_DISCO) return undefined
+  try {
+    const b = await readFile(path.join(DIR_DISCO, `${huella(clave)}.mp3`))
+    return b.length ? b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function guardarDisco(clave: string, buf: ArrayBuffer): Promise<void> {
+  if (!DIR_DISCO || !buf.byteLength) return
+  try {
+    await mkdir(DIR_DISCO, { recursive: true })
+    const final = path.join(DIR_DISCO, `${huella(clave)}.mp3`)
+    const tmp = `${final}.${process.pid}.${Date.now()}.tmp`
+    await writeFile(tmp, Buffer.from(buf))
+    await rename(tmp, final)
+  } catch {
+    /* sin sitio o sin permiso: queda la memoria */
+  }
+}
+
+function enMemoria(clave: string, buf: ArrayBuffer) {
+  if (cache.size > MAX_CACHE) cache.clear()
+  cache.set(clave, buf)
+}
+
+const CABECERAS = {
+  'Content-Type': 'audio/mpeg',
+  'Cache-Control': 'public, max-age=31536000, immutable',
+}
 
 function pickModel(text: string): string {
   const words = text.split(/\s+/).filter(Boolean).length
@@ -88,44 +145,49 @@ export async function GET(req: NextRequest) {
   const spoken = textoParaVoz(text)
   const model = pickModel(spoken)
   const cacheKey = `${voice}:${model}:${spoken.toLowerCase()}`
-  let buf = cache.get(cacheKey)
-
-  if (!buf) {
-    try {
-      const body: Record<string, unknown> = {
-        text: spoken,
-        model_id: model,
-        voice_settings: voiceSettingsFor(model),
-      }
-      // FUERZA neerlandés (arregla los cognados), pero solo en los modelos que
-      // lo entienden: a los demás les rompe la petición.
-      if (supportsLanguageCode(model)) body.language_code = 'nl'
-
-      const r = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_128`,
-        {
-          method: 'POST',
-          headers: { 'xi-api-key': API_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        }
-      )
-      if (!r.ok) {
-        const detail = await r.text().catch(() => '')
-        return new Response(`tts upstream error: ${detail.slice(0, 300)}`, { status: 502 })
-      }
-      buf = await r.arrayBuffer()
-      if (cache.size > MAX_CACHE) cache.clear()
-      cache.set(cacheKey, buf)
-    } catch (e: any) {
-      return new Response(`tts fetch failed: ${e?.message || e}`, { status: 502 })
-    }
+  let buf = cache.get(cacheKey) || (await leerDisco(cacheKey))
+  if (buf) {
+    if (!cache.has(cacheKey)) enMemoria(cacheKey, buf)
+    return new Response(buf, { status: 200, headers: CABECERAS })
   }
 
-  return new Response(buf, {
-    status: 200,
-    headers: {
-      'Content-Type': 'audio/mpeg',
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
-  })
+  try {
+    const body: Record<string, unknown> = {
+      text: spoken,
+      model_id: model,
+      voice_settings: voiceSettingsFor(model),
+    }
+    // FUERZA neerlandés (arregla los cognados), pero solo en los modelos que
+    // lo entienden: a los demás les rompe la petición.
+    if (supportsLanguageCode(model)) body.language_code = 'nl'
+
+    const r = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voice}/stream?output_format=mp3_44100_128`,
+      {
+        method: 'POST',
+        headers: { 'xi-api-key': API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }
+    )
+    if (!r.ok || !r.body) {
+      const detail = await r.text().catch(() => '')
+      return new Response(`tts upstream error: ${detail.slice(0, 300)}`, { status: 502 })
+    }
+    // Se manda según llega y, a la vez, se junta para guardarlo entero.
+    const [alNavegador, paraGuardar] = r.body.tee()
+    ;(async () => {
+      try {
+        const entero = await new Response(paraGuardar).arrayBuffer()
+        if (entero.byteLength > 0) {
+          enMemoria(cacheKey, entero)
+          await guardarDisco(cacheKey, entero)
+        }
+      } catch {
+        /* se cortó a medias: no se guarda nada, la próxima vez se vuelve a pedir */
+      }
+    })()
+    return new Response(alNavegador, { status: 200, headers: CABECERAS })
+  } catch (e: any) {
+    return new Response(`tts fetch failed: ${e?.message || e}`, { status: 502 })
+  }
 }

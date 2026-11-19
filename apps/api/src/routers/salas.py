@@ -25,6 +25,7 @@ from src.security.rbac.types import AccessAction, AccessContext
 from src.security.superadmin import is_user_superadmin
 from src.services.courses.locks import is_org_admin, is_org_staff
 from src.services.salas import salas
+from src.services.salas import presencia as _presencia  # noqa: F401  (registra la tabla sala_presencia)
 
 router = APIRouter()
 
@@ -91,6 +92,34 @@ async def api_sala(
         "equipo": equipo,
         "admin": admin,
     }
+
+
+@router.post("/course/{course_uuid}/presencia", summary="«Sigo dentro de la llamada»: la sala lo avisa cada minuto (19/11/2026).")
+async def api_presencia(
+    request: Request,
+    course_uuid: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Suma el rato que lleva dentro de la sala hoy. Con esto la escuela sabe
+    quién fue a la clase y quién la dio sin depender de Daily
+    (`services/salas/presencia.py`)."""
+    from src.services.panel.tandas import hoy_nl
+    from src.services.salas import presencia
+
+    curso = await _curso(request, course_uuid, current_user, db_session)
+    equipo, admin = await _roles(current_user, curso.org_id, db_session)
+    if isinstance(current_user, AnonymousUser):
+        return {"ok": False, "segundos": 0}
+    if not equipo:
+        # Solo cuentan los alumnos (un closer que entra a mirar no «fue a clase»).
+        from src.services.orgs.acceso import rol_en_la_escuela
+
+        if await rol_en_la_escuela(current_user.id, curso.org_id, db_session) != 4:
+            return {"ok": False, "segundos": 0}
+    rol = 1 if admin else (5 if equipo else 4)
+    seg = await presencia.apuntar(curso.org_id, curso.course_uuid, current_user, equipo, rol, hoy_nl(), db_session)
+    return {"ok": True, "segundos": seg}
 
 
 @router.post("/course/{course_uuid}/entrar", summary="La entrada a la sala, con el nombre de quien entra.")

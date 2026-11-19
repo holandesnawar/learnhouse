@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { clasesDadasPorProfe, clasesSinDatos, estadoDeClase, huboClase, tieneDocumento, tituloDeClase, type SemanaEquipo } from '../salaProfes'
+import { clasesDadasPorProfe, clasesSinDatos, estadoDeClase, huboClase, quienLaDio, textoAsistencia, tieneDocumento, tituloDeClase, type SemanaEquipo } from '../salaProfes'
 import { diaQueToca } from '../../../components/Pages/Equipo/NuevaClase'
 
 const s = (o: Partial<SemanaEquipo>): SemanaEquipo => ({
@@ -62,6 +62,27 @@ describe('la ficha de la clase', () => {
     expect(huboClase(s({ fecha: '2026-11-03', material: { notas: '', archivos: [], pizarra: { guardada_at: 'x', publicada_at: '', paginas: 3 } } }))).toBe(true)
     const sin = clasesSinDatos([s({ key: 'a', fecha: '2026-11-03' }), s({ key: 'b', fecha: '2026-11-04', grabacionSala: true }), s({ key: 'c', fecha: '2026-11-20' })], HOY)
     expect(sin.map((x) => x.key)).toEqual(['a'])
+  })
+
+  test('la sala cuenta sola quién vino y quién la dio (19/11/2026)', () => {
+    const luna = { nombre: 'Luna Zegers', segundos: 3000, rol: 5 }
+    const rida = { nombre: 'Rida Nawar', segundos: 3600, rol: 1 }
+    // Con alumnos o alguien del equipo 10 min en la sala, la clase se dio.
+    expect(huboClase(s({ fecha: '2026-11-18', lista: { pasada: false, vinieron: 4, en_sala: 4 } }))).toBe(true)
+    expect(huboClase(s({ fecha: '2026-11-18', lista: { pasada: false, vinieron: 0, equipo: [{ ...luna, segundos: 120 }] } }))).toBe(false)
+    expect(huboClase(s({ fecha: '2026-11-18', lista: { pasada: false, vinieron: 0, equipo: [luna] } }))).toBe(true)
+    // Figura Paul, pero la dio Luna (el profe antes que el administrador).
+    const sem = s({ fecha: '2026-11-18', lista: { pasada: false, vinieron: 4, equipo: [rida, luna] } })
+    expect(quienLaDio(sem, 'Paul')).toBe('Luna Zegers')
+    // Si quien figura estuvo dentro, es esa persona.
+    expect(quienLaDio(sem, 'Luna')).toBe('Luna')
+    // Sin datos de la sala, quien figura.
+    expect(quienLaDio(s({ fecha: '2026-11-18' }), 'Paul')).toBe('Paul')
+    // La de hoy cuenta en cuanto hay datos.
+    const r = clasesDadasPorProfe([s({ courseUuid: 'rood', curso: 'C', fecha: HOY, lista: { pasada: false, vinieron: 3, equipo: [luna] } })], { rood: 'Paul' }, HOY)
+    expect(r[0].profes[0].nombre).toBe('Luna Zegers')
+    expect(textoAsistencia({ pasada: false, vinieron: 3 })).toBe('Asistencia: vinieron 3 alumnos (según la sala)')
+    expect(textoAsistencia(null)).toBe('Asistencia: la cuenta la sala sola')
   })
 
   test('una clase sin tema se llama por su día', () => {

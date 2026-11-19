@@ -64,7 +64,7 @@ async def test_pasar_lista_y_el_seguimiento(db, org, monkeypatch, contenido):  #
 
     # La tarjeta de «Mis clases» sabe que ya se pasó (solo el equipo).
     eq = await T.semanas_para_alumno(c, 1, db, equipo=True)
-    assert eq["semanas"][0]["lista"] == {"pasada": True, "vinieron": 1}
+    assert {k: eq["semanas"][0]["lista"][k] for k in ("pasada", "vinieron")} == {"pasada": True, "vinieron": 1}
     al = await T.semanas_para_alumno(c, 7, db)
     assert "lista" not in al["semanas"][0]
 

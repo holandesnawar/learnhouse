@@ -66,6 +66,12 @@ export const getSala = (curso: string, token: string) => pedir<EstadoSala>(base(
 export const entrarSala = (curso: string, token: string) =>
   pedir<EntradaSala>(`${base(curso)}/entrar`, token, 'POST', {})
 
+/** «Sigo dentro de la llamada» (19/11/2026): la sala lo avisa cada minuto y
+ * con eso la escuela cuenta quién fue a la clase y quién la dio
+ * (apps/api/src/services/salas/presencia.py). */
+export const avisarPresencia = (curso: string, token: string) =>
+  pedir<{ ok: boolean; segundos: number }>(`${base(curso)}/presencia`, token, 'POST', {})
+
 /** La entrada de la PIZARRA del profe (12/11/2026): un participante más de
  * la llamada, «Pizarra · Paul», que solo comparte el lienzo de la pizarra. */
 export const entrarPizarra = (curso: string, token: string) =>

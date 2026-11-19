@@ -275,6 +275,12 @@ async def camino(org_id: int, db_session: AsyncSession) -> dict:
     sin_clave = bool([c for c in cursos if c["sala"]]) and not salas.clave_api()
     if sin_clave:
         aviso = "Falta la clave de Daily en Railway: solo cuentan las clases con la lista pasada por el profe."
+    from src.services.salas.presencia import MINIMO_SEG as _MIN_PROPIO, de_la_escuela
+
+    propios: dict[str, dict[str, set[str]]] = {}
+    for f in await de_la_escuela(org_id, db_session):
+        if int(f.segundos or 0) >= _MIN_PROPIO and f.dia:
+            propios.setdefault(salas.uuid_curso(f.course_uuid), {}).setdefault(str(f.user_id), set()).add(f.dia)
     for c in cursos:
         en_sala: dict[str, set[str]] = {}
         if c["sala"] and not sin_clave:
@@ -283,6 +289,9 @@ async def camino(org_id: int, db_session: AsyncSession) -> dict:
             except salas.SalaError as exc:
                 logger.info("Asistencia de %s: %s", c["sala"], exc.mensaje)
                 aviso = f"No se pudo leer la asistencia de Daily: {exc.mensaje}"
+        # Lo que cuenta la propia escuela (19/11/2026, salas/presencia.py).
+        for uid, dias in propios.get(c["uuid"], {}).items():
+            en_sala.setdefault(uid, set()).update(dias)
         por_curso[c["uuid"]] = juntar_con_la_lista(en_sala, listas.get(c["uuid"], {}))
 
     hoy = hoy_nl()

@@ -767,9 +767,31 @@ async def semanas_para_alumno(
     else:
         # Al equipo, si ya se pasó la lista y cuántos vinieron (07/11/2026).
         listas = {f.id: leer_asistencia(getattr(f, "asistencia", "")) for f in filas}
+        # Quién estuvo en la sala ese día, contado por la escuela (19/11/2026,
+        # services/salas/presencia.py): alumnos dentro y quién del equipo.
+        from src.services.salas import presencia as PR
+
+        dentro = await PR.del_dia([course.course_uuid], [s["fecha"] for s in semanas if s.get("fecha") and s["fecha"] <= hoy], db_session)
         for s in semanas:
             m = listas.get(s["id"]) or {}
-            s["lista"] = {"pasada": bool(m), "vinieron": sum(1 for x in m.values() if x.get("fue"))}
+            filas_sala = dentro.get((course.course_uuid, s.get("fecha") or ""), [])
+            en_sala = PR.alumnos_dentro(filas_sala)
+            # Lo que marcó el profe manda; donde no marcó, la sala.
+            vinieron = {u for u, x in m.items() if x.get("fue")} | {u for u in en_sala if u not in m}
+            equipo_sala = sorted(
+                (
+                    {"nombre": e["nombre"], "segundos": e["segundos"], "rol": e["rol"]}
+                    for e in PR.equipo_dentro(filas_sala)
+                    if e["segundos"] >= PR.MINIMO_SEG and e["nombre"]
+                ),
+                key=lambda e: -e["segundos"],
+            )
+            s["lista"] = {
+                "pasada": bool(m),
+                "vinieron": len(vinieron),
+                "en_sala": len(en_sala),
+                "equipo": equipo_sala,
+            }
         # El material del profe (09/11/2026): solo al equipo.
         from src.services.tareas import material_profe as MP
 
@@ -1192,6 +1214,18 @@ async def seguimiento(org_id: int, course_uuid: str, semana_id: Optional[int], d
         aviso = "La clase no es en la sala de la escuela: no se sabe quién fue (con Zoom no lo dice nadie)."
     else:
         aviso = "Falta la clave de Daily en Railway: no se sabe quién fue a la clase."
+    # Lo que cuenta la propia escuela (19/11/2026, services/salas/presencia.py):
+    # se suma a lo de Daily, y desde el estreno vale aunque Daily no conteste.
+    from src.services.salas import presencia as PR
+
+    propias = await PR.del_dia([course.course_uuid], [s["fecha"] for s in semanas if s["fecha"] and s["fecha"] <= hoy], db_session)
+    for s in semanas:
+        if not s["fecha"] or s["fecha"] > hoy:
+            continue
+        filas_sala = propias.get((course.course_uuid, s["fecha"]))
+        if filas_sala or PR.sabemos(s["fecha"]):
+            asistencia[s["id"]] = (asistencia.get(s["id"]) or set()) | PR.alumnos_dentro(filas_sala)
+            aviso = ""
 
     def de_tipo(s: dict, tipo: str) -> list[int]:
         propias = [c["id"] for c in clases.get(s["chapter_uuid"], []) if c["tipo"] == tipo]
@@ -2294,6 +2328,12 @@ async def lista_de_clase(org_id: int, s: TareaSemana, db_session: AsyncSession) 
                 en_sala = asistentes_el_dia(await _sesiones_de(sala), s.fecha)
             except salas.SalaError:
                 en_sala = None
+        # Lo que cuenta la escuela (19/11/2026, services/salas/presencia.py).
+        from src.services.salas import presencia as PR
+
+        filas_sala = (await PR.del_dia([course.course_uuid], [s.fecha], db_session)).get((course.course_uuid, s.fecha))
+        if filas_sala or PR.sabemos(s.fecha):
+            en_sala = (en_sala or set()) | PR.alumnos_dentro(filas_sala)
     alumnos = await alumnos_del_curso(org_id, course, db_session)
     # Una semana en la clase del otro grupo (08/11/2026, cambio_semana.py):
     # los que vienen de la otra clase se añaden aquí; los de aquí que esta
