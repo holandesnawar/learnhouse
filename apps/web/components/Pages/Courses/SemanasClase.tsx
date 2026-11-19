@@ -58,6 +58,7 @@ import { duracionCorta } from '@/lib/nawar/recorte'
 import { tituloDeClase } from '@/lib/nawar/salaProfes'
 import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
 import FilaGrabacionAlumno from '@components/Pages/Grabaciones/FilaGrabacionAlumno'
+import { Cargando, Esqueleto } from '@components/Objects/Esqueleto'
 
 export const claveSemanas = (courseUuid: string) => ['tareas', 'semanas', String(courseUuid || '').replace(/^course_/, '')]
 
@@ -452,6 +453,29 @@ function FilaArchivo({ c, href }: { c: ClaseArchivo; href: string }) {
   )
 }
 
+/** Mientras llegan las semanas: la forma del bloque «Esta semana» y sus pasos. */
+function SemanasCargando() {
+  return (
+    <Cargando className="mt-6 rounded-2xl border border-[#E4E8F2] bg-white overflow-hidden">
+      <div className="px-5 sm:px-6 pt-5 pb-4 space-y-2.5">
+        <Esqueleto ancho={150} alto={11} />
+        <Esqueleto ancho="48%" alto={20} />
+      </div>
+      <div className="border-t border-[#EEF1F7] divide-y divide-[#EEF1F7]">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex items-center gap-3 px-5 sm:px-6 py-3.5">
+            <Esqueleto ancho={22} alto={22} redondo="circulo" />
+            <div className="flex-1 space-y-1.5">
+              <Esqueleto ancho={i === 1 ? '46%' : '36%'} alto={12} />
+              <Esqueleto ancho="24%" alto={10} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Cargando>
+  )
+}
+
 /** Cuántas clases anteriores se ven antes de «Ver todas». */
 const ANTERIORES_A_LA_VISTA = 6
 
@@ -469,7 +493,7 @@ export default function SemanasClase({
   /** Si la clase enseña sus grabaciones de antes (Spreekclub y Masterclass, no). */
   conGrabadas?: boolean
 }) {
-  const { data } = useSemanasClase(courseUuid)
+  const { data, isLoading } = useSemanasClase(courseUuid)
   const queryClient = useQueryClient()
   const [abiertas, setAbiertas] = useState<Record<number, boolean>>({})
   const [todas, setTodas] = useState(false)
@@ -479,7 +503,7 @@ export default function SemanasClase({
   const { data: hermanas } = useMiraTambien(courseUuid, !!data)
   const [viendo, setViendo] = useState<Grabacion | null>(null)
 
-  if (!data) return null
+  if (!data) return isLoading ? <SemanasCargando /> : null
   // El equipo (también los profes, 02/11/2026) prepara y cambia las semanas;
   // quitar una semana entera (borra las entregas), solo un administrador.
   const { semanas, hoy, actual, proxima, admin } = data

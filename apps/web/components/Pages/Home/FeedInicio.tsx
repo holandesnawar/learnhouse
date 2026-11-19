@@ -32,6 +32,7 @@ import { useSemanasClase } from '@components/Pages/Courses/SemanasClase'
 import { useCursosEnDirecto } from '@/hooks/queries/useCursosEnDirecto'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import EscribirEnComunidad from './EscribirEnComunidad'
+import { Cargando, Esqueleto, EsqueletoLineas } from '@components/Objects/Esqueleto'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
@@ -407,10 +408,23 @@ export function FeedComunidad({ orgslug }: { orgslug: string }) {
         </div>
       ) : null}
       {isLoading ? (
-        <div className="space-y-3">
-          <div className={`${TARJETA} h-[150px] animate-pulse`} />
-          <div className={`${TARJETA} h-[150px] animate-pulse`} />
-        </div>
+        <Cargando className="space-y-3">
+          {[0, 1].map((i) => (
+            <div key={i} className={`${TARJETA} p-4 sm:p-5`}>
+              <div className="flex items-center gap-3">
+                <Esqueleto ancho={36} alto={36} redondo="circulo" />
+                <div className="flex-1 space-y-1.5">
+                  <Esqueleto ancho="38%" alto={12} />
+                  <Esqueleto ancho="22%" alto={10} />
+                </div>
+              </div>
+              <div className="mt-4 space-y-2.5">
+                <Esqueleto ancho="55%" alto={15} />
+                <EsqueletoLineas lineas={2} />
+              </div>
+            </div>
+          ))}
+        </Cargando>
       ) : !entradas.length ? (
         <div className={`${TARJETA} px-5 py-10 text-center text-[14px] text-[#6B7393]`}>Todavía no hay publicaciones. ¡Sé el primero!</div>
       ) : (

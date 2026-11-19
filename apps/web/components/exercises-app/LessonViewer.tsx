@@ -21,6 +21,7 @@ import { saveLastAttempt, getLastAttempt, type LastAttempt } from '@/lib/exercis
 import { aciertaEnEspanol, aciertaEscrito } from '@/lib/exercises-app/answerCheck';
 import { barajar, barajarSinCoincidir, barajarSinResolver } from '@/lib/exercises-app/barajar';
 import { markLessonCompletedRemote, patchStudentProgress, listLessonCompletions } from '@services/student/progress';
+import { audioListo, precargarVoz, siguientes } from '@/lib/nawar/vozPrecarga';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPERS
@@ -84,13 +85,26 @@ function _playUrl(url: string, onFail: () => void, onDone?: () => void, rate?: n
 // el cambio en el servidor por completo.
 const TTS_VOICE_TAG = 'v6';
 
+// La dirección que usa speakDutch con la voz de serie. Es también la clave de
+// los audios pedidos por adelantado (`lib/nawar/vozPrecarga.ts`): si ya está
+// bajado, suena al momento; si no, se pide como siempre.
+const _urlVozLeccion = (text: string) => `/api/tts?text=${encodeURIComponent(text)}&vt=${TTS_VOICE_TAG}`;
+
+/** Pide en segundo plano el audio de estas palabras (las que vienen). */
+function _precargarLeccion(textos: string[]): () => void {
+  if (_ttsRouteAvailable === false || typeof window === 'undefined') return () => {};
+  return precargarVoz(textos, { url: _urlVozLeccion, max: 10, retraso: 400 });
+}
+
 async function _speakViaElevenLabs(text: string, onDone?: () => void, rate?: number): Promise<boolean> {
   if (_ttsRouteAvailable === false) return false;
   const key = `${TTS_VOICE_TAG}:${text.trim().toLowerCase()}`;
   const cached = _ttsBlobCache.get(key);
   if (cached) { _playUrl(cached, () => _ttsFallback(text, onDone, rate), onDone, rate); return true; }
+  const precargado = audioListo(text, _urlVozLeccion(text));
+  if (precargado) { _playUrl(precargado, () => _ttsFallback(text, onDone, rate), onDone, rate); return true; }
   try {
-    const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}&vt=${TTS_VOICE_TAG}`);
+    const res = await fetch(_urlVozLeccion(text));
     if (!res.ok) {
       if (res.status === 503) _ttsRouteAvailable = false; // no configurado → no reintentar
       return false;
@@ -116,6 +130,8 @@ async function _ttsClipUrl(text: string, voice?: string): Promise<string | null>
   try {
     const q = new URLSearchParams({ text, vt: TTS_VOICE_TAG });
     if (voice) q.set('voice', voice);
+    const precargado = audioListo(text, `/api/tts?${q.toString()}`);
+    if (precargado) return precargado;
     const res = await fetch(`/api/tts?${q.toString()}`);
     if (!res.ok) { if (res.status === 503) _ttsRouteAvailable = false; return null; }
     _ttsRouteAvailable = true;
@@ -606,6 +622,11 @@ function WordsStep({ items, onDone, onSubProgress }: {
   useEffect(() => {
     onSubProgress?.(page + 1, totalPages);
   }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Los audios de las palabras de esta página, pedidos por adelantado: al
+  // pulsar «Escuchar» suenan al momento. Se corta al cambiar de página o salir.
+  const paraPrecargar = pageItems.map((w) => joinDutch(w.article, w.dutch)).join('\u0000');
+  useEffect(() => _precargarLeccion(paraPrecargar.split('\u0000')), [paraPrecargar]);
 
   return (
     <div className="flex flex-col">
@@ -1405,6 +1426,11 @@ function FlashcardSection({
     ? joinDutch(card?.article, card?.dutch)
     : card?.spanish ?? '';
   const back = mode === 'nl-es' ? card?.spanish ?? '' : joinDutch(card?.article, card?.dutch);
+
+  // El audio de esta tarjeta y de las 2 siguientes, pedido por adelantado (de
+  // una en una y con prioridad baja): al darle al altavoz suena al momento.
+  const paraPrecargar = siguientes(queue, index, 3).map((c) => joinDutch(c?.article, c?.dutch)).join('\u0000');
+  useEffect(() => _precargarLeccion(paraPrecargar.split('\u0000')), [paraPrecargar]);
 
   function handleKnown() {
     setKnownCount(k => k + 1);
