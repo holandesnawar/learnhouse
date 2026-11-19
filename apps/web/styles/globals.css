@@ -2532,3 +2532,24 @@ html.sala-grande header.fixed,
 html.sala-grande aside {
   display: none !important;
 }
+
+/* La descripción de las tarjetas de producción (19/11/2026,
+   Pages/Produccion/EditorDescripcion.tsx): títulos, listas, citas, tablas y
+   enlaces con aire, como en un documento. */
+.prod-descripcion h1 { font-family: var(--font-poppins), system-ui, sans-serif; font-size: 22px; font-weight: 700; color: #0B1033; margin: 18px 0 8px; line-height: 1.25; }
+.prod-descripcion h2 { font-family: var(--font-poppins), system-ui, sans-serif; font-size: 19px; font-weight: 700; color: #0B1033; margin: 18px 0 6px; line-height: 1.3; }
+.prod-descripcion h3 { font-size: 16px; font-weight: 700; color: #0B1033; margin: 14px 0 4px; }
+.prod-descripcion > :first-child { margin-top: 0; }
+.prod-descripcion p { margin: 6px 0; }
+.prod-descripcion ul { list-style: disc; padding-left: 1.4em; margin: 6px 0; }
+.prod-descripcion ol { list-style: decimal; padding-left: 1.4em; margin: 6px 0; }
+.prod-descripcion li { margin: 3px 0; }
+.prod-descripcion li p { margin: 0; }
+.prod-descripcion a { color: #0b2da0; text-decoration: underline; text-underline-offset: 2px; }
+.prod-descripcion blockquote { border-left: 3px solid #C9D5F2; padding-left: 12px; color: #4A5272; margin: 8px 0; }
+.prod-descripcion code { background: #F1F4FA; border-radius: 4px; padding: 1px 5px; font-size: 0.9em; }
+.prod-descripcion hr { border: 0; border-top: 1px solid #E2E7F0; margin: 14px 0; }
+.prod-descripcion table { border-collapse: collapse; width: 100%; margin: 10px 0; table-layout: fixed; }
+.prod-descripcion th, .prod-descripcion td { border: 1px solid #E2E7F0; padding: 6px 8px; vertical-align: top; }
+.prod-descripcion th { background: #F6F8FC; font-weight: 600; text-align: left; }
+.prod-descripcion p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #A0A8C0; float: left; height: 0; pointer-events: none; }

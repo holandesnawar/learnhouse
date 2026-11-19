@@ -348,6 +348,21 @@ export function textoAsistencia(lista: ListaClase | null | undefined): string {
   return `Asistencia: ${quien}${lista.pasada ? '' : ' (según la sala)'}`
 }
 
+/** Lo que vio la sala ese día, para poder comprobarlo (19/11/2026):
+ * «En la sala: Luna 52 min, Rida 60 min · 6 alumnos 10 min o más». */
+export function queVioLaSala(lista: ListaClase | null | undefined): string {
+  if (!lista) return ''
+  const equipo = (lista.equipo || [])
+    .filter((e) => (e.nombre || '').trim())
+    .map((e) => `${e.nombre.trim().split(/\s+/)[0]} ${Math.round(e.segundos / 60)} min`)
+  const alumnos = lista.en_sala ?? 0
+  const partes = [
+    ...(equipo.length ? [equipo.join(', ')] : []),
+    ...(alumnos ? [alumnos === 1 ? '1 alumno 10 min o más' : `${alumnos} alumnos 10 min o más`] : []),
+  ]
+  return partes.length ? `En la sala: ${partes.join(' · ')}` : ''
+}
+
 export function quienDa(semana: SemanaEquipo | null | undefined, profeDeLaClase: string): string {
   return (semana?.material?.profe || '').trim() || profeDeLaClase || ''
 }

@@ -198,6 +198,9 @@ export default function SalaProfes() {
           <Link href={ruta('/organizar')} className="font-semibold text-[#0b2da0] hover:underline">
             Clases y grupos
           </Link>
+          <Link href={ruta('/tableros')} className="font-semibold text-[#0b2da0] hover:underline">
+            Tableros de la formación
+          </Link>
         </footer>
       ) : null}
     </div>

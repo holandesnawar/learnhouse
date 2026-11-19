@@ -48,7 +48,7 @@ import {
   type Gemela,
   type MaterialProfe,
 } from '@services/tareas/tareas'
-import { cuando, diaLegible, estadoDeClase, quienDa, textoAsistencia, tieneDocumento, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import { cuando, diaLegible, estadoDeClase, queVioLaSala, quienDa, textoAsistencia, tieneDocumento, type SemanaEquipo } from '@/lib/nawar/salaProfes'
 import { confirmar } from '@/lib/nawar/confirmar'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
 import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
@@ -298,9 +298,13 @@ function FichaDentro({
       <Seccion titulo={esHoy ? 'Hoy, al terminar' : 'Lo que pasó en la clase'} ayuda="Lo que queda por cerrar de esta clase. Se marca solo cuando está hecho.">
         <ul className="divide-y divide-[#EEF1F6] rounded-xl border border-[#E6EAF2] bg-white px-4">
           <Linea
-            hecho={!!semana.lista?.pasada}
+            hecho={!!(semana.lista?.pasada || semana.lista?.vinieron)}
             titulo={textoAsistencia(semana.lista)}
-            detalle={semana.lista?.pasada ? undefined : 'Quien entra a la sala cuenta. Si alguien vino por otro sitio, corrígelo.'}
+            detalle={
+              [queVioLaSala(semana.lista), semana.lista?.pasada ? '' : 'Quien está 10 minutos en la sala cuenta solo. Si alguien vino por otro sitio, corrígelo.']
+                .filter(Boolean)
+                .join('. ') || undefined
+            }
             accion={
               <button onClick={() => setLista(true)} className={BOTON}>
                 {semana.lista?.pasada ? 'Ver la lista' : 'Corregir'}

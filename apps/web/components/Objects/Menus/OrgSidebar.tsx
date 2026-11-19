@@ -65,6 +65,7 @@ import {
   Gauge,
   PresentationChart,
   ChatsCircle,
+  Kanban,
 } from '@phosphor-icons/react'
 
 import { FONDO_MARCA, ACTIVO_SOBRE_MARCA } from '@/lib/nawar/marca'
@@ -273,6 +274,8 @@ export const OrgSidebar = (props: { orgslug: string }) => {
           // o en la sala de profesores (su Inicio).
           { key: 'panel', href: '/dash', label: 'Panel', icon: <Gauge size={20} weight="fill" />, fuera: true },
           { key: 'llamadas', href: '/dash/estadisticas?tab=llamadas', label: 'Llamadas', icon: <Phone size={20} weight="fill" />, fuera: true },
+          // Los tableros de producción de la formación (19/11/2026).
+          { key: 'tableros', href: '/tableros', label: 'Tableros', icon: <Kanban size={20} weight="fill" /> },
           { key: 'usuarios', href: '/dash/users/settings/users', label: 'Usuarios', icon: <UsersThree size={20} weight="fill" />, fuera: true },
         ],
       },
@@ -287,7 +290,14 @@ export const OrgSidebar = (props: { orgslug: string }) => {
     // links en la barra, solo Sala de profesores y ahí dentro ya ir tocando").
     // Su Inicio ES la sala. El monitor (grupo «Monitores») solo la sala y
     // los mensajes: solo tiene el Spreekclub.
-    const sala: Bloque = { items: [{ key: 'inicio', href: '/', label: 'Sala de profesores', icon: <ChalkboardTeacher size={20} weight="fill" /> }] }
+    const sala: Bloque = {
+      items: [
+        { key: 'inicio', href: '/', label: 'Sala de profesores', icon: <ChalkboardTeacher size={20} weight="fill" /> },
+        // Los tableros de producción (19/11/2026): el profe ve y trabaja sus
+        // tarjetas (entregables, enlaces). El monitor, no: solo el Spreekclub.
+        ...(monitor ? [] : [{ key: 'tableros', href: '/tableros', label: 'Tableros', icon: <Kanban size={20} weight="fill" /> }]),
+      ],
+    }
     const ayuda: Bloque = { titulo: 'Ayuda', items: [{ key: 'mensajes', href: '/mensajes', label: 'Mensajes', icon: <Envelope size={20} weight="fill" /> }] }
     // El monitor (10/11/2026, "no puede ver nada… no es así el monitor"):
     // como un profe, más su Spreekclub a la vista.

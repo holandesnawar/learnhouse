@@ -41,6 +41,8 @@ import { mediaSrc } from '@services/messages/direct'
 import { getUriWithOrg } from '@services/config/config'
 import { confirmar } from '@lib/nawar/confirmar'
 import { aTexto, leerEjercicios } from '@lib/nawar/ejerciciosLectura'
+import { audioListo, precargarVoz, urlVoz } from '@lib/nawar/vozPrecarga'
+import { Cargando, Esqueleto, EsqueletoLineas } from '@components/Objects/Esqueleto'
 import EjerciciosLectura, { resultadoGuardado } from './EjerciciosLectura'
 import ResultadosLectura from './ResultadosLectura'
 
@@ -55,57 +57,27 @@ export function useLecturas() {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
   const [datos, setDatos] = useState<MisLecturas | null>(null)
+  // Ya contestó el servidor (bien o mal): para no dejar el esqueleto puesto si falla.
+  const [cargado, setCargado] = useState(false)
   const cargar = useCallback(() => {
     if (!accessToken) return
-    getLecturas(accessToken).then(setDatos)
+    getLecturas(accessToken)
+      .then(setDatos)
+      .finally(() => setCargado(true))
   }, [accessToken])
   useEffect(() => {
     cargar()
   }, [cargar])
-  return { datos, cargar, accessToken }
+  return { datos, cargar, accessToken, cargado }
 }
 
 // ── Escuchar: la voz de la escuela (/api/tts) y, si falla, la del navegador ──
 
-const urlVoz = (texto: string) => `/api/tts?text=${encodeURIComponent(texto.slice(0, 790))}`
-
 // Los audios ya pedidos, listos para sonar al momento (19/11/2026: «tarda unos
 // segundos al pulsar escuchar»). La pantalla los pide por adelantado al abrir
-// la lectura (`precargarVoz`), de uno en uno y sin estorbar a lo demás.
-const listos = new Map<string, string>()
-const pidiendo = new Map<string, Promise<string | null>>()
-
-function pedirAudio(texto: string): Promise<string | null> {
-  const ya = listos.get(texto)
-  if (ya) return Promise.resolve(ya)
-  const enCurso = pidiendo.get(texto)
-  if (enCurso) return enCurso
-  const p = fetch(urlVoz(texto), { priority: 'low' } as RequestInit)
-    .then((r) => (r.ok ? r.blob() : null))
-    .then((b) => {
-      if (!b || !b.size) return null
-      const url = URL.createObjectURL(b)
-      listos.set(texto, url)
-      return url
-    })
-    .catch(() => null)
-    .finally(() => pidiendo.delete(texto))
-  pidiendo.set(texto, p)
-  return p
-}
-
-export function precargarVoz(textos: string[]) {
-  let vivo = true
-  const cola = Array.from(new Set(textos.filter(Boolean))).slice(0, 60)
-  const siguiente = async () => {
-    while (vivo && cola.length) await pedirAudio(cola.shift() as string)
-  }
-  const id = window.setTimeout(siguiente, 600)
-  return () => {
-    vivo = false
-    window.clearTimeout(id)
-  }
-}
+// la lectura (`precargarVoz`), de uno en uno y sin estorbar a lo demás. La
+// caché vive en `lib/nawar/vozPrecarga.ts` (la usan también las lecciones).
+export { precargarVoz }
 
 function useVoz() {
   const audio = useRef<HTMLAudioElement | null>(null)
@@ -138,9 +110,9 @@ function useVoz() {
       }
       // Si ya está pedido, suena al instante; si no, se reproduce mientras
       // llega (el servidor lo manda a trozos).
-      const a = new Audio(listos.get(texto) || urlVoz(texto))
+      const a = new Audio(audioListo(texto) || urlVoz(texto))
       audio.current = a
-      if (!listos.has(texto)) setCargando(texto)
+      if (!audioListo(texto)) setCargando(texto)
       a.onplaying = () => {
         setCargando('')
         setSonando(texto)
@@ -362,12 +334,36 @@ export function CuerpoLectura({ l, orgId }: { l: Lectura; orgId?: number }) {
 
 // ── El bloque de Recursos ────────────────────────────────────────────────
 
+/** Mientras llega: la forma de la tarjeta «Lectura de la semana». */
+function LecturaCargando() {
+  return (
+    <Cargando className={TARJETA}>
+      <div className="px-5 pt-4 pb-3 border-b border-[#EEF1F7] flex items-start gap-3">
+        <Esqueleto ancho={24} alto={24} redondo={6} />
+        <div className="flex-1 space-y-2">
+          <Esqueleto ancho={170} alto={11} />
+          <Esqueleto ancho="52%" alto={20} />
+          <Esqueleto ancho="34%" alto={12} />
+        </div>
+      </div>
+      <div className="px-5 py-5 space-y-5">
+        <div className="flex flex-wrap gap-2">
+          <Esqueleto ancho={120} alto={36} />
+          <Esqueleto ancho={150} alto={36} />
+        </div>
+        <EsqueletoLineas lineas={4} alto={12} hueco={10} />
+        <EsqueletoLineas lineas={3} alto={12} hueco={10} />
+      </div>
+    </Cargando>
+  )
+}
+
 export default function LecturaSemanal() {
-  const { datos, cargar, accessToken } = useLecturas()
+  const { datos, cargar, accessToken, cargado } = useLecturas()
   const [editando, setEditando] = useState<Lectura | 'nueva' | null>(null)
   const [abierta, setAbierta] = useState<string>('')
 
-  if (!datos) return null
+  if (!datos) return accessToken && !cargado ? <LecturaCargando /> : null
   const { actual, archivo, proximas, equipo, org_id } = datos
   if (!actual && !archivo.length && !equipo) return null
 
