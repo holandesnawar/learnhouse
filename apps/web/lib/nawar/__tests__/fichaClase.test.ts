@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { clasesDadasPorProfe, clasesSinDatos, estadoDeClase, huboClase, quienLaDio, textoAsistencia, tieneDocumento, tituloDeClase, type SemanaEquipo } from '../salaProfes'
+import { clasesDadasPorProfe, clasesSinDatos, estadoDeClase, huboClase, queVioLaSala, quienLaDio, textoAsistencia, tieneDocumento, tituloDeClase, type SemanaEquipo } from '../salaProfes'
 import { diaQueToca } from '../../../components/Pages/Equipo/NuevaClase'
 
 const s = (o: Partial<SemanaEquipo>): SemanaEquipo => ({
@@ -83,6 +83,8 @@ describe('la ficha de la clase', () => {
     expect(r[0].profes[0].nombre).toBe('Luna Zegers')
     expect(textoAsistencia({ pasada: false, vinieron: 3 })).toBe('Asistencia: vinieron 3 alumnos (según la sala)')
     expect(textoAsistencia(null)).toBe('Asistencia: la cuenta la sala sola')
+    expect(queVioLaSala({ pasada: false, vinieron: 6, en_sala: 6, equipo: [luna] })).toBe('En la sala: Luna 50 min · 6 alumnos 10 min o más')
+    expect(queVioLaSala({ pasada: true, vinieron: 2 })).toBe('')
   })
 
   test('una clase sin tema se llama por su día', () => {
