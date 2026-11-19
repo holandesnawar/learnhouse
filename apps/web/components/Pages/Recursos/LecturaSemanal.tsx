@@ -67,9 +67,50 @@ export function useLecturas() {
 
 // ── Escuchar: la voz de la escuela (/api/tts) y, si falla, la del navegador ──
 
+const urlVoz = (texto: string) => `/api/tts?text=${encodeURIComponent(texto.slice(0, 790))}`
+
+// Los audios ya pedidos, listos para sonar al momento (19/11/2026: «tarda unos
+// segundos al pulsar escuchar»). La pantalla los pide por adelantado al abrir
+// la lectura (`precargarVoz`), de uno en uno y sin estorbar a lo demás.
+const listos = new Map<string, string>()
+const pidiendo = new Map<string, Promise<string | null>>()
+
+function pedirAudio(texto: string): Promise<string | null> {
+  const ya = listos.get(texto)
+  if (ya) return Promise.resolve(ya)
+  const enCurso = pidiendo.get(texto)
+  if (enCurso) return enCurso
+  const p = fetch(urlVoz(texto), { priority: 'low' } as RequestInit)
+    .then((r) => (r.ok ? r.blob() : null))
+    .then((b) => {
+      if (!b || !b.size) return null
+      const url = URL.createObjectURL(b)
+      listos.set(texto, url)
+      return url
+    })
+    .catch(() => null)
+    .finally(() => pidiendo.delete(texto))
+  pidiendo.set(texto, p)
+  return p
+}
+
+export function precargarVoz(textos: string[]) {
+  let vivo = true
+  const cola = Array.from(new Set(textos.filter(Boolean))).slice(0, 60)
+  const siguiente = async () => {
+    while (vivo && cola.length) await pedirAudio(cola.shift() as string)
+  }
+  const id = window.setTimeout(siguiente, 600)
+  return () => {
+    vivo = false
+    window.clearTimeout(id)
+  }
+}
+
 function useVoz() {
   const audio = useRef<HTMLAudioElement | null>(null)
   const [sonando, setSonando] = useState<string>('')
+  const [cargando, setCargando] = useState<string>('')
   const parar = useCallback(() => {
     audio.current?.pause()
     audio.current = null
@@ -79,16 +120,13 @@ function useVoz() {
       /* sin voz del navegador */
     }
     setSonando('')
+    setCargando('')
   }, [])
   const hablar = useCallback(
     (texto: string) => {
-      if (sonando === texto) return parar()
+      if (sonando === texto || cargando === texto) return parar()
       parar()
-      setSonando(texto)
-      const a = new Audio(`/api/tts?text=${encodeURIComponent(texto.slice(0, 790))}`)
-      audio.current = a
-      a.onended = () => setSonando('')
-      a.play().catch(() => {
+      const conVozDelNavegador = () => {
         try {
           const u = new SpeechSynthesisUtterance(texto)
           u.lang = 'nl-NL'
@@ -97,27 +135,51 @@ function useVoz() {
         } catch {
           setSonando('')
         }
+      }
+      // Si ya está pedido, suena al instante; si no, se reproduce mientras
+      // llega (el servidor lo manda a trozos).
+      const a = new Audio(listos.get(texto) || urlVoz(texto))
+      audio.current = a
+      if (!listos.has(texto)) setCargando(texto)
+      a.onplaying = () => {
+        setCargando('')
+        setSonando(texto)
+      }
+      a.onended = () => setSonando('')
+      a.play().catch(() => {
+        setCargando('')
+        setSonando(texto)
+        conVozDelNavegador()
       })
     },
-    [sonando, parar]
+    [sonando, cargando, parar]
   )
   useEffect(() => parar, [parar])
-  return { hablar, sonando }
+  return { hablar, sonando, cargando }
 }
 
+/** Escuchar: el icono solo, sin cuadrito detrás (19/11/2026: «el icono con el
+ * cuadrito de fondo hace ver la plataforma barata»). Sonando, en azul y con
+ * ondas; mientras llega, un círculo que gira. */
 function BotonOir({ texto, voz, etiqueta }: { texto: string; voz: ReturnType<typeof useVoz>; etiqueta?: string }) {
   const activo = voz.sonando === texto
+  const espera = voz.cargando === texto
   return (
     <button
       type="button"
       onClick={() => voz.hablar(texto)}
-      title={activo ? 'Parar' : 'Escuchar'}
-      className={`shrink-0 inline-flex items-center gap-1 rounded-lg ${etiqueta ? 'h-8 px-2.5 text-[12.5px] font-semibold' : 'h-8 w-8 justify-center'} ${
-        activo ? 'bg-[#0b2da0] text-white' : 'text-[#0b2da0] hover:bg-[#EAF0FE]'
+      title={activo || espera ? 'Parar' : 'Escuchar'}
+      aria-label={activo || espera ? 'Parar' : 'Escuchar'}
+      className={`shrink-0 inline-flex items-center gap-1.5 transition-colors ${etiqueta ? 'h-8 text-[12.5px] font-semibold' : 'h-8 w-7 justify-center'} ${
+        activo || espera ? 'text-[#0b2da0]' : 'text-[#8A93B3] hover:text-[#0b2da0]'
       }`}
     >
-      <SpeakerHigh size={16} weight={activo ? 'fill' : 'regular'} />
-      {etiqueta ? <span>{activo ? 'Parar' : etiqueta}</span> : null}
+      {espera ? (
+        <span className="h-[15px] w-[15px] rounded-full border-2 border-[#0b2da0]/25 border-t-[#0b2da0] animate-spin" aria-hidden />
+      ) : (
+        <SpeakerHigh size={18} weight={activo ? 'fill' : 'regular'} className={activo ? 'animate-pulse' : ''} />
+      )}
+      {etiqueta ? <span>{activo || espera ? 'Parar' : etiqueta}</span> : null}
     </button>
   )
 }
@@ -146,6 +208,12 @@ export function CuerpoLectura({ l, orgId }: { l: Lectura; orgId?: number }) {
   const [viendoResultados, setViendoResultados] = useState(false)
   const [resultado, setResultado] = useState<{ aciertos: number; total: number } | null>(null)
   useEffect(() => setResultado(resultadoGuardado(l.id)), [l.id])
+  // Las palabras primero (son las que más se pulsan), luego los párrafos.
+  const paraPrecargar = [
+    ...(l.palabras || []).map((p) => (p.ejemplo ? `${p.nl}. ${p.ejemplo}` : p.nl)),
+    ...trozos,
+  ].join('\u0000')
+  useEffect(() => precargarVoz(paraPrecargar.split('\u0000')), [paraPrecargar])
 
   return (
     <div className="space-y-6">

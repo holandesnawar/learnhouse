@@ -76,7 +76,7 @@ import { ArrowLeft, AlertTriangle, Loader2, Maximize2, Minimize2, PenLine, Power
 import toast from 'react-hot-toast'
 import { conMano, haceCuantoMano, manosLevantadas, sinMano, tieneMano, type ManoLevantada } from '@/lib/nawar/mano'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import { entrarPizarra, entrarSala, getSala, guardarSala, type EntradaSala } from '@services/salas/salas'
+import { avisarPresencia, entrarPizarra, entrarSala, getSala, guardarSala, type EntradaSala } from '@services/salas/salas'
 import { getSemanas, diaCorto, type Semana } from '@services/tareas/tareas'
 import { confirmar } from '@/lib/nawar/confirmar'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -134,6 +134,19 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
   const t = textosDeClase(nombreCurso)
   // Dentro de la llamada (entre «joined-meeting» y «left-meeting»).
   const [dentro, setDentro] = useState(false)
+  // Mientras está dentro, cada minuto: «sigo en la clase» (19/11/2026). Así la
+  // escuela sabe quién fue y quién la dio aunque Daily no conteste. En blando.
+  const tokenRef = useRef('')
+  tokenRef.current = token
+  useEffect(() => {
+    if (!dentro || !curso) return
+    const avisa = () => {
+      if (tokenRef.current) avisarPresencia(curso, tokenRef.current).catch(() => {})
+    }
+    avisa()
+    const id = window.setInterval(avisa, 60_000)
+    return () => window.clearInterval(id)
+  }, [dentro, curso])
   const llamadaRef = useRef<any>(null)
 
   // Levantar la mano (17/11/2026, ver lib/nawar/mano.ts): un botón propio en

@@ -30,7 +30,10 @@ export type SemanaEquipo = {
   ejercicios: { activity_uuid: string; nombre: string }[]
   tieneTarea: boolean
   enunciado: string
-  lista: { pasada: boolean; vinieron: number } | null
+  /** Asistencia (19/11/2026): `vinieron` junta lo que marcó el profe y lo que
+   * vio la sala (10 min o más dentro); `en_sala`, solo lo de la sala;
+   * `equipo`, quién del equipo estuvo dentro y cuánto rato. */
+  lista: ListaClase | null
   /** «¿Vienes?» de los alumnos, con sus nombres (14/11/2026). */
   confirmaciones?: Confirmaciones | null
   porCorregir: number
@@ -304,6 +307,47 @@ export function paraPreparar<C extends { uuid: string; nombre: string }>(
  * asignada… en masterclass también su parte"): el profe puesto en ESA semana
  * y, si no hay, el «La da» de la clase.
  */
+export interface ListaClase {
+  pasada: boolean
+  vinieron: number
+  en_sala?: number
+  equipo?: { nombre: string; segundos: number; rol: number }[]
+}
+
+/** 10 minutos dentro de la sala: lo mismo que cuenta el servidor. */
+export const MINIMO_EN_SALA = 600
+const ROL_PROFE = 5
+
+function mismaPersona(a: string, b: string): boolean {
+  const x = (a || '').trim().toLowerCase()
+  const y = (b || '').trim().toLowerCase()
+  return !!x && !!y && (x === y || x.split(' ')[0] === y.split(' ')[0])
+}
+
+/**
+ * Quién DIO la clase de verdad (19/11/2026): quien figura, si estuvo en la
+ * sala; si no estuvo y entró otro del equipo, el profe que más rato estuvo
+ * (luego el resto del equipo); sin datos de la sala, quien figura.
+ */
+export function quienLaDio(semana: SemanaEquipo | null | undefined, profeDeLaClase: string): string {
+  const figura = quienDa(semana, profeDeLaClase)
+  const dentro = (semana?.lista?.equipo || []).filter((e) => e.segundos >= MINIMO_EN_SALA && (e.nombre || '').trim())
+  if (!dentro.length) return figura
+  if (figura && dentro.some((e) => mismaPersona(e.nombre, figura))) return figura
+  const orden = [...dentro].sort(
+    (a, b) => (a.rol === ROL_PROFE ? 0 : 1) - (b.rol === ROL_PROFE ? 0 : 1) || b.segundos - a.segundos
+  )
+  return orden[0].nombre.trim()
+}
+
+/** La línea de asistencia de una clase (19/11/2026). */
+export function textoAsistencia(lista: ListaClase | null | undefined): string {
+  if (!lista || (!lista.pasada && !lista.vinieron)) return 'Asistencia: la cuenta la sala sola'
+  const n = lista.vinieron
+  const quien = n === 1 ? 'vino 1 alumno' : `vinieron ${n} alumnos`
+  return `Asistencia: ${quien}${lista.pasada ? '' : ' (según la sala)'}`
+}
+
 export function quienDa(semana: SemanaEquipo | null | undefined, profeDeLaClase: string): string {
   return (semana?.material?.profe || '').trim() || profeDeLaClase || ''
 }
@@ -487,13 +531,15 @@ export function tituloDeClase(tema: string | null | undefined, fecha: string | n
 }
 
 /**
- * Si hay algo que diga que la clase se dio (16/11/2026): la lista con alguien,
+ * Si hay algo que diga que la clase se dio (16/11/2026): alguien en la lista o
+ * 10 minutos en la sala (alumnos o equipo, desde el 19/11/2026),
  * una grabación, «Cómo fue la clase» o la pizarra guardada (las notas escritas
  * en clase). La presentación de los alumnos NO cuenta: se sube antes.
  */
 export function huboClase(s: SemanaEquipo): boolean {
   return !!(
-    (s.lista?.pasada && s.lista.vinieron > 0) ||
+    (s.lista && s.lista.vinieron > 0) ||
+    (s.lista?.equipo || []).some((e) => e.segundos >= MINIMO_EN_SALA) ||
     s.grabaciones.length ||
     s.grabacionSala ||
     (s.material?.despues?.texto || '').trim() ||
@@ -529,9 +575,10 @@ export function clasesDadasPorProfe(
 ): { mes: string; titulo: string; total: number; profes: { nombre: string; clases: number; porClase: { curso: string; clases: number }[] }[] }[] {
   const por: Record<string, Record<string, Record<string, number>>> = {}
   for (const s of semanas) {
-    if (s.suelta || !s.fecha || s.fecha >= hoy || !huboClase(s)) continue
+    // La de hoy cuenta en cuanto hay datos de que se dio (19/11/2026).
+    if (s.suelta || !s.fecha || s.fecha > hoy || !huboClase(s)) continue
     const mes = s.fecha.slice(0, 7)
-    const nombre = quienDa(s, profeDeClase[s.courseUuid] || '') || 'Sin profe'
+    const nombre = quienLaDio(s, profeDeClase[s.courseUuid] || '') || 'Sin profe'
     por[mes] = por[mes] || {}
     por[mes][nombre] = por[mes][nombre] || {}
     por[mes][nombre][s.curso] = (por[mes][nombre][s.curso] || 0) + 1

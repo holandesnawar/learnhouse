@@ -22,7 +22,7 @@ import Link from 'next/link'
 import { ArrowRight, CalendarDays, Check, Pencil } from 'lucide-react'
 import { PasarLista } from '@components/Pages/Profes/ListaYGrupo'
 import { esDe } from '@/lib/nawar/clasesProfes'
-import { agendaEquipo, cuando, diaLegible, estadoDeClase, grupoDe, paraPreparar, quienDa, sinRepetirGemelas, type ClaseConGemela, type ClaseEnAgenda, type SemanaEquipo } from '@/lib/nawar/salaProfes'
+import { agendaEquipo, cuando, diaLegible, estadoDeClase, grupoDe, paraPreparar, quienDa, sinRepetirGemelas, textoAsistencia, type ClaseConGemela, type ClaseEnAgenda, type SemanaEquipo } from '@/lib/nawar/salaProfes'
 import { Material, MensajeDelAdmin, Paso } from './PrepararClase'
 import FichaClase from './FichaClase'
 import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
@@ -131,7 +131,7 @@ function Hero({
           <Paso
             hecho={!!s.lista?.pasada}
             apagado={!s.lista?.pasada}
-            titulo={s.lista?.pasada ? `Asistencia · vinieron ${s.lista.vinieron}` : 'Asistencia: la cuenta la sala sola'}
+            titulo={textoAsistencia(s.lista)}
             detalle={esHoy ? 'Si alguien vino por otro sitio, corrígelo.' : undefined}
             accion={
               esHoy ? (

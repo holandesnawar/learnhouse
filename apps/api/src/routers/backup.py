@@ -154,7 +154,13 @@ async def api_content_archive(
 
     def _empaquetar() -> None:
         with tarfile.open(ruta_tmp, "w:gz") as tar:
-            tar.add(str(CONTENT_DIR), arcname="content")
+            # Sin `content/cache` (19/11/2026): los audios de la voz guardados
+            # por /api/tts se vuelven a generar solos; no hace falta copiarlos.
+            tar.add(
+                str(CONTENT_DIR),
+                arcname="content",
+                filter=lambda ti: None if ti.name == "content/cache" or ti.name.startswith("content/cache/") else ti,
+            )
 
     try:
         # En un hilo: comprimir el volumen entero tarda (notas de voz, PDF), y
