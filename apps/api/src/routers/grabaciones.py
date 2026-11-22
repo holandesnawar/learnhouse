@@ -38,7 +38,7 @@ def _nombre(user) -> str:
 
 async def _del_equipo(request: Request, course_uuid: str, current_user, db_session: AsyncSession):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if not equipo:
         raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     return curso
@@ -92,7 +92,7 @@ async def api_diagnostico(
 async def _curso_del_video(request, grabacion_id, course, otro, current_user, db_session):
     """El curso del que sale ese vídeo, si esta persona lo puede ver."""
     curso = await _curso(request, course, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if otro:
         # «La clase del otro grupo» (12/11/2026): la grabación es de la sala de
         # la clase hermana. Se pide con la clase PROPIA (la que esta persona
@@ -180,7 +180,7 @@ async def api_publicar(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     s, curso = await _semana(request, semana_id, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if not equipo:
         raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     datos: dict[str, Any] = {"partes": [p.model_dump() for p in body.partes], "titulo": body.titulo or ""}
@@ -204,7 +204,7 @@ async def api_enlace(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     s, curso = await _semana(request, semana_id, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if not equipo:
         raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     try:
@@ -221,7 +221,7 @@ async def api_quitar(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     s, curso = await _semana(request, semana_id, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if not equipo:
         raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     return await EG.quitar(s, db_session)
@@ -235,7 +235,7 @@ async def api_vista(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     s, curso = await _semana(request, semana_id, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if equipo:
         # El equipo mirándola no cuenta como un alumno que la vio.
         return {"ok": True, "vista": False}

@@ -11,13 +11,20 @@ en el grupo de usuarios **«Monitores»** (Panel → Usuarios → Grupos; vale
 también «Monitor», sin mayúsculas ni acentos). Al monitor:
 
 - La lista de cursos solo le enseña las clases del **Spreekclub** (las clases
-  en directo cuyo nombre lleva «spreek» o «spreken») (`es_clase_del_monitor`)
-  y, desde el 10/11/2026, la **formación** (solo verla). Ni las clases
-  semanales, ni la Masterclass (se le abrió el
-  09/11/2026 y se quitó el 10/11: "la masterclass no es para el monitor, por
-  ahora solo el Spreken Club") (`get_courses_orgslug`).
-- Lo que el equipo puede ABRIR y CAMBIAR por ser equipo (`_equipo_en_curso`
-  en `security/rbac/resource_access.py`) se le queda en esas clases.
+  en directo cuyo nombre lleva «spreek» o «spreken») (`es_clase_del_monitor`),
+  desde el 10/11/2026 la **formación** (solo verla) y, desde el 22/11/2026,
+  la **Masterclass** (solo verla: "el monitor también tiene que poder ver las
+  masterclass"; `es_masterclass`). Las clases semanales, no
+  (`get_courses_orgslug`).
+- **Suyo, para dar la clase y cambiar cosas, solo el Spreekclub.** En la
+  Masterclass y en la formación MIRA: abre la página, entra a la sala como un
+  participante más (no como anfitrión) y ve las grabaciones publicadas, igual
+  que un alumno. No crea ni cambia sesiones, no enciende ni apaga la sala, no
+  abre la pizarra ni baja grabaciones (`_equipo_en_curso` en
+  `security/rbac/resource_access.py` y `_roles` en `routers/salas.py`, las
+  dos con `fuera_de_sus_clases`). Historia: la Masterclass se le abrió el
+  09/11/2026 como una clase suya más y se quitó el 10/11 ("la masterclass no
+  es para el monitor, por ahora solo el Spreken Club").
 - La sala de profes le enseña solo esas clases y su archivo; ni el manual ni
   el resto. En la barra de la escuela tiene la sala, su Spreekclub, la
   formación, la comunidad y los mensajes (10/11/2026).
@@ -59,9 +66,21 @@ def es_spreekclub(nombre: str) -> bool:
     return "spreek" in junto or "spreken" in junto
 
 
+def es_masterclass(nombre: str) -> bool:
+    """La Masterclass, por su nombre («Masterclass», «Master class»)."""
+    return "masterclass" in normalizar(nombre).replace(" ", "")
+
+
 def es_clase_del_monitor(nombre: str) -> bool:
-    """Lo que ve un monitor: solo el Spreekclub (la Masterclass, no: 10/11/2026)."""
+    """Las clases SUYAS (las da él: crea sesiones, sala, pizarra, corrige):
+    solo el Spreekclub. La Masterclass la ve (22/11/2026), pero no es suya."""
     return es_spreekclub(nombre)
+
+
+def la_ve_el_monitor(nombre: str) -> bool:
+    """Las clases en directo que ve un monitor: el Spreekclub (suyo) y la
+    Masterclass (solo mirar, 22/11/2026)."""
+    return es_spreekclub(nombre) or es_masterclass(nombre)
 
 
 async def es_monitor(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
@@ -101,15 +120,15 @@ FORMACION = "course_8a1d1fab-ffbb-44ef-8f21-04ef63676d6e"
 
 
 async def cursos_del_monitor(org_id: int, db_session: AsyncSession) -> set[str]:
-    """Los `course_uuid` (con «course_») que ve el monitor: el Spreekclub y la
-    formación. Escribir solo puede en el Spreekclub (`_equipo_en_curso` solo
-    deja escribir en clases en directo)."""
+    """Los `course_uuid` (con «course_») que ve el monitor: el Spreekclub, la
+    Masterclass (22/11/2026) y la formación. Escribir solo puede en el
+    Spreekclub (`_equipo_en_curso` lo comprueba con `fuera_de_sus_clases`)."""
     from src.db.courses.courses import Course
 
     filas = (
         await db_session.execute(select(Course.course_uuid, Course.name).where(Course.org_id == org_id))
     ).all()
-    return {u for u, n in filas if es_clase_del_monitor(n) or u == FORMACION}
+    return {u for u, n in filas if la_ve_el_monitor(n) or u == FORMACION}
 
 
 async def fuera_de_sus_clases(user_id: int, org_id: int, course_uuid: str, db_session: AsyncSession) -> bool:
@@ -119,7 +138,7 @@ async def fuera_de_sus_clases(user_id: int, org_id: int, course_uuid: str, db_se
     entrega no pasan por el permiso del curso: sin esto, un monitor podía
     corregir, oír notas de voz, pasar lista o avisar en cualquier clase. Para
     tocar semanas, entregas y listas, lo suyo es solo el Spreekclub (la
-    formación la ve, pero no tiene semanas)."""
+    formación y la Masterclass las ve, pero no son suyas: 22/11/2026)."""
     if not await es_monitor(user_id, org_id, db_session):
         return False
     from src.db.courses.courses import Course

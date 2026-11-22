@@ -100,7 +100,7 @@ async def api_semanas(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, admin = await _roles(current_user, curso.org_id, db_session)
+    equipo, admin = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     datos = await T.semanas_para_alumno(curso, current_user.id, db_session, equipo=equipo, con_archivo=True)
     hermanas = await T.hermanas_para_el_equipo(curso, db_session) if equipo else []
     return {**datos, "equipo": equipo, "admin": admin, "hermanas": hermanas}
@@ -114,7 +114,7 @@ async def api_mira_tambien(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     return await T.mira_tambien(curso, db_session, equipo=equipo)
 
 
@@ -162,7 +162,7 @@ async def api_tarea(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     t, curso = await _tarea_y_curso(request, tarea_id, current_user, db_session)
-    equipo, admin = await _roles(current_user, curso.org_id, db_session)
+    equipo, admin = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     return {**await T.tarea_para(t, curso, current_user.id, db_session, equipo=equipo), "equipo": equipo, "admin": admin}
 
 
@@ -178,7 +178,7 @@ async def api_entregar(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     t, curso = await _tarea_y_curso(request, tarea_id, current_user, db_session)
-    equipo, _admin_ok = await _roles(current_user, curso.org_id, db_session)
+    equipo, _admin_ok = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     try:
         return await T.entregar(
             t, current_user.id, texto, await _leer_audio(audio), audio_seg, quitar_audio, db_session, equipo=equipo

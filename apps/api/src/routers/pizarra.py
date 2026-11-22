@@ -422,7 +422,7 @@ async def _puede_verla(request: Request, s, current_user, db_session: AsyncSessi
         if int(getattr(current_user, "id", 0) or 0) in await invitados(s, db_session):
             return T.abierta(s.fecha, hoy_nl())
         raise
-    equipo, _admin = await _roles(current_user, curso.org_id, db_session)
+    equipo, _admin = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     return equipo or T.abierta(s.fecha, hoy_nl())
 
 
@@ -474,7 +474,7 @@ async def api_de_que_clase(
     except T.TareaError as exc:
         raise _error(exc)
     curso = await _curso(request, s.course_uuid, current_user, db_session)
-    equipo, _admin = await _roles(current_user, curso.org_id, db_session)
+    equipo, _admin = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if equipo:
         # El monitor, solo en sus clases (la misma puerta que la pizarra).
         try:
@@ -539,7 +539,7 @@ async def api_del_curso(
     from src.services.panel.tandas import hoy_nl
 
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, _admin = await _roles(current_user, curso.org_id, db_session)
+    equipo, _admin = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     hoy = hoy_nl()
     out = []
     for s in await T.semanas_de(curso.org_id, T.uuid_curso(curso.course_uuid), db_session):

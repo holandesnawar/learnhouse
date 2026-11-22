@@ -327,7 +327,7 @@ async def test_la_ruta_del_video_solo_da_al_alumno_lo_publicado(db, org, monkeyp
 
     papel = {"equipo": False}
 
-    async def roles(current_user, org_id, db_session):
+    async def roles(current_user, org_id, db_session, course_uuid=None):
         return papel["equipo"], False
 
     monkeypatch.setattr(rutas, "_curso", curso)

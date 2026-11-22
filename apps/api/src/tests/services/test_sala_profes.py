@@ -95,6 +95,11 @@ def test_monitores_y_spreekclub():
     assert not M.es_spreekclub("Clase semanal") and not M.es_spreekclub("Masterclass")
     # Solo el Spreekclub: ni la Masterclass (10/11) ni la clase semanal.
     assert not M.es_clase_del_monitor("Masterclass") and M.es_clase_del_monitor("Spreken Club")
+    # 22/11/2026: la Masterclass la VE (no es suya).
+    assert M.es_masterclass("Masterclass") and M.es_masterclass("Master class · noviembre")
+    assert not M.es_masterclass("Clase semanal") and not M.es_masterclass("Spreken Club")
+    assert M.la_ve_el_monitor("Masterclass") and M.la_ve_el_monitor("Spreken Club")
+    assert not M.la_ve_el_monitor("Clase semanal · Groep rood") and not M.la_ve_el_monitor("Conversatieles")
     assert not M.es_clase_del_monitor("Clase semanal · Groep rood") and not M.es_clase_del_monitor("Formación Nawar A0-A1")
 
 
@@ -125,9 +130,10 @@ async def test_la_invitacion_de_monitores_entra_ya_como_monitor(db):
     assert roles == {10: 5, 11: 4, 12: 1}
 
 
-async def test_el_monitor_ve_la_formacion_y_el_spreekclub(db):
+async def test_el_monitor_ve_la_formacion_el_spreekclub_y_la_masterclass(db):
     """10/11/2026: «no puede ver nada… no es así el monitor»: ve su Spreekclub
-    y la formación (solo verla), nada más."""
+    y la formación (solo verla). 22/11/2026: «también tiene que poder ver las
+    masterclass». La clase semanal, no."""
     from src.db.courses.courses import Course
     from src.services.equipo import monitores as M
 
@@ -140,7 +146,7 @@ async def test_el_monitor_ve_la_formacion_y_el_spreekclub(db):
     ]:
         db.add(Course(course_uuid=uuid, name=nombre, org_id=org_id, description="", about="", public=False, published=True, open_to_contributors=False))
     await db.commit()
-    assert await M.cursos_del_monitor(org_id, db) == {M.FORMACION, "course_spreek"}
+    assert await M.cursos_del_monitor(org_id, db) == {M.FORMACION, "course_spreek", "course_master"}
 
 
 async def test_el_monitor_no_toca_semanas_ni_entregas_de_otras_clases(db, monkeypatch):
@@ -169,7 +175,7 @@ async def test_el_monitor_no_toca_semanas_ni_entregas_de_otras_clases(db, monkey
     assert await M.fuera_de_sus_clases(20, 1, "spreek", db) is False
     assert await M.fuera_de_sus_clases(21, 1, "course_rood", db) is False  # un profe normal
 
-    async def roles(user, org_id, db_session):
+    async def roles(user, org_id, db_session, course_uuid=None):
         return True, False
 
     monkeypatch.setattr(R, "_roles", roles)
@@ -179,6 +185,43 @@ async def test_el_monitor_no_toca_semanas_ni_entregas_de_otras_clases(db, monkey
         await R._equipo(monitor, 1, db, "course_rood")
     assert e.value.status_code == 403
     assert await R._equipo(profe, 1, db, "course_rood") is False
+
+
+async def test_el_monitor_mira_la_masterclass_pero_no_la_lleva(db):
+    """22/11/2026: el monitor ve la Masterclass, pero ahí no es «del equipo»:
+    entra a la sala como uno más y no cambia sesiones, sala ni pizarra. En su
+    Spreekclub sí. Un profe normal, en todas."""
+    from fastapi import HTTPException
+
+    from src.db.courses.courses import Course
+    from src.db.user_organizations import UserOrganization
+    from src.db.usergroup_user import UserGroupUser
+    from src.db.usergroups import UserGroup
+    from src.routers import salas as S
+    from src.routers import tareas as R
+    from src.services.equipo import monitores as M
+
+    for uuid, nombre in [("course_spreek", "Spreken Club"), ("course_master", "Masterclass")]:
+        db.add(Course(course_uuid=uuid, name=nombre, org_id=1, description="", about="", public=False, published=True, open_to_contributors=False))
+    mon = UserGroup(name="Monitores", description="", org_id=1)
+    db.add(mon)
+    db.add(UserOrganization(user_id=20, org_id=1, role_id=5, creation_date="", update_date=""))
+    db.add(UserOrganization(user_id=21, org_id=1, role_id=5, creation_date="", update_date=""))
+    await db.commit()
+    db.add(UserGroupUser(usergroup_id=mon.id, user_id=20, org_id=1))
+    await db.commit()
+
+    monitor, profe = Persona(id=20), Persona(id=21)
+    assert await M.fuera_de_sus_clases(20, 1, "course_master", db) is True
+    # Sin clase, es del equipo de la escuela (su sala de profes); en cada clase, depende.
+    assert await S._roles(monitor, 1, db) == (True, False)
+    assert await S._roles(monitor, 1, db, "course_spreek") == (True, False)
+    assert await S._roles(monitor, 1, db, "course_master") == (False, False)
+    assert await S._roles(profe, 1, db, "course_master") == (True, False)
+    # Y las rutas del equipo que llegan por una semana o una entrega: 403.
+    with pytest.raises(HTTPException) as e:
+        await R._equipo(monitor, 1, db, "course_master")
+    assert e.value.status_code == 403
 
 
 async def test_un_profe_no_convierte_la_formacion_en_clase_en_directo(db, monkeypatch):
@@ -196,7 +239,7 @@ async def test_un_profe_no_convierte_la_formacion_en_clase_en_directo(db, monkey
     async def curso(request, uuid, user, db_session):
         return formacion
 
-    async def roles(user, org_id, db_session):
+    async def roles(user, org_id, db_session, course_uuid=None):
         return True, False
 
     for m in (RS, RT):

@@ -844,6 +844,12 @@ class ResourceAccessChecker:
 
                     if await es_monitor(user_id, curso.org_id, self.db_session):
                         resultado = resource_uuid in await cursos_del_monitor(curso.org_id, self.db_session)
+                        # 22/11/2026: la Masterclass la VE, pero cambiar solo
+                        # puede en lo suyo (el Spreekclub).
+                        if resultado and escribir:
+                            from src.services.equipo.monitores import es_clase_del_monitor
+
+                            resultado = es_clase_del_monitor(curso.name or "")
                 if not resultado and not escribir:
                     # Nawar (08/11/2026): el closer ve (solo ve) las clases
                     # en directo del programa nuevo: la masterclass y el
