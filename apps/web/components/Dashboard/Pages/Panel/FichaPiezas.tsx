@@ -81,6 +81,7 @@ export function Marco({
   bloqueado = false,
   cargando = false,
   error = '',
+  aviso = '',
   lateral,
   children,
 }: {
@@ -99,6 +100,8 @@ export function Marco({
   bloqueado?: boolean
   cargando?: boolean
   error?: string
+  /** Algo que explicar en lugar de la ficha y que no es un fallo (en gris). */
+  aviso?: string
   lateral?: React.ReactNode
   children?: React.ReactNode
 }) {
@@ -146,9 +149,15 @@ export function Marco({
             ))}
           </div>
         </div>
-        {cargando || error ? (
+        {cargando || error || aviso ? (
           <div className="flex-1 flex justify-center pt-20">
-            {error ? <p className="text-[13.5px] text-[#C8322B] px-6 text-center">{error}</p> : <Loader2 className="animate-spin text-[#8A93A3]" size={22} />}
+            {error ? (
+              <p className="text-[13.5px] text-[#C8322B] px-6 text-center">{error}</p>
+            ) : aviso ? (
+              <p className="text-[13.5px] text-[#4B5565] px-6 text-center max-w-[520px] leading-relaxed">{aviso}</p>
+            ) : (
+              <Loader2 className="animate-spin text-[#8A93A3]" size={22} />
+            )}
           </div>
         ) : (
           <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_300px]">

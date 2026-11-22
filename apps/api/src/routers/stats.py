@@ -389,6 +389,8 @@ async def api_analitica(
     campana: str = "",
     anuncio: str = "",
     bf_todo: str = "",
+    pais: str = "",
+    comparar: str = "1",
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
@@ -399,7 +401,7 @@ async def api_analitica(
     return await analitica(
         org_id,
         {"desde": desde, "hasta": hasta, "modelo": modelo, "canal": canal, "fuente": fuente,
-         "campana": campana, "anuncio": anuncio, "bf_todo": bf_todo},
+         "campana": campana, "anuncio": anuncio, "bf_todo": bf_todo, "pais": pais, "comparar": comparar},
         db_session,
     )
 

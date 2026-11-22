@@ -348,6 +348,11 @@ if not is_testing:
 _ADDED_COLUMNS = [
     # Tareas del panel: «flotar» o «mover» (22/11/2026).
     "ALTER TABLE IF EXISTS panel_task ADD COLUMN IF NOT EXISTS tipo VARCHAR(10) DEFAULT ''",
+    # Analítica (22/11/2026): país por la zona horaria del navegador, si ya
+    # había venido y si en esa visita dejó sus datos. Sin nada personal.
+    "ALTER TABLE IF EXISTS web_visita ADD COLUMN IF NOT EXISTS zona VARCHAR(40) DEFAULT ''",
+    "ALTER TABLE IF EXISTS web_visita ADD COLUMN IF NOT EXISTS vuelve BOOLEAN DEFAULT FALSE",
+    "ALTER TABLE IF EXISTS web_visita ADD COLUMN IF NOT EXISTS dejo_datos BOOLEAN DEFAULT FALSE",
     # Las casillas de la campana de cada semana de clase (05/11/2026).
     "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS aviso_presentacion VARCHAR(40) DEFAULT 'si'",
     "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS aviso_grabacion VARCHAR(40) DEFAULT ''",
