@@ -42,7 +42,7 @@ import {
   type Tablero,
   type Tarea,
 } from '@services/panel/panel'
-import FichaCliente from '@components/Dashboard/Pages/Panel/FichaCliente'
+import FichaCliente from '@components/Dashboard/Pages/Panel/Ficha'
 import CabeceraPagina from '@components/Dashboard/Pages/Panel/Cabecera'
 import { FilaTarea, MedidorSemana, TareaForm, useEquipo } from '@components/Dashboard/Pages/Panel/Tareas'
 import {

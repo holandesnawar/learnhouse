@@ -30,7 +30,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import PorDia from './PorDia'
 import { marcarSolicitud } from '@services/stats/school'
-import FichaCliente from '../Panel/FichaCliente'
+import FichaCliente from '../Panel/Ficha'
 import { Plegable, TARJETA, filtro } from '../Panel/ui'
 import toast from 'react-hot-toast'
 import {

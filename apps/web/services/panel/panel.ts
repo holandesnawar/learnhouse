@@ -245,6 +245,13 @@ export interface FichaCliente {
   /** Solo administradores. */
   systeme: { ok: boolean; motivo?: string; existe?: boolean; etiquetas: string[]; campos: { slug: string; valor: string }[] } | null
   linea: ItemLinea[]
+  /** La cuenta de la escuela con ESTE correo (null si no tiene, o entra con otro). */
+  user_id?: number | null
+  /** Vendido ≠ cobrado (22/11/2026). Solo administradores y solo si tiene una matrícula pagada. */
+  venta?: { vendido_cents: number; cobrado_cents: number; por_cobrar_cents: number } | null
+  /** La comisión del closer de esta venta (solo administradores). */
+  comision?: ComisionVenta | null
+  porcentajes_comision?: number[]
 }
 
 type Resp<T> = { ok: boolean; datos?: T; error?: string }

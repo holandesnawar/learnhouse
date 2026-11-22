@@ -21,7 +21,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { getAnalitica, type Analitica, type FilaCifras, type FiltrosAnalitica, type Modelo } from '@services/stats/analitica'
 import { euros } from '@services/stats/school'
 import { Loader2, X } from 'lucide-react'
-import FichaCliente from './FichaCliente'
+import FichaCliente from './Ficha'
 import { ENLACE, Estado, META, Seccion, TARJETA, filtro } from './ui'
 
 const pct = (v: number | null | undefined) => (v === null || v === undefined ? '—' : `${String(v).replace('.', ',')} %`)

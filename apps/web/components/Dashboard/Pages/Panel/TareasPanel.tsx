@@ -11,7 +11,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { getTareas, type BalanceTareas, type Tarea } from '@services/panel/panel'
 import { hoyISO } from '@services/stats/contactos'
-import FichaCliente from './FichaCliente'
+import FichaCliente from './Ficha'
 import { COLOR_TIPO, FilaTarea, MedidorSemana, TareaForm, useEquipo } from './Tareas'
 import { Loader2 } from 'lucide-react'
 

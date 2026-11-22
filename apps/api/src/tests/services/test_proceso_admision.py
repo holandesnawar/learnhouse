@@ -85,3 +85,18 @@ def test_agendar_sin_respuestas():
 def test_extra_en_texto_tambien_vale():
     a = proceso_admision([{"kind": "cualificacion", "when": "2026-10-07T10:00:00", "extra": '{"apto": true, "respuestas": [{"pregunta": "Nivel", "respuesta": "A1"}]}'}])
     assert a["respuestas"] == [{"pregunta": "Nivel", "respuesta": "A1"}]
+
+
+def test_venta_de_la_ficha_vendido_no_es_cobrado():
+    """La ficha del alumno (22/11/2026): con plazos, lo vendido es el total del
+    plan; lo cobrado, lo que suman sus pagos. Sin matrícula pagada no hay venta."""
+    from src.services.panel.cliente import venta_de_la_ficha
+
+    assert venta_de_la_ficha(None, 5000) is None
+    assert venta_de_la_ficha({}, 5000) is None
+    a_plazos = venta_de_la_ficha({"vendido_cents": 59700, "cobrado_cents": 19900}, 19900)
+    assert a_plazos == {"vendido_cents": 59700, "cobrado_cents": 19900, "por_cobrar_cents": 39800}
+    un_pago = venta_de_la_ficha({"vendido_cents": 43500}, 43500)
+    assert un_pago == {"vendido_cents": 43500, "cobrado_cents": 43500, "por_cobrar_cents": 0}
+    # Nunca menos vendido que cobrado (una señal más el resto, p. ej.).
+    assert venta_de_la_ficha({"vendido_cents": 100}, 500)["por_cobrar_cents"] == 0
