@@ -540,9 +540,78 @@ async def api_archivo_profe(
             raise T.TareaError(f"Como mucho {MP.MAX_ARCHIVOS} cosas por semana")
         relativa, _ext = MP.guardar_archivo(s.org_id, archivo.filename or "archivo", datos)
         m = MP.con_archivo(m, archivo.filename or "archivo", relativa, len(datos), _nombre(current_user))
+        # Si la pizarra de la clase estaba en blanco, este PDF pasa a ser el suyo (22/11/2026).
+        from src.services.tareas import pizarra as PZ
+
+        m = PZ.tras_subir(m, m["archivos"][-1]["id"])
     except T.TareaError as exc:
         raise _error(exc)
     return await MP.guardar(s, m, db_session)
+
+
+class NombreProfeIn(BaseModel):
+    nombre: str = ""
+
+
+async def _borrar_si_nadie_lo_usa(ruta: Optional[str], db_session: AsyncSession) -> None:
+    """Una copia de la semana (clase duplicada, o la del otro grupo) puede
+    apuntar al mismo archivo: solo se borra del disco si ya no lo usa nadie."""
+    if not ruta:
+        return
+    from sqlmodel import select
+    from src.db.tareas import TareaSemana
+    from src.services.tareas import material_profe as MP
+
+    otras = (await db_session.execute(select(TareaSemana).where(TareaSemana.material_profe.contains(ruta)))).scalars().all()  # type: ignore[attr-defined]
+    if not otras:
+        MP.borrar_del_disco(ruta)
+
+
+@router.put("/semana/{semana_id}/profe/{archivo_id}/nombre", summary="Cambia el nombre de algo del material del profe (equipo).")
+async def api_nombre_profe(
+    semana_id: int,
+    archivo_id: str,
+    data: NombreProfeIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.tareas import material_profe as MP
+
+    s, _admin_ok = await _semana_equipo(semana_id, current_user, db_session)
+    try:
+        m = MP.con_nombre(MP.leer(s.material_profe), archivo_id, data.nombre)
+    except T.TareaError as exc:
+        raise _error(exc)
+    return await MP.guardar(s, m, db_session)
+
+
+@router.put("/semana/{semana_id}/profe/{archivo_id}/archivo", summary="Cambia el archivo de una presentación conservando su id y sus notas (equipo).")
+async def api_cambiar_archivo_profe(
+    semana_id: int,
+    archivo_id: str,
+    archivo: UploadFile = File(...),
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.tareas import material_profe as MP
+
+    s, _admin_ok = await _semana_equipo(semana_id, current_user, db_session)
+    datos = await archivo.read(MP.MAX_BYTES + 1)
+    relativa = None
+    try:
+        m = MP.leer(s.material_profe)
+        if not any(x.get("id") == archivo_id and x.get("tipo") == "archivo" for x in m["archivos"]):
+            raise T.TareaError("Ese archivo ya no está", 404)
+        # Se escribe en un archivo NUEVO: el de antes puede ser también el de
+        # la clase del otro grupo, que se queda con el suyo.
+        relativa, _ext = MP.guardar_archivo(s.org_id, archivo.filename or "archivo", datos)
+        m, vieja = MP.con_archivo_cambiado(m, archivo_id, relativa, len(datos), _nombre(current_user))
+    except T.TareaError as exc:
+        MP.borrar_del_disco(relativa)
+        raise _error(exc)
+    salida = await MP.guardar(s, m, db_session)
+    await _borrar_si_nadie_lo_usa(vieja, db_session)
+    return salida
 
 
 @router.delete("/semana/{semana_id}/profe/{archivo_id}", summary="Quita algo del material del profe (quien lo subió o un administrador).")
@@ -560,13 +629,9 @@ async def api_quitar_profe(
     except T.TareaError as exc:
         raise _error(exc)
     salida = await MP.guardar(s, m, db_session)
-    # Una copia de la semana (clase duplicada) puede apuntar al mismo archivo.
-    from sqlmodel import select
-    from src.db.tareas import TareaSemana
-
-    otras = (await db_session.execute(select(TareaSemana).where(TareaSemana.material_profe.contains(ruta or "~")))).scalars().all()  # type: ignore[attr-defined]
-    if ruta and not otras:
-        MP.borrar_del_disco(ruta)
+    # Si tenía notas de la pizarra, NO se pierden: quedan como «notas de una
+    # presentación que ya no está» y se pueden pasar a otra (pizarra.py).
+    await _borrar_si_nadie_lo_usa(ruta, db_session)
     return salida
 
 

@@ -131,8 +131,17 @@ export interface MaterialProfe {
   profe?: string
   /** El mensaje del administrador para el profe de esa semana. */
   mensaje?: MensajeProfe | null
-  /** La pizarra de clase (10/11/2026): si hay algo escrito y si ya la tienen los alumnos. */
-  pizarra?: { guardada_at: string; publicada_at: string; paginas: number } | null
+  /** La pizarra de clase (10/11/2026): si hay algo escrito (en cualquier presentación) y si ya la tienen los alumnos. */
+  pizarra?: {
+    guardada_at: string
+    publicada_at: string
+    paginas: number
+    /** Solo en la lista de semanas (22/11/2026): las presentaciones de la clase y cuál abre la pizarra. */
+    presentaciones?: import('@services/pizarra/pizarra').Presentacion[]
+    sueltas?: import('@services/pizarra/pizarra').NotasSueltas[]
+    fuente?: string
+    publicada?: import('@services/pizarra/pizarra').Publicada | null
+  } | null
   /** «Cómo fue la clase» (12/11/2026): dos líneas del profe después de darla. */
   despues?: { texto: string; por: string; at: string } | null
 }
@@ -463,6 +472,16 @@ export function subirArchivoProfe(semanaId: number, archivo: File, token: string
   f.append('archivo', archivo, archivo.name)
   return pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/archivo`, token, 'POST', f)
 }
+
+/** Cambia el archivo de una presentación conservando su id (y sus notas de la pizarra). */
+export function cambiarArchivoProfe(semanaId: number, id: string, archivo: File, token: string) {
+  const f = new FormData()
+  f.append('archivo', archivo, archivo.name)
+  return pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/${encodeURIComponent(id)}/archivo`, token, 'PUT', f)
+}
+
+export const nombreProfe = (semanaId: number, id: string, nombre: string, token: string) =>
+  pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/${encodeURIComponent(id)}/nombre`, token, 'PUT', { nombre })
 
 export const quitarProfe = (semanaId: number, id: string, token: string) =>
   pedir<MaterialProfe>(`${base()}/semana/${semanaId}/profe/${encodeURIComponent(id)}`, token, 'DELETE')

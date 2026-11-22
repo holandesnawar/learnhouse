@@ -33,6 +33,49 @@ al equipo; el PDF, al equipo y a los alumnos que ven esa clase, por su ruta.
 
 Cada grupo tiene su semana, así que cada profe guarda SUS notas: lo que se
 escribe en la clase del martes no pisa lo del jueves.
+
+── Cada presentación, sus notas (22/11/2026) ───────────────────────────────
+
+Usuario: «un profe subió una presentación que no era en pizarra y tomó notas
+ahí; ahora cómo se saca esa, dónde está, dónde se guardó, cómo metemos la que
+sí es… nadie sabemos dónde están las presentaciones ni cuál está en pizarra».
+
+Antes cada semana guardaba UN solo juego de notas (`anotaciones`) y de qué
+documento era (`fuente`): al elegir otro documento y escribir, lo anterior se
+sustituía, y lo escrito en el documento equivocado no se podía pasar al bueno.
+Ahora la clave `pizarra` del material es:
+
+    {"fuente": "<la de la pizarra: la que se abre al pulsar «Pizarra»>",
+     "notas": {"<id de presentación>": {"ruta", "at", "por", "paginas",
+                                        "algo", "nombre"}},
+     "publicada": {"ruta","at","por","paginas","tam","fuente","nombre"} | None,
+     # por compatibilidad, las de la presentación de la pizarra:
+     "anotaciones", "guardada_at", "guardada_por"}
+
+- **Cada presentación guarda las suyas** (`notas[id]`): cambiar de
+  presentación no pisa nada. `paginas` = páginas con algo escrito; `algo` =
+  si hay algo que conservar (trazos, páginas en blanco o escondidas);
+  `nombre` = cómo se llamaba el documento cuando se escribió (para poder
+  decirlo si luego se quita).
+- **Los ids**: `profe:<id>` (un PDF del material del profe, solo equipo),
+  `clase:<activity_uuid>` (el PDF que los alumnos ven antes de la clase) y
+  `blanco` (la pizarra en blanco, sin PDF: siempre se puede abrir).
+- **Lo viejo se lee sin tocar el disco** (`leer`): si no hay `notas` y hay
+  `anotaciones`, las notas son de `fuente` (vacía → clave `""`, que sale como
+  «sin presentación»). Nada se reescribe hasta el siguiente guardado.
+- **`lista()`** es lo que pintan todas las pantallas: las presentaciones (la
+  de la pizarra primero), cada una con sus notas y si de ella salió la
+  versión de los alumnos, y las **sueltas**: notas cuyo documento ya no está
+  (se quitó, o se cambió el PDF de los alumnos). No se pierden: se pueden
+  pasar a otra presentación o borrar.
+- **`pasar()`** lleva las notas de una presentación a otra. Si la de destino
+  ya tiene, se JUNTAN (misma página → se suman los trazos; las páginas en
+  blanco, al final). El origen se queda sin notas. Si el origen era la de la
+  pizarra, la de destino pasa a serlo (también al cambiar el PDF de los
+  alumnos, que cambia de id).
+- **Nunca se borra un archivo de notas** salvo en `borrar_notas` (el botón
+  «Borrar sus notas», con confirmación) y al juntar (el del origen, ya
+  copiado dentro del destino).
 """
 
 from __future__ import annotations
@@ -49,19 +92,60 @@ MAX_PDF = 60 * 1024 * 1024
 MAX_PAGINAS = 200
 
 
+BLANCO = "blanco"
+NOMBRE_BLANCO = "Pizarra en blanco"
+
+
+def _nota(v: Any) -> Optional[dict]:
+    """Una entrada de `notas`, con su forma; None si no vale."""
+    if not isinstance(v, dict) or not v.get("ruta"):
+        return None
+    paginas = v.get("paginas")
+    return {
+        "ruta": str(v.get("ruta") or ""),
+        "at": str(v.get("at") or ""),
+        "por": str(v.get("por") or ""),
+        # None = no se sabe (lo guardado antes del 22/11/2026).
+        "paginas": int(paginas) if isinstance(paginas, (int, float)) and not isinstance(paginas, bool) else None,
+        "algo": bool(v.get("algo", True)),
+        "nombre": str(v.get("nombre") or ""),
+    }
+
+
 def leer(material: dict) -> dict:
-    """La pizarra guardada en el material de la semana, siempre con la misma forma."""
+    """La pizarra guardada en el material de la semana, siempre con la misma
+    forma. Lo de antes del 22/11/2026 (un solo juego de notas) se lee como las
+    notas de su `fuente`, sin tocar el disco."""
     p = material.get("pizarra") if isinstance(material, dict) else None
     if not isinstance(p, dict):
         p = {}
     pub = p.get("publicada") if isinstance(p.get("publicada"), dict) else None
     if pub and not pub.get("ruta"):
         pub = None
+    fuente = str(p.get("fuente") or "")
+    notas: dict[str, dict] = {}
+    if isinstance(p.get("notas"), dict):
+        for k, v in p["notas"].items():
+            n = _nota(v)
+            if n:
+                notas[str(k)] = n
+    elif p.get("anotaciones"):
+        notas[fuente] = {
+            "ruta": str(p.get("anotaciones") or ""),
+            "at": str(p.get("guardada_at") or ""),
+            "por": str(p.get("guardada_por") or ""),
+            "paginas": None,
+            "algo": True,
+            "nombre": "",
+        }
+    actual = notas.get(fuente) or {}
     return {
-        "fuente": str(p.get("fuente") or ""),
-        "anotaciones": str(p.get("anotaciones") or ""),
-        "guardada_at": str(p.get("guardada_at") or ""),
-        "guardada_por": str(p.get("guardada_por") or ""),
+        "fuente": fuente,
+        "notas": notas,
+        # Compatibilidad: las de la presentación de la pizarra.
+        "anotaciones": str(actual.get("ruta") or ""),
+        "guardada_at": str(actual.get("at") or ""),
+        "guardada_por": str(actual.get("por") or ""),
         "publicada": (
             {
                 "ruta": str(pub.get("ruta") or ""),
@@ -69,11 +153,27 @@ def leer(material: dict) -> dict:
                 "por": str(pub.get("por") or ""),
                 "paginas": int(pub.get("paginas") or 0),
                 "tam": int(pub.get("tam") or 0),
+                # De qué presentación salió (antes del 22/11 no se apuntaba:
+                # era la de la pizarra de entonces).
+                "fuente": str(pub.get("fuente") if pub.get("fuente") is not None else fuente),
+                "nombre": str(pub.get("nombre") or ""),
             }
             if pub
             else None
         ),
     }
+
+
+def _con_compat(p: dict) -> dict:
+    """Deja `anotaciones`, `guardada_at` y `guardada_por` como los de la
+    presentación de la pizarra (lo que leía el código de antes)."""
+    actual = (p.get("notas") or {}).get(p.get("fuente") or "") or {}
+    return {**p, "anotaciones": str(actual.get("ruta") or ""), "guardada_at": str(actual.get("at") or ""), "guardada_por": str(actual.get("por") or "")}
+
+
+def ultima_escritura(p: dict) -> str:
+    """Cuándo se escribió por última vez en CUALQUIER presentación de la semana."""
+    return max([n.get("at") or "" for n in (p.get("notas") or {}).values() if n.get("algo", True)] or [""])
 
 
 def publicada_para_la_pantalla(p: dict) -> Optional[dict]:
@@ -88,19 +188,50 @@ def fuentes(material: dict, clases: list[dict]) -> list[dict]:
     out: list[dict] = []
     for a in material.get("archivos") or []:
         if a.get("tipo") == "archivo" and str(a.get("ruta") or "").lower().endswith(".pdf"):
-            out.append({"id": f"profe:{a.get('id')}", "de": "profe", "nombre": a.get("nombre") or "Presentación completa"})
+            out.append(
+                {
+                    "id": f"profe:{a.get('id')}",
+                    "de": "profe",
+                    "nombre": a.get("nombre") or "Presentación completa",
+                    "por": str(a.get("por") or ""),
+                    "at": str(a.get("at") or ""),
+                    "tam": int(a.get("tam") or 0),
+                }
+            )
     for c in clases or []:
         if c.get("tipo") == "presentacion" and c.get("activity_uuid"):
-            out.append({"id": f"clase:{c['activity_uuid']}", "de": "alumnos", "nombre": c.get("nombre") or "Presentación"})
+            out.append(
+                {
+                    "id": f"clase:{c['activity_uuid']}",
+                    "de": "alumnos",
+                    "nombre": c.get("nombre") or "Presentación",
+                    "por": "",
+                    "at": str(c.get("creada") or ""),
+                    "tam": 0,
+                }
+            )
     return out
 
 
 def fuente_valida(fuente: str, disponibles: list[dict]) -> str:
-    """La fuente pedida si existe; si no, la primera; si no hay ninguna, vacío."""
+    """La de la pizarra: la guardada si sigue existiendo (o es la pizarra en
+    blanco); si no, la primera del equipo; si no, la de los alumnos; y si la
+    clase no tiene ningún PDF, vacío (la pantalla abre entonces en blanco)."""
     ids = [f["id"] for f in disponibles]
-    if fuente in ids:
+    if fuente in ids or fuente == BLANCO:
         return fuente
     return ids[0] if ids else ""
+
+
+def existe(fuente: str, disponibles: list[dict]) -> bool:
+    """Si en esa presentación se puede escribir ahora mismo."""
+    return fuente == BLANCO or any(f["id"] == fuente for f in disponibles)
+
+
+def nombre_de(fuente: str, disponibles: list[dict]) -> str:
+    if fuente == BLANCO:
+        return NOMBRE_BLANCO
+    return next((str(f.get("nombre") or "") for f in disponibles if f["id"] == fuente), "")
 
 
 def limpiar_anotaciones(doc: Any) -> dict:
@@ -143,25 +274,57 @@ def _borrar(relativa: str) -> None:
             pass
 
 
-def guardar_anotaciones(org_id: int, p: dict, fuente: str, doc: dict, por: str, ahora: str) -> dict:
-    """Escribe el JSON (en el mismo archivo si ya había) y devuelve la pizarra nueva."""
-    texto = json.dumps(limpiar_anotaciones(doc), ensure_ascii=False, separators=(",", ":"))
-    datos = texto.encode("utf-8")
+def contar(doc: dict) -> tuple[int, bool]:
+    """(páginas con algo escrito, si hay algo que conservar). Una página en
+    blanco añadida o una página escondida cuentan como «algo» aunque no
+    tengan trazos: son trabajo del profe."""
+    paginas = doc.get("paginas") or []
+    escritas = sum(1 for pg in paginas if pg.get("trazos"))
+    algo = any(pg.get("trazos") or pg.get("origen") is None or pg.get("oculta") for pg in paginas)
+    return escritas, bool(algo)
+
+
+def _escribir(org_id: int, relativa: str, doc: dict) -> str:
+    """Escribe el JSON de unas notas (en `relativa` si vale; si no, en un
+    archivo nuevo) y devuelve la ruta relativa."""
+    datos = json.dumps(doc, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     if len(datos) > MAX_ANOTACIONES:
         raise TareaError("Hay demasiado escrito en esta pizarra para guardarlo. Borra algún trazo largo.")
-    relativa = p.get("anotaciones") or _relativa(org_id, f"{_uuid.uuid4().hex}.json")
-    ruta = ruta_segura(relativa)
+    ruta = ruta_segura(relativa) if relativa else None
     if ruta is None:
         relativa = _relativa(org_id, f"{_uuid.uuid4().hex}.json")
         ruta = ruta_segura(relativa)
     _carpeta(org_id)
     assert ruta is not None
     ruta.write_bytes(datos)
-    return {**p, "fuente": fuente, "anotaciones": relativa, "guardada_at": ahora, "guardada_por": (por or "")[:120]}
+    return relativa
 
 
-def leer_anotaciones(p: dict) -> Optional[dict]:
-    ruta = ruta_segura(p.get("anotaciones") or "")
+def guardar_anotaciones(org_id: int, p: dict, fuente: str, doc: dict, por: str, ahora: str, nombre: str = "") -> dict:
+    """Guarda las notas de ESA presentación (en su mismo archivo si ya tenía)
+    y devuelve la pizarra nueva. Las de las demás no se tocan. Si la semana
+    aún no tenía presentación de la pizarra, pasa a serlo esta."""
+    limpio = limpiar_anotaciones(doc)
+    notas = dict(p.get("notas") or {})
+    vieja = notas.get(fuente) or {}
+    relativa = _escribir(org_id, vieja.get("ruta") or "", limpio)
+    escritas, algo = contar(limpio)
+    notas[fuente] = {
+        "ruta": relativa,
+        "at": ahora,
+        "por": (por or "")[:120],
+        "paginas": escritas,
+        "algo": algo,
+        "nombre": (nombre or vieja.get("nombre") or "")[:160],
+    }
+    return _con_compat({**p, "fuente": p.get("fuente") or fuente, "notas": notas})
+
+
+def leer_anotaciones(p: dict, fuente: Optional[str] = None) -> Optional[dict]:
+    """Las notas de una presentación (sin decir cuál, las de la de la pizarra)."""
+    clave = p.get("fuente") or "" if fuente is None else fuente
+    n = (p.get("notas") or {}).get(clave)
+    ruta = ruta_segura((n or {}).get("ruta") or "")
     if ruta is None or not ruta.is_file():
         return None
     try:
@@ -170,11 +333,166 @@ def leer_anotaciones(p: dict) -> Optional[dict]:
         return None
 
 
+def con_fuente(p: dict, fuente: str) -> dict:
+    """Marca cuál es la de la pizarra (la que se abre al pulsar «Pizarra»)."""
+    return _con_compat({**p, "fuente": fuente})
+
+
+def tras_subir(material: dict, archivo_id: str) -> dict:
+    """Al subir un PDF del equipo a una clase cuya pizarra estaba en blanco
+    (o no tenía ninguna elegida, o la elegida ya no existe), ese PDF pasa a
+    ser el de la pizarra: si no, se sube la presentación y la pizarra sigue
+    abriendo en blanco. Si ya había una presentación elegida, no se toca."""
+    p = leer(material)
+    elegida = p["fuente"]
+    reales = {f"profe:{a.get('id')}" for a in material.get("archivos") or [] if a.get("tipo") == "archivo" and str(a.get("ruta") or "").lower().endswith(".pdf")}
+    nueva = f"profe:{archivo_id}"
+    if nueva not in reales:
+        return material
+    if elegida and elegida != BLANCO and (elegida in reales - {nueva} or elegida.startswith("clase:")):
+        return material
+    if not elegida and "pizarra" not in material:
+        return material  # sin pizarra todavía: ya abre la primera del equipo
+    return {**material, "pizarra": con_fuente(p, nueva)}
+
+
+def juntar(destino: Optional[dict], origen: dict) -> dict:
+    """Las notas de `origen` metidas en las de `destino`. Función pura.
+
+    Misma página del PDF → se suman los trazos (y si alguna de las dos estaba
+    escondida, sigue escondida). Las páginas en blanco del origen, y las de un
+    número que el destino no tiene, van al final. La pantalla, al abrir,
+    convierte en página en blanco las que no existan en ese PDF."""
+    d = limpiar_anotaciones(destino) if isinstance(destino, dict) and isinstance(destino.get("paginas"), list) else {"v": 1, "paginas": []}
+    o = limpiar_anotaciones(origen)
+    paginas = [dict(pg) for pg in d["paginas"]]
+    por_origen = {pg["origen"]: k for k, pg in enumerate(paginas) if pg["origen"] is not None}
+    for pg in o["paginas"]:
+        n = pg["origen"]
+        if n is not None and n in por_origen:
+            ya = paginas[por_origen[n]]
+            ya["trazos"] = [*ya["trazos"], *pg["trazos"]][:4000]
+            ya["oculta"] = bool(ya["oculta"] or pg["oculta"])
+        elif n is not None:
+            if pg["trazos"] or pg["oculta"]:
+                por_origen[n] = len(paginas)
+                paginas.append(dict(pg))
+        else:
+            paginas.append(dict(pg))
+    return {"v": 1, "paginas": paginas[:MAX_PAGINAS]}
+
+
+def pasar(org_id: int, p: dict, de: str, a: str, por: str, ahora: str, nombre_a: str = "") -> tuple[dict, bool]:
+    """Pasa las notas de una presentación a otra y devuelve (pizarra, si pasó
+    algo). El origen se queda sin notas. Si el origen era la de la pizarra,
+    la de destino pasa a serlo, haya notas o no: es «la buena» (y es lo que
+    hace falta al cambiar el PDF de los alumnos, que cambia de id)."""
+    if de == a:
+        raise TareaError("Es la misma presentación")
+    notas = dict(p.get("notas") or {})
+    nuevo = {**p, "notas": notas}
+    if (p.get("fuente") or "") == de:
+        nuevo["fuente"] = a
+    origen = notas.get(de)
+    doc = leer_anotaciones(p, de) if origen else None
+    if not origen or doc is None:
+        return _con_compat(nuevo), False
+    destino = notas.get(a)
+    junto = juntar(leer_anotaciones(p, a) if destino else None, doc)
+    relativa = _escribir(org_id, (destino or {}).get("ruta") or "", junto)
+    escritas, algo = contar(junto)
+    notas[a] = {
+        "ruta": relativa,
+        # Las notas siguen siendo de quien las escribió y de cuando las
+        # escribió (lo último de las dos), no de quien las ha pasado.
+        "at": max(origen.get("at") or "", (destino or {}).get("at") or "") or ahora,
+        "por": (origen.get("por") or (destino or {}).get("por") or por or "")[:120],
+        "paginas": escritas,
+        "algo": algo,
+        "nombre": (nombre_a or (destino or {}).get("nombre") or "")[:160],
+    }
+    notas.pop(de, None)
+    # El archivo del origen ya está copiado dentro del destino.
+    if origen.get("ruta") and origen.get("ruta") != relativa:
+        _borrar(origen["ruta"])
+    return _con_compat(nuevo), True
+
+
+def borrar_notas(p: dict, fuente: str) -> dict:
+    """Borra las notas de una presentación (el botón «Borrar sus notas»)."""
+    notas = dict(p.get("notas") or {})
+    n = notas.pop(fuente, None)
+    if n is None:
+        raise TareaError("Esa presentación no tiene notas", 404)
+    if n.get("ruta"):
+        _borrar(n["ruta"])
+    return _con_compat({**p, "notas": notas})
+
+
+def _resumen_notas(n: Optional[dict]) -> Optional[dict]:
+    if not n or not n.get("algo", True):
+        return None
+    return {"at": n.get("at") or "", "por": n.get("por") or "", "paginas": n.get("paginas")}
+
+
+def lista(material: dict, clases: list[dict]) -> dict:
+    """Lo que pintan las pantallas, sin rutas del disco. Función pura.
+
+    - `presentaciones`: cada PDF de la clase, la de la pizarra primero:
+      `{id, de: "equipo"|"alumnos"|"blanco", nombre, por, at, tam, en_pizarra,
+      notas: {at, por, paginas} | None, publicada: {at, por, paginas} | None}`.
+      La pizarra en blanco solo sale si tiene notas o es la de la pizarra.
+    - `sueltas`: notas de un documento que ya no está: `{id, nombre, at, por,
+      paginas}`.
+    - `fuente`: el id de la de la pizarra ("" si la clase no tiene ningún PDF
+      ni se ha usado la pizarra en blanco).
+    - `publicada`: la versión que ven los alumnos después de la clase (o None).
+    """
+    p = leer(material or {})
+    disponibles = fuentes(material or {}, clases or [])
+    en_pizarra = fuente_valida(p["fuente"], disponibles)
+    notas = p["notas"]
+    pub = p["publicada"]
+
+    def fila(f: dict) -> dict:
+        de_ella = pub is not None and pub.get("fuente") == f["id"]
+        return {
+            "id": f["id"],
+            "de": "equipo" if f["de"] == "profe" else f["de"],
+            "nombre": f["nombre"],
+            "por": f.get("por") or "",
+            "at": f.get("at") or "",
+            "tam": f.get("tam") or 0,
+            "en_pizarra": f["id"] == en_pizarra,
+            "notas": _resumen_notas(notas.get(f["id"])),
+            "publicada": {"at": pub["at"], "por": pub["por"], "paginas": pub["paginas"]} if de_ella and pub else None,
+        }
+
+    filas = [fila(f) for f in disponibles]
+    blanco = notas.get(BLANCO)
+    if en_pizarra == BLANCO or (blanco and blanco.get("algo", True)):
+        filas.append(fila({"id": BLANCO, "de": "blanco", "nombre": NOMBRE_BLANCO, "por": "", "at": "", "tam": 0}))
+    filas.sort(key=lambda x: 0 if x["en_pizarra"] else 1)
+    ids = {x["id"] for x in filas} | {BLANCO}
+    sueltas = [
+        {"id": k, "nombre": n.get("nombre") or "", "at": n.get("at") or "", "por": n.get("por") or "", "paginas": n.get("paginas")}
+        for k, n in notas.items()
+        if k not in ids and n.get("algo", True)
+    ]
+    sueltas.sort(key=lambda x: x["at"], reverse=True)
+    return {
+        "presentaciones": filas,
+        "sueltas": sueltas,
+        "fuente": en_pizarra,
+        "publicada": publicada_para_la_pantalla(p),
+    }
+
+
 def es_pdf(datos: bytes) -> bool:
     return datos[:5] == b"%PDF-" and b"%%EOF" in datos[-2048:]
 
 
-def publicar(org_id: int, p: dict, datos: bytes, paginas: int, por: str, ahora: str) -> dict:
+def publicar(org_id: int, p: dict, datos: bytes, paginas: int, por: str, ahora: str, fuente: str = "", nombre: str = "") -> dict:
     """Guarda el PDF de después de clase (sustituye al anterior)."""
     if not datos:
         raise TareaError("La presentación llegó vacía")
@@ -192,7 +510,16 @@ def publicar(org_id: int, p: dict, datos: bytes, paginas: int, por: str, ahora: 
         _borrar(viejo)
     return {
         **p,
-        "publicada": {"ruta": relativa, "at": ahora, "por": (por or "")[:120], "paginas": max(0, int(paginas or 0)), "tam": len(datos)},
+        "publicada": {
+            "ruta": relativa,
+            "at": ahora,
+            "por": (por or "")[:120],
+            "paginas": max(0, int(paginas or 0)),
+            "tam": len(datos),
+            # De qué presentación salió (22/11/2026), para decirlo en la lista.
+            "fuente": fuente or p.get("fuente") or "",
+            "nombre": (nombre or "")[:160],
+        },
     }
 
 
