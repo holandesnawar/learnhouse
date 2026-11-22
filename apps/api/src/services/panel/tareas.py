@@ -6,9 +6,15 @@ Tareas del equipo: lo que hay que hacer, para quién y para cuándo.
 - El closer ve las suyas y las que ha creado; los administradores, todas.
 - Se marcan hechas, no se editan a medias en el historial: se puede cambiar
   el título, la fecha o a quién va, y borrar.
+- Cada tarea puede ser «flotar» (mantener el barco a flote: operaciones,
+  fuegos, soporte, cobros) o «mover» (hacerlo avanzar: contenido, campañas,
+  producto, ventas nuevas), 22/11/2026. `balance_semana` cuenta, para quien
+  mira, cuántas de cada tipo ha hecho esta semana (lunes a domingo, hora de
+  Países Bajos) y cuántas le quedan: el usuario quiere repartir su día 50/50.
 """
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from typing import Optional
 
 from sqlmodel import or_, select
@@ -53,6 +59,54 @@ def a_dict(t: PanelTask) -> dict:
         "email": t.email,
         "created_at": t.created_at,
         "done_at": t.done_at,
+        "tipo": t.tipo or "",
+    }
+
+
+TIPOS = ("flotar", "mover")
+
+
+def tipo_ok(texto) -> str:
+    texto = (texto or "").strip().lower()
+    return texto if texto in TIPOS else ""
+
+
+def _dia_nl(texto: str):
+    try:
+        d = datetime.fromisoformat((texto or "").replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    return d.astimezone(ZoneInfo("Europe/Amsterdam")).date()
+
+
+def balance_semana(tareas: list[dict], user_id: int, ahora: datetime) -> dict:
+    """Flotar contra mover para `user_id`: las hechas esta semana (lunes a
+    domingo, hora de Países Bajos) y las pendientes, solo las suyas
+    (asignadas a esa persona). Las tareas sin tipo se cuentan aparte."""
+    hoy = (ahora if ahora.tzinfo else ahora.replace(tzinfo=timezone.utc)).astimezone(ZoneInfo("Europe/Amsterdam")).date()
+    lunes = hoy - timedelta(days=hoy.weekday())
+    hechas = {"flotar": 0, "mover": 0, "sin": 0}
+    pendientes = {"flotar": 0, "mover": 0, "sin": 0}
+    for t in tareas:
+        if int(t.get("asignado_id") or 0) != int(user_id):
+            continue
+        clave = t.get("tipo") if t.get("tipo") in TIPOS else "sin"
+        if t.get("estado") == "hecha":
+            d = _dia_nl(t.get("done_at") or "")
+            if d and lunes <= d <= lunes + timedelta(days=6):
+                hechas[clave] += 1
+        else:
+            pendientes[clave] += 1
+    total = hechas["flotar"] + hechas["mover"]
+    flotar_pct = round(hechas["flotar"] * 100 / total) if total else 0
+    return {
+        "desde": lunes.isoformat(),
+        "hechas": hechas,
+        "pendientes": pendientes,
+        "flotar_pct": flotar_pct,
+        "mover_pct": (100 - flotar_pct) if total else 0,
     }
 
 
@@ -128,6 +182,7 @@ async def crear(data: dict, org_id: int, autor_id: int, autor: str, db_session: 
         creado_por=(autor or "")[:120],
         email=(data.get("email") or "").strip().lower()[:255],
         created_at=_ahora(),
+        tipo=tipo_ok(data.get("tipo")),
     )
     db_session.add(t)
     await db_session.commit()
@@ -151,6 +206,8 @@ async def cambiar(
         t.fecha = fecha_ok(data["fecha"] or "")
     if "prioridad" in data:
         t.prioridad = "alta" if data["prioridad"] == "alta" else "normal"
+    if "tipo" in data:
+        t.tipo = tipo_ok(data["tipo"])
     if "asignado_id" in data and data["asignado_id"]:
         nombre = await _nombre_de(int(data["asignado_id"]), org_id, db_session)
         if nombre is None:

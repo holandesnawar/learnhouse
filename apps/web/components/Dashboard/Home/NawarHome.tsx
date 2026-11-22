@@ -29,10 +29,20 @@ import { euros, getSchoolStats, type SchoolStats } from '@services/stats/school'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import { ETAPA_TEXTO } from '@services/stats/contactos'
 import { ArrowRight, CheckCircle, Kanban, ListChecks, PhoneCall, Tag, Sparkle } from '@phosphor-icons/react'
-import { euros as eurosPanel, getAds, getPorDecidir, getTablero, getTareas, type PanelAds, type Tablero, type Tarea } from '@services/panel/panel'
+import {
+  euros as eurosPanel,
+  getAds,
+  getPorDecidir,
+  getTablero,
+  getTareas,
+  type BalanceTareas,
+  type PanelAds,
+  type Tablero,
+  type Tarea,
+} from '@services/panel/panel'
 import { hoyISO } from '@services/stats/contactos'
 import FichaCliente from '@components/Dashboard/Pages/Panel/FichaCliente'
-import { FilaTarea, TareaForm } from '@components/Dashboard/Pages/Panel/Tareas'
+import { FilaTarea, MedidorSemana, TareaForm } from '@components/Dashboard/Pages/Panel/Tareas'
 import { FONDO_MARCA, POPPINS } from '@/lib/nawar/marca'
 import { COLOR_COLUMNA } from '@/lib/nawar/coloresTablero'
 
@@ -103,6 +113,7 @@ export default function NawarHome() {
   const [tablero, setTablero] = useState<Tablero | null>(null)
   const [tareas, setTareas] = useState<Tarea[] | null>(null)
   const [yo, setYo] = useState(0)
+  const [balance, setBalance] = useState<BalanceTareas | null>(null)
   const [abierta, setAbierta] = useState<string | null>(null)
   const [ads, setAds] = useState<PanelAds | null>(null)
   // Alumnos que han pagado y esperan que se elija su grupo: programa nuevo o
@@ -118,13 +129,22 @@ export default function NawarHome() {
     if (!isCloser) getPorDecidir(org.id, token).then((r) => setPorDecidir(r.ok && r.datos ? r.datos.alumnos : []))
     getContactos(org.id, '', token).then((r) => setContactos(r?.contactos ?? []))
     getTablero(org.id, token).then((r) => setTablero(r.ok && r.datos ? r.datos : null))
+    leerTareas()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [org?.id, token, isCloser])
+
+  // Tareas pendientes + el medidor flotar/mover de la semana (lo cuenta el
+  // servidor: se relee al marcar o cambiar una).
+  function leerTareas() {
+    if (!org?.id || !token) return
     getTareas(org.id, token, { pendientes: true }).then((r) => {
       if (r.ok && r.datos) {
         setTareas(r.datos.tareas)
         setYo(r.datos.yo)
+        setBalance(r.datos.balance ?? null)
       } else setTareas([])
     })
-  }, [org?.id, token, isCloser])
+  }
 
   const misTareas = (tareas ?? []).filter((t) => t.asignado_id === yo && t.estado !== 'hecha')
   const hoy = hoyISO()
@@ -276,6 +296,9 @@ export default function NawarHome() {
           {/* Mis tareas: lo que me toca, sin ir a otra pantalla. */}
           <div className={`${CARD} lg:col-span-2`}>
             <Titulo extra={<VerTodo href="/dash/estadisticas?tab=tareas">Todas</VerTodo>}>Mis tareas</Titulo>
+            <div className="mb-3">
+              <MedidorSemana balance={balance} compacto />
+            </div>
             <TareaForm compacto onCreada={(t) => setTareas((ts) => [t, ...(ts ?? [])])} />
             {tareas === null ? (
               <p className="text-[13px] text-gray-400 mt-2">Cargando…</p>
@@ -289,7 +312,10 @@ export default function NawarHome() {
                   <FilaTarea
                     key={t.id}
                     tarea={t}
-                    onCambio={(n) => setTareas((ts) => (ts ?? []).map((x) => (x.id === n.id ? n : x)))}
+                    onCambio={(n) => {
+                      setTareas((ts) => (ts ?? []).map((x) => (x.id === n.id ? n : x)))
+                      leerTareas()
+                    }}
                     onBorrada={(id) => setTareas((ts) => (ts ?? []).filter((x) => x.id !== id))}
                     onAbrirPersona={setAbierta}
                   />

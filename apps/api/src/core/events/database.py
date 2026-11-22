@@ -346,6 +346,8 @@ if not is_testing:
 # así que da igual ejecutarlo mil veces o que la tabla acabe de nacer con la
 # forma nueva.
 _ADDED_COLUMNS = [
+    # Tareas del panel: «flotar» o «mover» (22/11/2026).
+    "ALTER TABLE IF EXISTS panel_task ADD COLUMN IF NOT EXISTS tipo VARCHAR(10) DEFAULT ''",
     # Las casillas de la campana de cada semana de clase (05/11/2026).
     "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS aviso_presentacion VARCHAR(40) DEFAULT 'si'",
     "ALTER TABLE IF EXISTS tarea_semana ADD COLUMN IF NOT EXISTS aviso_grabacion VARCHAR(40) DEFAULT ''",

@@ -129,6 +129,17 @@ export interface Tarea {
   email: string
   created_at: string
   done_at: string
+  /** «flotar» (mantener a flote) o «mover» (hacer avanzar), 22/11/2026. */
+  tipo?: '' | 'flotar' | 'mover'
+}
+
+/** Flotar contra mover de quien mira, esta semana (lunes a domingo). */
+export interface BalanceTareas {
+  desde: string
+  hechas: { flotar: number; mover: number; sin: number }
+  pendientes: { flotar: number; mover: number; sin: number }
+  flotar_pct: number
+  mover_pct: number
 }
 
 export interface MiembroEquipo {
@@ -240,9 +251,17 @@ type Resp<T> = { ok: boolean; datos?: T; error?: string }
 
 async function pedir<T>(url: string, metodo: string, cuerpo: unknown, accessToken: string): Promise<Resp<T>> {
   try {
-    const res = await fetch(`${getAPIUrl()}${url}`, RequestBodyWithAuthHeader(metodo, cuerpo, null, accessToken))
+    const init = RequestBodyWithAuthHeader(metodo, cuerpo, null, accessToken)
+    // `RequestBodyWithAuthHeader` no manda el cuerpo en los PATCH (solo POST,
+    // PUT y DELETE): cambiar o marcar una tarea daba 422 (22/11/2026).
+    if (metodo === 'PATCH' && cuerpo !== null) init.body = JSON.stringify(cuerpo)
+    const res = await fetch(`${getAPIUrl()}${url}`, init)
     const datos = await res.json().catch(() => ({}))
-    if (!res.ok) return { ok: false, error: (datos as any)?.detail || 'No se ha podido hacer' }
+    if (!res.ok) {
+      // Un 422 de FastAPI trae una lista de objetos: pintarla rompe la página.
+      const detalle = (datos as any)?.detail
+      return { ok: false, error: typeof detalle === 'string' && detalle ? detalle : 'No se ha podido hacer' }
+    }
     return { ok: true, datos: datos as T }
   } catch {
     return { ok: false, error: 'No se ha podido conectar' }
@@ -318,10 +337,15 @@ export const getTareas = (orgId: number, t: string, filtro: { email?: string; pe
   const q = new URLSearchParams()
   if (filtro.email) q.set('email', filtro.email)
   if (filtro.pendientes) q.set('pendientes', 'true')
-  return pedir<{ tareas: Tarea[]; yo: number; es_admin: boolean }>(`panel/org/${orgId}/tareas?${q.toString()}`, 'GET', null, t)
+  return pedir<{ tareas: Tarea[]; yo: number; es_admin: boolean; balance?: BalanceTareas }>(
+    `panel/org/${orgId}/tareas?${q.toString()}`,
+    'GET',
+    null,
+    t
+  )
 }
 
-export type TareaNueva = Partial<Pick<Tarea, 'titulo' | 'notas' | 'fecha' | 'prioridad' | 'asignado_id' | 'email' | 'estado'>>
+export type TareaNueva = Partial<Pick<Tarea, 'titulo' | 'notas' | 'fecha' | 'prioridad' | 'asignado_id' | 'email' | 'estado' | 'tipo'>>
 
 export const crearTarea = (orgId: number, datos: TareaNueva, t: string) =>
   pedir<{ tarea: Tarea }>(`panel/org/${orgId}/tareas`, 'POST', datos, t)
