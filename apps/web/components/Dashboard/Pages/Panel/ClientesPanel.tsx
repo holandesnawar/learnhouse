@@ -28,7 +28,7 @@ import {
   type Cliente,
   type ComisionesCloser,
 } from '@services/panel/panel'
-import FichaCliente from './FichaCliente'
+import FichaCliente from './Ficha'
 import PlazasReservadas from './PlazasReservadas'
 import { BOTON, BOTON_PRINCIPAL, BOTON_TEXTO, Cifra, Estado, filtro, Seccion, SUB, TABLA, TD, TD_NUM, TH, TH_NUM, Tira, type Tono } from './ui'
 import { useEquipo } from './Tareas'

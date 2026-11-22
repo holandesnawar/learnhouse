@@ -97,7 +97,7 @@ function Bloque({ icono, titulo, children, derecha }: { icono: React.ReactNode; 
 /** «Mijn eerste week» (10/11): el reto de 7 días. Para qué quiere el
  *  neerlandés, a qué se dedica y cuántos días ha hecho: con cinco o más, o si
  *  pulsó el botón de la llamada, es a quien se llama primero. */
-function BloqueReto({ reto }: { reto: NonNullable<Ficha['reto']> }) {
+export function BloqueReto({ reto }: { reto: NonNullable<Ficha['reto']> }) {
   const filas: { t: string; v: string }[] = [
     { t: 'Para qué lo necesita', v: reto.motivo },
     { t: 'A qué se dedica', v: reto.trabajo },
@@ -128,7 +128,7 @@ function BloqueReto({ reto }: { reto: NonNullable<Ficha['reto']> }) {
  *  en qué campaña de correos de systeme.io está y qué le ha llegado. Los
  *  correos salen del CALENDARIO de la campaña (services/panel/black_friday.py):
  *  si alguien abre un correo no se puede saber; si pulsó su botón, sí. */
-function BloqueBlackFriday({ bf }: { bf: NonNullable<Ficha['black_friday']> }) {
+export function BloqueBlackFriday({ bf }: { bf: NonNullable<Ficha['black_friday']> }) {
   const tono = bf.estado === 'ebook' ? 'verde' : bf.estado === 'empezo-ebook' ? 'ambar' : 'azul'
   const filas: { t: string; v: string }[] = []
   if (bf.desbloqueo) filas.push({ t: 'Se apuntó a la lista', v: `${fechaCorta(bf.desbloqueo.cuando)} · por ${bf.desbloqueo.via}` })

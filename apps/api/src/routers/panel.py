@@ -373,6 +373,7 @@ async def api_cliente(
         await _es_admin(current_user, org_id, db_session),
         db_session,
         nombres_anuncios=await ads.leer_nombres(org_id, db_session),
+        org_id=org_id,
     )
     if ficha is None:
         raise HTTPException(status_code=404, detail="No hay nadie con ese correo")

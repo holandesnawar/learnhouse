@@ -15,7 +15,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { ArrowDown, ArrowUp, Loader2, Search } from 'lucide-react'
 import { getCamino, type AlumnoCamino, type EstadoCamino } from '@services/panel/panel'
-import { FichaAlumno } from './ProgresoPanel'
+import { FichaDeAlumno as FichaAlumno } from './Ficha'
 import { Estado, TARJETA, filtro, type Tono } from './ui'
 
 type Filtro = 'todos' | 'en-curso' | 'ultimas' | 'terminado'

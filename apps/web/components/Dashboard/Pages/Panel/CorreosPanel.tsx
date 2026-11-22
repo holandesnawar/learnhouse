@@ -38,7 +38,7 @@ import {
   type PersonaCorreos,
   type Situacion,
 } from '@services/correos/correos'
-import FichaCliente from './FichaCliente'
+import FichaCliente from './Ficha'
 import VistaCorreo, { EDITAR_CORREOS as EDITAR } from './VistaCorreo'
 import { BOTON, ENLACE, Estado, META, Meta, Seccion, TARJETA, filtro, type Tono } from './ui'
 

@@ -44,7 +44,7 @@ import { AvisarClase } from '@components/Pages/Courses/AvisarClase'
 import { PasarLista } from '@components/Pages/Profes/ListaYGrupo'
 import { confirmar } from '@lib/nawar/confirmar'
 import { BOTON, BOTON_PRINCIPAL, META, Plegable, TARJETA } from './ui'
-import { FichaAlumno } from './ProgresoPanel'
+import { FichaDeAlumno as FichaAlumno } from './Ficha'
 
 function haceCuando(iso: string): string {
   if (!iso) return ''

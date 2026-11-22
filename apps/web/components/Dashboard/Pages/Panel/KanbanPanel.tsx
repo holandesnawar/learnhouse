@@ -61,7 +61,7 @@ import {
   type Tablero,
   type Tarjeta,
 } from '@services/panel/panel'
-import FichaCliente from './FichaCliente'
+import FichaCliente from './Ficha'
 import LlamadaSuelta from './LlamadaSuelta'
 import { Termometro } from '../Estadisticas/LlamadasTempladas'
 import { cuandoLlamar, hoyISO } from '@services/stats/contactos'

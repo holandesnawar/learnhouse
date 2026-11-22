@@ -212,8 +212,34 @@ def linea_de_tiempo(eventos: list[dict], correos: list[dict], notas: list[dict],
     return items
 
 
+def venta_de_la_ficha(dinero: dict | None, total_pagado: int) -> dict | None:
+    """Lo vendido, lo cobrado y lo que falta de UNA persona. Función pura.
+
+    `dinero` es su entrada de `ventas.por_email` (None si no tiene ninguna
+    matrícula pagada: una señal suelta no es una venta). Lo cobrado es lo que
+    suman sus pagos de la ficha; lo vendido, el total del plan si paga a
+    plazos, y nunca menos que lo cobrado."""
+    if not dinero:
+        return None
+    cobrado = max(0, int(total_pagado or 0))
+    vendido = max(int(dinero.get("vendido_cents") or 0), cobrado)
+    return {"vendido_cents": vendido, "cobrado_cents": cobrado, "por_cobrar_cents": vendido - cobrado}
+
+
+async def _venta_de(clave: str, total_pagado: int, db_session: AsyncSession) -> dict | None:
+    from src.services.stats.ventas import leer_ventas, por_email
+
+    dinero = por_email(await leer_ventas(db_session, con_corte=False, con_excluidos=True)).get(clave)
+    return venta_de_la_ficha(dinero, total_pagado)
+
+
 async def ficha_cliente(
-    email: str, user_id: int, es_admin: bool, db_session: AsyncSession, nombres_anuncios: dict | None = None
+    email: str,
+    user_id: int,
+    es_admin: bool,
+    db_session: AsyncSession,
+    nombres_anuncios: dict | None = None,
+    org_id: int | None = None,
 ) -> dict | None:
     clave = (email or "").strip().lower()
     if not clave:
@@ -362,6 +388,7 @@ async def ficha_cliente(
 
     # Por dónde va en la formación, si tiene cuenta (ver services/panel/avance.py).
     avance = None
+    cuenta_id = None
     try:
         from src.db.users import User
         from src.services.panel.avance import avance_formacion
@@ -370,6 +397,7 @@ async def ficha_cliente(
             await db_session.execute(select(User.id).where(func.lower(User.email) == clave))
         ).scalars().first()
         if uid:
+            cuenta_id = int(uid)
             avance = (await avance_formacion(db_session, [int(uid)])).get(int(uid))
     except Exception:  # noqa: BLE001
         avance = None
@@ -409,9 +437,42 @@ async def ficha_cliente(
     except Exception:
         reto = None
 
+    plan_pagos = await plan_de(clave, db_session)
+    total_pagado = sum(int(p["importe_cents"] or 0) for p in pagos)
+    # La venta (22/11/2026, la ficha del alumno): vendido ≠ cobrado, y la
+    # comisión del closer. Solo administradores (es dinero), y en blando: si
+    # algo falla, la ficha sale igual sin ese bloque.
+    venta = None
+    comision = None
+    porcentajes_comision: list[float] = []
+    if es_admin:
+        try:
+            venta = await _venta_de(clave, total_pagado, db_session)
+        except Exception:  # noqa: BLE001
+            venta = None
+        if venta and org_id is not None:
+            try:
+                from src.services.panel.comisiones import para_clientes
+
+                cliente = {
+                    "email": clave,
+                    "total_cents": total_pagado,
+                    "primer_pago": min((str(p["fecha"] or "") for p in pagos if p["fecha"]), default=""),
+                    "plazos": plan_pagos,
+                }
+                _, porcentajes_comision = await para_clientes([cliente], org_id, db_session)
+                comision = cliente.get("comision")
+            except Exception:  # noqa: BLE001
+                comision = None
+
     return {
         "reserva": reserva,
-        "plan_pagos": await plan_de(clave, db_session),
+        "plan_pagos": plan_pagos,
+        # La cuenta de la escuela con ESTE correo (None si no tiene, o si entra con otro).
+        "user_id": cuenta_id,
+        "venta": venta,
+        "comision": comision,
+        "porcentajes_comision": porcentajes_comision,
         "email": clave,
         "nombre": ficha["nombre"],
         "telefono": ficha["telefono"],
@@ -444,7 +505,7 @@ async def ficha_cliente(
         "paginas": paginas_vistas(ficha),
         "admision": proceso_admision(eventos),
         "pagos": pagos,
-        "total_pagado_cents": sum(p["importe_cents"] for p in pagos),
+        "total_pagado_cents": total_pagado,
         "correos": correos,
         "notas": seg.get("notas", []),
         "volver_a_llamar": seg.get("volver_a_llamar"),

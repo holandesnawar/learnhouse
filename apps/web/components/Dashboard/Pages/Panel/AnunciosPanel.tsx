@@ -24,7 +24,7 @@ import {
   type CampanaNueva,
   type PanelAds,
 } from '@services/panel/panel'
-import FichaCliente from './FichaCliente'
+import FichaCliente from './Ficha'
 import { ChevronDown, ChevronRight, Loader2, Megaphone, Plus, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'

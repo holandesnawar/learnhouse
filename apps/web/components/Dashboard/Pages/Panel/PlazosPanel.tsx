@@ -20,7 +20,7 @@ import { euros } from '@services/stats/school'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
 import { Loader2, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
-import FichaCliente from './FichaCliente'
+import FichaCliente from './Ficha'
 import { BOTON, ENLACE, Estado, META, Meta, Seccion, TARJETA, type Tono } from './ui'
 
 const TONO: Record<string, Tono> = { fallido: 'rojo', activo: 'azul', completado: 'verde', cancelado: 'gris' }
