@@ -260,3 +260,34 @@ export async function urlPdfConNotas(semanaId: number, token: string): Promise<s
   }
   return URL.createObjectURL(await res.blob())
 }
+
+// ── La presentación en su propia página (22/11/2026) ───────────────────────
+
+/** De qué clase es una semana (quien ve la clase). */
+export interface ClaseDeSemana {
+  id: number
+  tema: string
+  fecha: string
+  course_uuid: string
+  curso: string
+  equipo: boolean
+}
+
+export const getClaseDeSemana = (semanaId: number, token: string) => pedir<ClaseDeSemana>(`${base()}/semana/${semanaId}/clase`, token)
+
+async function comoDireccion(url: string, token: string): Promise<string> {
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include', cache: 'no-store' })
+  if (!res.ok) {
+    const datos = await res.json().catch(() => null)
+    throw new Error(datos && typeof datos.detail === 'string' ? datos.detail : `Error ${res.status}`)
+  }
+  return URL.createObjectURL(await res.blob())
+}
+
+/** El PDF que los alumnos ven antes de la clase, como dirección que se puede abrir. */
+export const urlPdfAntes = (semanaId: number, token: string, actividad = '') =>
+  comoDireccion(`${base()}/semana/${semanaId}/antes${actividad ? `?actividad=${encodeURIComponent(actividad)}` : ''}`, token)
+
+/** Una presentación de la clase (equipo), como dirección que se puede abrir. */
+export const urlPdfFuente = (semanaId: number, fuente: string, token: string) =>
+  comoDireccion(`${base()}/semana/${semanaId}/fuente/${encodeURIComponent(fuente)}`, token)

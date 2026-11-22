@@ -353,3 +353,19 @@ def test_las_otras_sesiones_salen_de_la_mas_cercana_a_la_mas_lejana():
     esta = S(id=1, tema="A", fecha="2026-11-20")
     todas = [esta, S(id=2, tema="B", fecha="2026-11-27"), S(id=3, tema="C", fecha="2026-11-13"), S(id=4, tema="D", fecha="2026-12-25"), S(id=5, tema="", fecha="")]
     assert [x["id"] for x in _otras_sesiones(esta, todas)] == [3, 2, 4, 5]
+
+
+def test_la_presentacion_de_antes_es_una_clase_pdf_de_esa_semana():
+    from src.routers.pizarra import presentacion_de_antes
+
+    clases = [
+        {"tipo": "ejercicios", "activity_uuid": "activity_e"},
+        {"tipo": "presentacion", "activity_uuid": "activity_1"},
+        {"tipo": "presentacion", "activity_uuid": "activity_2"},
+    ]
+    assert presentacion_de_antes(clases) == "activity_1"
+    assert presentacion_de_antes(clases, "activity_2") == "activity_2"
+    # Una clase de otra semana (o un ejercicio) no se sirve por esta puerta.
+    assert presentacion_de_antes(clases, "activity_otra") == ""
+    assert presentacion_de_antes(clases, "activity_e") == ""
+    assert presentacion_de_antes([]) == ""

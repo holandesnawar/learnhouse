@@ -73,6 +73,7 @@ import {
   type TrazoTexto,
 } from '@/lib/nawar/pizarra'
 import { bajarFuente, getPizarra, guardarNotas, listaDe, OtraPizarra, PIZARRA_EN_BLANCO, ponerEnPizarra, publicarPizarra, quitarPublicada, urlPdfConNotas, type ListaPresentaciones as Lista, type Pizarra } from '@services/pizarra/pizarra'
+import { rotuloDeSesion } from '@/lib/nawar/sesionDeLaSala'
 import { subirArchivoProfe } from '@services/tareas/tareas'
 import { VisorPresentacionClase } from '@components/Pages/Clases/pasosSemana'
 import ListaPresentaciones from '@components/Pages/Presentaciones/ListaPresentaciones'
@@ -1568,7 +1569,8 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
           )}
           <p className={`flex min-w-0 items-center gap-1.5 truncate text-[12px] leading-tight text-[#6B7393] ${cabMuyCorta ? '' : 'mt-0.5'}`}>
             {/* En la sala el nombre de la clase ya está arriba: aquí, solo si se ha guardado. */}
-            {enSala ? null : <span className="truncate">{info.semana.curso}</span>}
+            {/* Fuera de la sala: de qué clase y de qué día es esta pizarra (22/11/2026). */}
+            {enSala ? null : <span className="truncate">{rotuloDeSesion(info.semana.curso, info.semana.fecha)}</span>}
             {enSala ? null : <span className="text-[#C3C9D8]">·</span>}
             {soloLectura ? <span>Solo para mirar y descargar</span> : <EstadoGuardado estado={guardado} at={guardadaAt} onReintentar={() => guardar()} corto={cabMuyCorta} />}
           </p>

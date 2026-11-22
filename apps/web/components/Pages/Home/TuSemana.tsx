@@ -47,7 +47,7 @@ function Tarjeta({ curso, courseUuid, proxima, semana, orgslug }: { curso: strin
   const luego = cerrada ? [(semana.ocultas || 0) > 0 ? 'los ejercicios' : '', semana.tiene_tarea ? 'la tarea' : ''].filter(Boolean) : []
 
   const pasos: { hecho: boolean; texto: React.ReactNode; href?: string; boton?: string }[] = []
-  if (presentacion) pasos.push({ hecho: presentacion.hecha, texto: 'Mira la presentación', href: ruta(presentacion.activity_uuid), boton: 'Ver la presentación' })
+  if (presentacion) pasos.push({ hecho: presentacion.hecha, texto: 'Mira la presentación', href: getUriWithOrg(orgslug, `/presentacion/${semana.id}`), boton: 'Ver la presentación' })
   if (ejercicios.length) {
     const sig = ejercicios.find((c) => !c.hecha)
     pasos.push({

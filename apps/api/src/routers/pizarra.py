@@ -453,6 +453,82 @@ async def api_pdf(
     )
 
 
+# ── La presentación en su propia página (22/11/2026) ────────────────────────
+# Usuario, con la clase PDF abierta con la pantalla de un curso (barra de
+# capítulos, «46 % completado», «Anterior / Siguiente» que se llaman los dos
+# «Presentación»): «la interfaz sigue siendo la misma, como un curso; no se
+# sabe cuál presentación es la primera que se subió y cuál es la siguiente».
+# La pantalla es `/presentacion/<semana>`; aquí, de qué clase es esa semana y
+# el PDF de antes de la clase, para quien puede ver la clase.
+
+
+@router.get("/semana/{semana_id}/clase", summary="De qué clase es una semana (quien ve la clase): para abrir su presentación.")
+async def api_de_que_clase(
+    request: Request,
+    semana_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    try:
+        s = await T.tarea(semana_id, db_session)
+    except T.TareaError as exc:
+        raise _error(exc)
+    curso = await _curso(request, s.course_uuid, current_user, db_session)
+    equipo, _admin = await _roles(current_user, curso.org_id, db_session)
+    if equipo:
+        # El monitor, solo en sus clases (la misma puerta que la pizarra).
+        try:
+            await _semana_equipo(semana_id, current_user, db_session)
+        except HTTPException:
+            equipo = False
+    return {
+        "id": s.id,
+        "tema": s.tema or "",
+        "fecha": s.fecha or "",
+        "course_uuid": curso.course_uuid,
+        "curso": getattr(curso, "name", "") or "",
+        "equipo": bool(equipo),
+    }
+
+
+def presentacion_de_antes(clases: list[dict], actividad: str = "") -> str:
+    """La clase PDF que los alumnos ven antes de la clase: la pedida si es de
+    esta semana; si no se pide ninguna, la primera. '' si no hay. Pura."""
+    pres = [str(c.get("activity_uuid") or "") for c in clases or [] if c.get("tipo") == "presentacion" and c.get("activity_uuid")]
+    if actividad:
+        return actividad if actividad in pres else ""
+    return pres[0] if pres else ""
+
+
+@router.get("/semana/{semana_id}/antes", summary="El PDF que los alumnos ven antes de la clase (quien ve la clase).")
+async def api_pdf_antes(
+    request: Request,
+    semana_id: int,
+    actividad: str = "",
+    descargar: Optional[int] = None,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from urllib.parse import quote
+
+    try:
+        s = await T.tarea(semana_id, db_session)
+    except T.TareaError as exc:
+        raise _error(exc)
+    # La misma comprobación que la página del curso: quien ve la clase.
+    await _curso(request, s.course_uuid, current_user, db_session)
+    ident = presentacion_de_antes(await _clases_de(s, db_session), (actividad or "").strip())
+    ruta = await _pdf_de_la_clase(ident, db_session) if ident else None
+    if ruta is None or not ruta.is_file() or ruta.suffix.lower() != ".pdf":
+        raise HTTPException(status_code=404, detail="Esta clase no tiene presentación para antes de la clase")
+    nombre = f"{(s.tema or 'Clase').strip()} - presentación.pdf"
+    return FileResponse(
+        ruta,
+        media_type="application/pdf",
+        headers={**_SIN_CACHE, "Content-Disposition": f"{'attachment' if descargar else 'inline'}; filename*=UTF-8''{quote(nombre)}"},
+    )
+
+
 @router.get("/course/{course_uuid}", summary="Qué semanas de una clase tienen la presentación con notas (quien ve la clase).")
 async def api_del_curso(
     request: Request,
