@@ -376,8 +376,10 @@ export function fechaCorta(cuando: string): string {
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 }
 
+// Con el punto de los miles también en 1.000-9.999 («2.388 €»): en español
+// el navegador no lo pone hasta 10.000 y las cifras del panel se leían peor.
 export const euros = (cents: number) =>
-  `${(cents / 100).toLocaleString('es-ES', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })} €`
+  `${(cents / 100).toLocaleString('es-ES', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2, useGrouping: 'always' } as Intl.NumberFormatOptions)} €`
 
 export interface Cliente {
   email: string
@@ -814,3 +816,53 @@ export interface RetoFicha {
   /** Cinco días o más, o pidió la llamada: a quién llamar primero. */
   caliente: boolean
 }
+
+/* ── El inicio del panel del administrador (22/11/2026, services/panel/inicio.py) ── */
+
+export type PeriodoInicio = 'semana' | '30' | 'mes'
+/** Una cifra con la del periodo anterior del mismo largo. */
+export interface CifraComparada {
+  valor: number
+  antes: number | null
+  dif: number | null
+  pct: number | null
+  /** 1 sube, -1 baja, 0 igual o sin con qué comparar. */
+  sentido: number
+}
+export interface FilaHoy {
+  clave: string
+  tono: 'rojo' | 'ambar' | 'gris'
+  titulo: string
+  n: number
+  detalle: string
+  href: string
+}
+export interface VentaInicio {
+  email: string
+  nombre: string
+  origen: string
+  pago: { texto: string; detalle: string; aviso: boolean }
+  closer: string
+  closer_id: number | null
+  vendido_cents: number
+  cobrado_cents: number
+  dia: string
+}
+export interface InicioPanel {
+  rango: { periodo: PeriodoInicio; nombre: string; antes_texto: string; desde: string; hasta: string; antes_desde: string; antes_hasta: string }
+  hoy: string
+  cifras: {
+    vendido?: CifraComparada & { cobrado_cents: number; por_cobrar_cents: number }
+    ventas?: CifraComparada & { a_plazos: number }
+    llamadas?: CifraComparada & { con_resultado: number; no_vino: number; futuras: number; sin_apuntar: number; pct_cierre: number | null }
+    leads?: CifraComparada & { visitas: number; visitas_antes: number }
+    alumnos?: { total: number; activos: number; sin_avanzar: number }
+  }
+  /** `null` = ese bloque no se pudo calcular (el resto sale igual). */
+  hoy_filas: FilaHoy[] | null
+  embudo: { clave: string; nombre: string; n: number; pct: number | null }[] | null
+  ventas: VentaInicio[] | null
+}
+
+export const getInicio = (orgId: number, periodo: PeriodoInicio, t: string) =>
+  pedir<InicioPanel>(`panel/org/${orgId}/inicio?periodo=${periodo}`, 'GET', null, t)

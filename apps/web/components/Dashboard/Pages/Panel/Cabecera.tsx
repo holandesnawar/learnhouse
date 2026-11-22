@@ -1,10 +1,15 @@
 'use client'
 
 /**
- * La cabecera de cada página del panel (04/11/2026): un icono con el azul de
- * la marca, el título en Poppins, una línea que dice para qué sirve la página
- * (usuario: "da pereza encontrar todo y dónde están las cosas") y, si la
- * sección agrupa varias pestañas, sus pestañas debajo.
+ * La cabecera de cada página del panel: el título en Poppins, una línea gris
+ * que dice para qué sirve la página y, si la sección agrupa varias pestañas,
+ * sus pestañas debajo.
+ *
+ * 22/11/2026 (usuario: «diseño más clean, de software caro, no tan IA»): fuera
+ * la baldosa azul con el icono delante del título (era lo que más cantaba a
+ * plantilla) y la caja gris de las pestañas, que ahora son texto con una raya
+ * debajo. El `icono` se sigue aceptando para no romper a quien lo pasa, pero
+ * no se pinta.
  */
 
 import React from 'react'
@@ -14,58 +19,45 @@ import { POPPINS } from '@/lib/nawar/marca'
 export type Pestana = { href: string; label: string; activa: boolean; onClick?: () => void }
 
 export default function CabeceraPagina({
-  icono,
   titulo,
   descripcion,
   acciones,
   pestanas,
+  sobre,
 }: {
-  icono: React.ReactNode
+  icono?: React.ReactNode
   titulo: string
   descripcion?: string
   acciones?: React.ReactNode
   pestanas?: Pestana[]
+  /** Una línea pequeña encima del título (la fecha, la sección). */
+  sobre?: React.ReactNode
 }) {
+  const clase = (activa: boolean) =>
+    `shrink-0 -mb-px pb-2.5 text-[13.5px] font-medium border-b-2 whitespace-nowrap transition-colors ${
+      activa ? 'text-[#0B1020] border-[#0B1020]' : 'text-[#8A93A3] border-transparent hover:text-[#0B1020]'
+    }`
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <span
-            className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-white shrink-0"
-            style={{ background: 'linear-gradient(135deg, #1D0084 0%, #025dc7 100%)' }}
-          >
-            {icono}
-          </span>
-          <div className="min-w-0">
-            <h1 className="text-[21px] sm:text-[26px] font-bold text-[#0a1656] leading-tight truncate" style={POPPINS}>
-              {titulo}
-            </h1>
-            {descripcion ? <p className="text-[13px] sm:text-[13.5px] text-[#5A6480] leading-snug mt-0.5 line-clamp-2">{descripcion}</p> : null}
-          </div>
+    <div>
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div className="min-w-0">
+          {sobre ? <div className="text-[13px] text-[#8A93A3]">{sobre}</div> : null}
+          <h1 className="text-[22px] sm:text-[26px] font-semibold text-[#0B1020] leading-tight tracking-[-0.02em] truncate" style={POPPINS}>
+            {titulo}
+          </h1>
+          {descripcion ? <p className="text-[13.5px] text-[#6B7384] leading-snug mt-1 max-w-[720px]">{descripcion}</p> : null}
         </div>
         {acciones ? <div className="shrink-0 flex items-center gap-2">{acciones}</div> : null}
       </div>
       {pestanas && pestanas.length ? (
-        <div className="flex gap-1 overflow-x-auto rounded-xl bg-[#E9EFFB] p-1 w-full sm:w-fit">
+        <div className="mt-5 flex gap-6 overflow-x-auto border-b border-[#E6E8EE]">
           {pestanas.map((p) =>
             p.onClick ? (
-              <button
-                key={p.href}
-                onClick={p.onClick}
-                className={`shrink-0 h-9 px-4 rounded-lg text-[13.5px] font-semibold transition-colors ${
-                  p.activa ? 'bg-white text-[#1D0084] shadow-sm' : 'text-[#5A6480] hover:text-[#1D0084]'
-                }`}
-              >
+              <button key={p.href} onClick={p.onClick} className={clase(p.activa)}>
                 {p.label}
               </button>
             ) : (
-              <Link
-                key={p.href}
-                href={p.href}
-                className={`shrink-0 h-9 px-4 rounded-lg text-[13.5px] font-semibold inline-flex items-center transition-colors ${
-                  p.activa ? 'bg-white text-[#1D0084] shadow-sm' : 'text-[#5A6480] hover:text-[#1D0084]'
-                }`}
-              >
+              <Link key={p.href} href={p.href} className={clase(p.activa)}>
                 {p.label}
               </Link>
             )

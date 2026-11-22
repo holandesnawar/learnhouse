@@ -30,26 +30,31 @@ import {
 } from '@services/panel/panel'
 import FichaCliente from './FichaCliente'
 import PlazasReservadas from './PlazasReservadas'
-import { BOTON, BOTON_PRINCIPAL } from './ui'
+import { BOTON, BOTON_PRINCIPAL, BOTON_TEXTO, Cifra, Estado, filtro, Seccion, SUB, TABLA, TD, TD_NUM, TH, TH_NUM, Tira, type Tono } from './ui'
+import { useEquipo } from './Tareas'
+import { colorCloser } from '@/lib/nawar/colorCloser'
 import { confirmar } from '@lib/nawar/confirmar'
 import { aCaja, comisionCents, leerEuros, pctQueCuadra, textoPct } from '@lib/nawar/comision'
 import toast from 'react-hot-toast'
-import { ChevronRight, HandCoins, Loader2, Search } from 'lucide-react'
+import { Loader2, Search } from 'lucide-react'
 
-const CARD = 'rounded-lg border border-[#E5E7EB] bg-white p-3.5 sm:p-5'
-
-function Cifra({ label, valor, nota }: { label: string; valor: string; nota?: string }) {
-  return (
-    <div className={CARD}>
-      <p className="text-[10px] sm:text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.08em]">{label}</p>
-      <p className="text-[22px] sm:text-[26px] font-semibold tabular-nums leading-tight mt-1 text-[#1D0084]">{valor}</p>
-      {nota ? <p className="text-[11.5px] text-gray-500 mt-0.5">{nota}</p> : null}
-    </div>
-  )
+/** Cómo paga, en dos líneas: «3 plazos» + «pago 1 de 3 · próximo 20 dic». */
+function formaDePago(c: Cliente): { texto: string; detalle: string; aviso: boolean } {
+  const p = c.plazos
+  if (!p) return { texto: c.pagos > 1 ? `${c.pagos} pagos` : 'Un pago', detalle: '', aviso: false }
+  const texto = `${p.cuotas} plazos`
+  if (p.estado === 'fallido') return { texto, detalle: `cobro fallido · pago ${Math.min(p.cuotas_pagadas + 1, p.cuotas)} de ${p.cuotas}`, aviso: true }
+  if (p.estado === 'cancelado') return { texto, detalle: `sin completar · pagó ${p.cuotas_pagadas} de ${p.cuotas}`, aviso: true }
+  if (p.cuotas_pagadas >= p.cuotas) return { texto, detalle: 'pagado entero', aviso: false }
+  return {
+    texto,
+    detalle: `pago ${p.cuotas_pagadas} de ${p.cuotas}${p.proximo_cobro ? ` · próximo ${fechaCorta(p.proximo_cobro)}` : ''}`,
+    aviso: false,
+  }
 }
 
 /** "Entró hoy", "hace 5 días", o que no ha entrado nunca. */
-function actividad(c: Cliente): { texto: string; tono: 'verde' | 'ambar' | 'gris' } {
+function actividad(c: Cliente): { texto: string; tono: Tono } {
   if (!c.tiene_cuenta) return { texto: 'Sin cuenta', tono: 'gris' }
   if (!c.ultima_visita) return { texto: 'No ha entrado', tono: 'ambar' }
   const dias = Math.floor((Date.now() - new Date(`${c.ultima_visita}T12:00:00`).getTime()) / 86400000)
@@ -80,6 +85,7 @@ export default function ClientesPanel() {
   const [editando, setEditando] = useState<string | null>(null)
   const [importe, setImporte] = useState('')
   const [guardando, setGuardando] = useState(false)
+  const equipo = useEquipo()
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -182,41 +188,106 @@ export default function ClientesPanel() {
   // Los % que se pueden elegir al marcar (los de Visión → Ajustes: 10 y 15).
   const pcts = datos.porcentajes_comision?.length ? datos.porcentajes_comision : [10, 15]
 
+  /** El punto de color del closer: el mismo que su etiqueta en el tablero. */
+  const colorDe = (nombre: string) => {
+    const m = (equipo?.equipo ?? []).find((x) => x.nombre === nombre)
+    return colorCloser(m?.id ?? 0, equipo?.equipo ?? [], nombre)
+  }
+
+  /** La comisión de una venta, en texto con su punto (nada de pastillas). */
+  function comisionDe(c: Cliente, pctPagada: number | null): { tono: Tono; texto: string; detalle: string } | null {
+    const com = c.comision
+    if (!com) return null
+    if (com.pagada)
+      return {
+        tono: 'verde',
+        texto: `Pagada${com.pagada.importe_cents ? ` · ${euros(com.pagada.importe_cents)}` : ''}`,
+        detalle: `${pctPagada !== null ? `${textoPct(pctPagada)} · ` : ''}${fechaCorta(com.pagada.cuando)}`,
+      }
+    if (com.con_llamada)
+      return { tono: 'ambar', texto: `Pendiente · ≈ ${euros(com.estimada_cents)}`, detalle: com.pct ? textoPct(com.pct) : '' }
+    return { tono: 'gris', texto: 'Sin llamada', detalle: 'sin comisión' }
+  }
+
+  function cajaComision(c: Cliente, base: number, pctEnCaja: number | null) {
+    const com = c.comision
+    if (!com) return null
+    return (
+      <div className="flex flex-wrap items-center gap-2 text-[13px] rounded-[10px] border border-[#E6E8EE] bg-[#F7F8FA] px-4 py-3">
+        <span className="text-[#4B5565] w-full">
+          {com.pagada ? (
+            <>
+              Pagada el {fechaCorta(com.pagada.cuando)}
+              {com.pagada.por ? ` · la marcó ${com.pagada.por.split(/\s+/)[0]}` : ''}
+              {com.closer ? ` · closer: ${com.closer}` : ''}
+            </>
+          ) : (
+            <>¿Cuánto le pagaste{com.closer ? ` a ${com.closer.split(/\s+/)[0]}` : ' al closer'}?</>
+          )}{' '}
+          Sobre el total de la venta: <span className="font-semibold text-[#0B1020] tabular-nums">{euros(base)}</span>
+          {c.plazos && base > c.total_cents ? ` · a plazos, cobrado ${euros(c.total_cents)} hasta hoy` : ''}
+        </span>
+        {/* Elegir el % ajusta el importe solo; también se puede escribir a mano. */}
+        <div className="flex items-center gap-1">
+          {pcts.map((p) => (
+            <button key={p} onClick={() => setImporte(aCaja(comisionCents(base, p)))} className={`${filtro(pctEnCaja === p)} tabular-nums`}>
+              {textoPct(p)}
+            </button>
+          ))}
+        </div>
+        <div className="relative">
+          <input
+            value={importe}
+            onChange={(e) => setImporte(e.target.value)}
+            inputMode="decimal"
+            placeholder="0"
+            className="w-28 h-8 rounded-lg border border-[#E6E8EE] bg-white pl-2.5 pr-6 text-[13.5px] text-[#0B1020] tabular-nums outline-none focus:border-[#0B1020]"
+          />
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8A93A3]">€</span>
+        </div>
+        <button onClick={() => guardarComision(c)} disabled={guardando} className={BOTON_PRINCIPAL}>
+          {guardando ? <Loader2 size={13} className="animate-spin" /> : null} {com.pagada ? 'Guardar importe' : 'Marcar pagada'}
+        </button>
+        {com.pagada ? (
+          <button onClick={() => quitarMarca(c)} disabled={guardando} className={BOTON}>
+            Quitar la marca
+          </button>
+        ) : null}
+        <button onClick={() => setEditando(null)} className={BOTON_TEXTO}>
+          Cancelar
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-9">
       {/* Vendido ≠ cobrado (22/11): una venta a plazos vale el total del plan
           aunque hasta hoy solo haya entrado una parte. */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
-        <Cifra label="Vendido" valor={euros(vendidoTotal)} nota={`${datos.n} ${datos.n === 1 ? 'cliente' : 'clientes'}`} />
-        <Cifra label="Cobrado" valor={euros(cobradoTotal)} nota="Lo que ya ha entrado" />
-        <Cifra
-          label="Por cobrar"
-          valor={porCobrarTotal > 0 ? euros(porCobrarTotal) : '—'}
-          nota={porCobrarTotal > 0 ? 'Plazos que faltan' : 'Todo cobrado'}
-        />
-        <Cifra label="Ticket medio" valor={datos.n ? euros(Math.round(vendidoTotal / datos.n)) : '—'} nota="Sobre lo vendido" />
-        <Cifra label="Sin entrar esta semana" valor={String(sinEntrar)} nota="Los que conviene escribir" />
-      </div>
+      <Tira>
+        <Cifra rotulo="Vendido" valor={euros(vendidoTotal)} nota={`${datos.n} ${datos.n === 1 ? 'cliente' : 'clientes'}`} />
+        <Cifra rotulo="Cobrado" valor={euros(cobradoTotal)} nota="lo que ya ha entrado" />
+        <Cifra rotulo="Por cobrar" valor={porCobrarTotal > 0 ? euros(porCobrarTotal) : '—'} nota={porCobrarTotal > 0 ? 'plazos que faltan' : 'todo cobrado'} />
+        <Cifra rotulo="Ticket medio" valor={datos.n ? euros(Math.round(vendidoTotal / datos.n)) : '—'} nota="sobre lo vendido" />
+        <Cifra rotulo="Sin entrar esta semana" valor={sinEntrar} sufijo={`de ${datos.n}`} nota="los que conviene escribir" />
+      </Tira>
 
       {/* Quien pagó una señal y aún no ha completado: lo que falta por cobrar. */}
       <PlazasReservadas onAbrir={setAbierta} vuelta={abierta ? 1 : 0} />
 
       {/* Comisión del closer (27/10): lo pendiente por closer. Solo administradores. */}
       {comisiones.length ? (
-        <div className="rounded-lg border border-[#E5E7EB] bg-white">
-          <div className="px-4 pt-3.5 pb-2 flex items-center gap-2">
-            <HandCoins size={16} className="text-[#025dc7]" />
-            <p className="text-[14px] font-semibold text-gray-900">Comisión del closer</p>
-            <span className="text-[12px] text-[#6B7280]">· solo lo ves tú</span>
-          </div>
-          <div className="divide-y divide-[#F3F4F6]">
+        <Seccion titulo="Comisión del closer" nota="Solo lo ves tú.">
+          <div className="border-t border-[#E6E8EE]">
             {comisiones.map((r) => (
-              <div key={r.closer} className="px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div key={r.closer} className="py-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#F0F1F5]">
                 <div className="flex-1 min-w-[200px]">
-                  <p className="text-[13.5px] font-medium text-gray-900">{r.closer}</p>
-                  <p className="text-[12.5px] text-[#6B7280] tabular-nums">
+                  <Estado color={colorDe(r.closer)} className="!text-[14px] !text-[#0B1020]">
+                    {r.closer}
+                  </Estado>
+                  <p className="text-[12.5px] text-[#8A93A3] tabular-nums">
                     {r.pendientes ? (
-                      <span className="text-[#B45309] font-medium">
+                      <span className="text-[#9A6B12] font-medium">
                         {r.pendientes} pendiente{r.pendientes === 1 ? '' : 's'} · ≈ {euros(r.pendiente_cents)}
                       </span>
                     ) : (
@@ -233,209 +304,184 @@ export default function ClientesPanel() {
               </div>
             ))}
           </div>
-          <p className="px-4 pb-3 pt-1 text-[11.5px] text-[#9CA3AF]">
+          <p className="text-[12.5px] text-[#8A93A3] max-w-[860px]">
             «≈» es su % (Visión → Ajustes) sobre el total de la venta (a plazos, el total del plan aunque falten pagos), sin restar Klarna ni devoluciones. Al
             marcar una venta eliges el % o escribes lo que le pagaste de verdad.
           </p>
-        </div>
+        </Seccion>
       ) : null}
 
-      {comisiones.length ? (
-        <div className="flex flex-wrap gap-1.5">
-          {(
-            [
-              ['todas', 'Todas las ventas'],
-              ['pendiente', `Comisión pendiente · ${nPendientes}`],
-              ['pagada', `Comisión pagada · ${nPagadas}`],
-            ] as const
-          ).map(([id, texto]) => (
-            <button
-              key={id}
-              onClick={() => setVerComision(id)}
-              className={`rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors ${
-                verComision === id ? 'border-gray-900 bg-gray-900 text-white' : 'border-[#E5E7EB] bg-white text-gray-700 hover:bg-[#F9FAFB]'
-              }`}
-            >
-              {texto}
-            </button>
-          ))}
+      <Seccion titulo="Clientes" nota="El último pago, arriba. Toca una fila para abrir su ficha.">
+        <div className="flex flex-wrap items-center gap-2">
+          {comisiones.length
+            ? (
+                [
+                  ['todas', 'Todas las ventas'],
+                  ['pendiente', `Comisión pendiente · ${nPendientes}`],
+                  ['pagada', `Comisión pagada · ${nPagadas}`],
+                ] as const
+              ).map(([id, texto]) => (
+                <button key={id} onClick={() => setVerComision(id)} className={filtro(verComision === id)}>
+                  {texto}
+                </button>
+              ))
+            : null}
+          <div className="relative flex-1 min-w-[220px] sm:max-w-[340px] sm:ml-auto">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A93A3]" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar por nombre, correo o teléfono"
+              className="w-full h-8 bg-white border border-[#E6E8EE] rounded-lg pl-9 pr-3 text-[13.5px] text-[#0B1020] placeholder:text-[#8A93A3] outline-none focus:border-[#0B1020]"
+            />
+          </div>
         </div>
-      ) : null}
 
-      <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar por nombre, correo o teléfono"
-          className="w-full bg-white border border-[#E5E7EB] rounded-lg pl-9 pr-3 py-2 text-[13.5px] text-gray-900 outline-none focus:border-gray-900"
-        />
-      </div>
+        {!lista.length ? (
+          <p className="text-[13.5px] text-[#8A93A3] py-10 text-center border-t border-[#E6E8EE]">
+            {datos.clientes.length ? 'Nadie con ese filtro.' : 'Todavía no hay clientes.'}
+          </p>
+        ) : (
+          <>
+            {/* Ordenador: tabla limpia. */}
+            <table className={`${TABLA} hidden lg:table`}>
+              <thead>
+                <tr>
+                  <th className={TH}>Persona</th>
+                  <th className={TH}>Forma de pago</th>
+                  <th className={TH}>Closer</th>
+                  <th className={TH_NUM}>Vendido</th>
+                  <th className={TH_NUM}>Cobrado</th>
+                  <th className={`${TH} pl-6`}>Comisión</th>
+                  <th className={TH}>En la escuela</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lista.map((c) => {
+                  const a = actividad(c)
+                  const com = c.comision
+                  const base = com?.base_cents || c.total_cents
+                  const vendido = c.vendido_cents ?? c.total_cents
+                  const pago = formaDePago(c)
+                  const pctPagada = com?.pagada ? pctQueCuadra(base, com.pagada.importe_cents, pcts) : null
+                  const enCaja = editando === c.email ? leerEuros(importe) : null
+                  const pctEnCaja = enCaja !== null ? pctQueCuadra(base, enCaja, pcts) : null
+                  const cd = comisionDe(c, pctPagada)
+                  return (
+                    <React.Fragment key={c.email}>
+                      <tr onClick={() => setAbierta(c.email)} className="cursor-pointer hover:bg-[#F7F8FA]">
+                        <td className={`${TD} max-w-[260px]`}>
+                          <span className="block truncate">{c.nombre || c.email}</span>
+                          <span className={`${SUB} truncate`}>
+                            {c.email}
+                            {c.telefono ? ` · ${c.telefono}` : ''}
+                          </span>
+                        </td>
+                        <td className={TD}>
+                          {pago.texto}
+                          <span className={SUB} style={pago.aviso ? { color: '#C8322B' } : undefined} title={c.plazos?.fallo || undefined}>
+                            {pago.detalle || fechaCorta(c.ultimo_pago)}
+                          </span>
+                        </td>
+                        <td className={TD}>
+                          {com?.closer ? <Estado color={colorDe(com.closer)}>{com.closer.split(/\s+/)[0]}</Estado> : <span className="text-[13px] text-[#B4BAC6]">—</span>}
+                        </td>
+                        <td className={`${TD_NUM} font-semibold`}>{euros(vendido)}</td>
+                        <td className={TD_NUM}>
+                          {euros(c.total_cents)}
+                          <span className={SUB}>{fechaCorta(c.ultimo_pago)}</span>
+                        </td>
+                        <td className={`${TD} pl-6`}>
+                          {cd ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                abrirComision(c)
+                              }}
+                              className="text-left rounded hover:opacity-70"
+                              title={com?.closer ? `Closer: ${com.closer}. Toca para marcarla o cambiarla.` : 'Toca para marcarla'}
+                            >
+                              <Estado tono={cd.tono}>{cd.texto}</Estado>
+                              {cd.detalle ? <span className={`${SUB} pl-[13px]`}>{cd.detalle}</span> : null}
+                            </button>
+                          ) : (
+                            <span className="text-[13px] text-[#B4BAC6]">—</span>
+                          )}
+                        </td>
+                        <td className={`${TD} max-w-[230px]`}>
+                          <Estado tono={a.tono}>{a.texto}</Estado>
+                          {c.avance ? (
+                            <span className={`${SUB} pl-[13px] truncate`}>
+                              {c.avance.hechas} de {c.avance.total} clases · {c.avance.pct} %
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
+                      {editando === c.email && com ? (
+                        <tr>
+                          <td colSpan={7} className="pb-3 pt-1 border-b border-[#F0F1F5]">
+                            {cajaComision(c, base, pctEnCaja)}
+                          </td>
+                        </tr>
+                      ) : null}
+                    </React.Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
 
-      {!lista.length ? (
-        <p className="text-[13.5px] text-[#9CA3AF] py-10 text-center">Todavía no hay clientes.</p>
-      ) : (
-        <div className="rounded-lg border border-[#E5E7EB] bg-white divide-y divide-[#F3F4F6] overflow-hidden">
-          {lista.map((c) => {
-            const a = actividad(c)
-            const com = c.comision
-            const base = com?.base_cents || c.total_cents
-            const vendido = c.vendido_cents ?? c.total_cents
-            const porCobrar = c.por_cobrar_cents ?? Math.max(0, vendido - c.total_cents)
-            const pctPagada = com?.pagada ? pctQueCuadra(base, com.pagada.importe_cents, pcts) : null
-            const enCaja = editando === c.email ? leerEuros(importe) : null
-            const pctEnCaja = enCaja !== null ? pctQueCuadra(base, enCaja, pcts) : null
-            return (
-              <div key={c.email}>
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => setAbierta(c.email)}
-                onKeyDown={(e) => e.key === 'Enter' && setAbierta(c.email)}
-                className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#F8FAFF] transition-colors cursor-pointer"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-semibold text-gray-900 truncate">{c.nombre || c.email}</p>
-                  <p className="text-[12px] text-[#6B7280] truncate">
-                    {c.email}
-                    {c.telefono ? ` · ${c.telefono}` : ''}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11.5px]">
-                    <span
-                      className={`rounded-full px-2 py-0.5 font-semibold ${
-                        a.tono === 'verde' ? 'text-[#15803D]' : a.tono === 'ambar' ? 'text-[#B45309]' : 'bg-[#F3F4F6] text-[#6B7590]'
-                      }`}
-                    >
-                      {a.texto}
-                    </span>
-                    {/* Paga en 3 plazos (14/10): cuántos lleva, en rojo si uno no entró. */}
-                    {c.plazos ? (
-                      <span
-                        className={`rounded-full px-2 py-0.5 font-semibold tabular-nums ${
-                          c.plazos.estado === 'fallido' || c.plazos.estado === 'cancelado'
-                            ? 'bg-[#FEF2F2] text-[#B91C1C]'
-                            : 'bg-[#F3F4F6] text-[#6B7280]'
-                        }`}
-                        title={c.plazos.fallo || undefined}
-                      >
-                        {porCobrar > 0
-                          ? `Cobrado ${euros(c.total_cents)} de ${euros(vendido)} · pago ${c.plazos.cuotas_pagadas} de ${c.plazos.cuotas}`
-                          : `Plazos ${c.plazos.cuotas_pagadas} de ${c.plazos.cuotas}`}
-                        {c.plazos.estado === 'fallido' ? ' · cobro fallido' : c.plazos.estado === 'cancelado' ? ' · sin completar' : ''}
-                      </span>
-                    ) : null}
-                    {c.avance ? (
-                      <span className="rounded-full px-2 py-0.5 font-semibold bg-[#F3F4F6] text-[#6B7280] tabular-nums">
-                        {c.avance.hechas} de {c.avance.total} clases · {c.avance.pct} %
-                      </span>
-                    ) : null}
-                    {/* La comisión del closer (27/10): se toca aquí, sin abrir la ficha. */}
-                    {com ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          abrirComision(c)
-                        }}
-                        className={`rounded-full px-2 py-0.5 font-semibold tabular-nums border ${
-                          com.pagada
-                            ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]'
-                            : com.con_llamada
-                              ? 'border-[#FDE68A] bg-[#FFFBEB] text-[#B45309]'
-                              : 'border-[#E5E7EB] bg-white text-[#9CA3AF]'
-                        }`}
-                        title={com.closer ? `Closer: ${com.closer}` : undefined}
-                      >
-                        {com.pagada
-                          ? `Comisión pagada${com.pagada.importe_cents ? ` · ${euros(com.pagada.importe_cents)}` : ''}${
-                              pctPagada !== null ? ` (${textoPct(pctPagada)})` : ''
-                            } · ${fechaCorta(com.pagada.cuando)}`
-                          : com.con_llamada
-                            ? `Comisión pendiente · ≈ ${euros(com.estimada_cents)}${com.pct ? ` (${textoPct(com.pct)})` : ''}`
-                            : 'Sin llamada · sin comisión'}
-                      </button>
-                    ) : null}
+            {/* Móvil y tableta: cada cliente, apilado. */}
+            <div className="lg:hidden border-t border-[#E6E8EE]">
+              {lista.map((c) => {
+                const a = actividad(c)
+                const com = c.comision
+                const base = com?.base_cents || c.total_cents
+                const vendido = c.vendido_cents ?? c.total_cents
+                const pago = formaDePago(c)
+                const pctPagada = com?.pagada ? pctQueCuadra(base, com.pagada.importe_cents, pcts) : null
+                const enCaja = editando === c.email ? leerEuros(importe) : null
+                const pctEnCaja = enCaja !== null ? pctQueCuadra(base, enCaja, pcts) : null
+                const cd = comisionDe(c, pctPagada)
+                return (
+                  <div key={c.email} className="border-b border-[#F0F1F5] py-3">
+                    <div role="button" tabIndex={0} onClick={() => setAbierta(c.email)} onKeyDown={(e) => e.key === 'Enter' && setAbierta(c.email)} className="flex items-start gap-3 cursor-pointer">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] text-[#0B1020] truncate">{c.nombre || c.email}</p>
+                        <p className="text-[12.5px] text-[#8A93A3] truncate" style={pago.aviso ? { color: '#C8322B' } : undefined}>
+                          {[pago.texto, pago.detalle, com?.closer ? com.closer.split(/\s+/)[0] : ''].filter(Boolean).join(' · ')}
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                          <Estado tono={a.tono}>
+                            {a.texto}
+                            {c.avance ? ` · ${c.avance.pct} %` : ''}
+                          </Estado>
+                          {cd ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                abrirComision(c)
+                              }}
+                            >
+                              <Estado tono={cd.tono}>Comisión: {cd.texto.toLowerCase()}</Estado>
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-[14px] font-semibold tabular-nums text-[#0B1020]">{euros(vendido)}</p>
+                        <p className="text-[12.5px] text-[#8A93A3] tabular-nums">
+                          {vendido !== c.total_cents ? `cobrado ${euros(c.total_cents)}` : fechaCorta(c.ultimo_pago)}
+                        </p>
+                      </div>
+                    </div>
+                    {editando === c.email && com ? <div className="mt-2.5">{cajaComision(c, base, pctEnCaja)}</div> : null}
                   </div>
-                  {c.avance?.ultima ? (
-                    <p className="mt-1 text-[12px] text-[#6B7280] truncate">
-                      Va por {c.avance.ultima.modulo} · {c.avance.ultima.clase}
-                    </p>
-                  ) : c.avance ? (
-                    <p className="mt-1 text-[12px] text-[#9CA3AF] truncate">Todavía no ha terminado ninguna clase</p>
-                  ) : null}
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-[14px] font-bold tabular-nums text-[#1D0084]">{euros(vendido)}</p>
-                  {porCobrar > 0 ? (
-                    <p className="text-[11.5px] text-[#9CA3AF] tabular-nums">cobrado {euros(c.total_cents)}</p>
-                  ) : c.plazos && c.plazos.estado === 'cancelado' && c.plazos.total_cents > c.total_cents ? (
-                    <p className="text-[11.5px] text-[#9CA3AF] tabular-nums">de {euros(c.plazos.total_cents)}</p>
-                  ) : null}
-                  <p className="text-[11.5px] text-[#9CA3AF]">
-                    {c.pagos > 1 ? `${c.pagos} pagos · ` : ''}
-                    {fechaCorta(c.ultimo_pago)}
-                  </p>
-                </div>
-                <ChevronRight size={16} className="shrink-0 text-[#B9C6DC]" />
-              </div>
-              {editando === c.email && com ? (
-                <div className="px-4 pb-3.5 -mt-1 flex flex-wrap items-center gap-2 text-[13px]">
-                  {com.pagada ? (
-                    <span className="text-[#6B7280] w-full">
-                      Pagada el {fechaCorta(com.pagada.cuando)}
-                      {com.pagada.por ? ` · la marcó ${com.pagada.por.split(/\s+/)[0]}` : ''}
-                      {com.closer ? ` · closer: ${com.closer}` : ''}
-                    </span>
-                  ) : (
-                    <span className="text-[#6B7280] w-full">
-                      ¿Cuánto le pagaste{com.closer ? ` a ${com.closer.split(/\s+/)[0]}` : ' al closer'}?
-                    </span>
-                  )}
-                  <span className="text-[#6B7280] w-full -mt-1">
-                    Sobre el total de la venta: <span className="font-semibold text-gray-900 tabular-nums">{euros(base)}</span>
-                    {c.plazos && base > c.total_cents ? ` · a plazos, cobrado ${euros(c.total_cents)} hasta hoy` : ''}
-                  </span>
-                  {/* Elegir el % ajusta el importe solo; también se puede escribir a mano. */}
-                  <div className="flex items-center gap-1">
-                    {pcts.map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setImporte(aCaja(comisionCents(base, p)))}
-                        className={`rounded-md border px-2.5 py-1.5 text-[13px] font-semibold tabular-nums transition-colors ${
-                          pctEnCaja === p ? 'border-gray-900 bg-gray-900 text-white' : 'border-[#D1D5DB] bg-white text-gray-700 hover:bg-[#F9FAFB]'
-                        }`}
-                      >
-                        {textoPct(p)}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="relative">
-                    <input
-                      value={importe}
-                      onChange={(e) => setImporte(e.target.value)}
-                      inputMode="decimal"
-                      placeholder="0"
-                      className="w-28 rounded-md border border-[#D1D5DB] pl-2.5 pr-6 py-1.5 text-[13.5px] text-gray-900 tabular-nums outline-none focus:border-gray-900"
-                    />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9CA3AF]">€</span>
-                  </div>
-                  <button onClick={() => guardarComision(c)} disabled={guardando} className={BOTON_PRINCIPAL}>
-                    {guardando ? <Loader2 size={13} className="animate-spin" /> : null} {com.pagada ? 'Guardar importe' : 'Marcar pagada'}
-                  </button>
-                  {com.pagada ? (
-                    <button onClick={() => quitarMarca(c)} disabled={guardando} className={BOTON}>
-                      Quitar la marca
-                    </button>
-                  ) : null}
-                  <button onClick={() => setEditando(null)} className="text-[13px] font-medium text-[#6B7280] hover:text-gray-900 px-1">
-                    Cancelar
-                  </button>
-                </div>
-              ) : null}
-              </div>
-            )
-          })}
-        </div>
-      )}
+                )
+              })}
+            </div>
+          </>
+        )}
+      </Seccion>
 
       {abierta ? <FichaCliente email={abierta} onClose={() => setAbierta(null)} /> : null}
     </div>
