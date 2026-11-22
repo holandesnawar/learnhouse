@@ -63,7 +63,7 @@ export default function PresentacionesSemana({
         <div className="mt-3 flex flex-col gap-2.5 rounded-xl border border-[#F0E3C4] bg-[#FFFBF2] px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
           <p className="min-w-0 flex-1 text-[13px] leading-snug text-[#6B5320]">
             <span className="font-semibold text-[#3F3110]">Lo escrito en la pizarra no está guardado para los alumnos.</span>{' '}
-            {inicial?.publicada ? 'Se escribió después de guardar: ven la versión de antes.' : palabra('Está en «' + pendiente.nombre + '»: los alumnos de esta clase aún no lo ven en su semana.')}
+            {inicial?.publicada ? 'Se escribió después de guardar: ven la versión de antes.' : <>Está en «{pendiente.nombre}»: {palabra('los alumnos de esta clase aún no lo ven en su semana.')}</>}
           </p>
           <a
             href={pizarra(`?fuente=${encodeURIComponent(pendiente.id)}&guardar=1`)}

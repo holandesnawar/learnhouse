@@ -104,7 +104,7 @@ export default function VerPresentacion({ semanaId }: { semanaId: string }) {
 
   const equipo = !!clase.data?.equipo && !!(semanas.data?.equipo || semanas.data?.admin)
   const hoy = semanas.data?.hoy || ''
-  const nombreCurso = nombreDeClase(clase.data?.curso || '')
+  const nombreCurso = clase.data ? nombreDeClase({ name: clase.data.curso, course_uuid: clase.data.course_uuid } as any) : ''
   const t = useMemo(() => textosDeClase(clase.data?.curso), [clase.data?.curso])
   const sencilla = tipoDeClase(String(clase.data?.curso || '')) !== 'semanal'
   const semana = useMemo(() => (semanas.data?.semanas || []).find((s) => s.id === id) || null, [semanas.data, id])
@@ -181,7 +181,7 @@ export default function VerPresentacion({ semanaId }: { semanaId: string }) {
     )
   }
   const cargando = !clase.data || (!semanas.data && !semanas.isError)
-  const profe = (semana?.material_profe?.profe || ajustesDirecto(org?.config?.config ?? org?.config, courseUuid).banner?.profe || '').trim()
+  const profe = (semana?.material_profe?.profe || ajustesDirecto(org?.config?.config, courseUuid).banner?.teacher || '').trim()
   const titulo = semana ? t(tituloDeClase(semana.tema, semana.fecha)) : clase.data?.tema || ''
   const cuando = [diaDeSesion(semana?.fecha || clase.data?.fecha || '', hoy), profe ? `con ${profe}` : ''].filter(Boolean).join(' · ')
   const nombreArchivo = `${(semana?.tema || 'Presentación').trim()}${abierta?.tipo === 'clase' ? ' - notas de la clase' : ''}.pdf`

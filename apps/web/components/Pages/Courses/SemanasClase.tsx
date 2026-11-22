@@ -327,7 +327,7 @@ function ContenidoSemana({
           href={getUriWithOrg(orgslug, `/tarea/${semana.id}`)}
         />
       ) : null}
-      {!clases.length && !semana.tiene_tarea ? (
+      {!admin && !clases.length && !semana.tiene_tarea ? (
         <p className="px-4 py-4 text-[13px] text-[#9CA3AF]">Aún no hay nada en esta semana.</p>
       ) : null}
     </div>

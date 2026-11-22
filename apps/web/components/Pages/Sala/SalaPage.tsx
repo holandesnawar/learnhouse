@@ -904,12 +904,12 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
                       ) : null}
                     </div>
                     {opcionesSemana.length > 1 ? (
-                      <label className="mt-1 flex items-center gap-2 text-[12.5px] text-[#5A6480]">
-                        U otra:
+                      <label className="mt-1 flex w-full max-w-[420px] flex-col items-center gap-1.5 text-[12.5px] text-[#5A6480] sm:w-auto sm:flex-row sm:gap-2">
+                        <span className="shrink-0">U otra:</span>
                         <select
                           value=""
                           onChange={(e) => e.target.value && setSemanaId(Number(e.target.value))}
-                          className="rounded-md border border-[#D5DEEE] bg-white px-2 py-1 text-[12.5px] text-[#0a1656]"
+                          className="w-full min-w-0 rounded-md border border-[#D5DEEE] bg-white px-2 py-1 text-[12.5px] text-[#0a1656] sm:w-auto"
                         >
                           <option value="">Elegir…</option>
                           {opcionesSemana.map((x) => (
