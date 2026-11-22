@@ -27,13 +27,16 @@ import {
   borrarNotas,
   descargarFuente,
   getPizarra,
+  getSesiones,
   listaDe,
   nombrarPresentacion,
+  pasarASesion,
   pasarNotas,
   PIZARRA_EN_BLANCO,
   ponerEnPizarra,
   type ListaPresentaciones as Lista,
   type NotasSueltas,
+  type OtraSesion,
   type Presentacion,
 } from '@services/pizarra/pizarra'
 import { cambiarArchivoProfe, diaCorto, getGemela, nombreProfe, quitarProfe, subirArchivoProfe, type Gemela } from '@services/tareas/tareas'
@@ -170,6 +173,9 @@ export default function ListaPresentaciones(p: PropsListaPresentaciones) {
   const [ocupado, setOcupado] = useState('')
   const [menu, setMenu] = useState<{ id: string; ancla: HTMLElement } | null>(null)
   const [pasando, setPasando] = useState('') // de cuál se están pasando las notas
+  // A otra sesión de la misma clase: cuál se pasa y las sesiones que hay.
+  const [aSesion, setASesion] = useState('')
+  const [sesiones, setSesiones] = useState<OtraSesion[] | null>(null)
   const [renombrando, setRenombrando] = useState<{ id: string; nombre: string } | null>(null)
   const [paraQuien, setParaQuien] = useState<'equipo' | 'alumnos'>('equipo')
   const [encima, setEncima] = useState(false)
@@ -314,6 +320,28 @@ export default function ListaPresentaciones(p: PropsListaPresentaciones) {
       else toast('Esa presentación no tenía notas que pasar')
     })
 
+  /** «Se subió en la sesión que no era»: se elige la buena debajo de la fila. */
+  const elegirSesion = (id: string) => {
+    setPasando('')
+    setASesion(id)
+    if (sesiones) return
+    getSesiones(semanaId, token)
+      .then((r) => setSesiones(r.sesiones || []))
+      .catch((e: any) => {
+        setASesion('')
+        toast.error(e?.message || 'No se han podido leer las sesiones de esta clase')
+      })
+  }
+
+  const pasarALaSesion = (id: string, nombre: string, s: OtraSesion) =>
+    hacer(id, async () => {
+      const r = await pasarASesion(semanaId, id, s.id, token)
+      setASesion('')
+      poner(r)
+      const donde = `${s.tema || 'la sesión'} (${diaCorto(s.fecha)})`
+      toast.success(r.pasada.archivo ? `«${nombre}» está ahora en ${donde}, con lo escrito encima` : `Las notas están ahora en ${donde}`)
+    })
+
   const borrar = async (id: string, nombre: string) => {
     const ok = await confirmar(`¿Borrar lo escrito en la pizarra sobre «${nombre}»?\n\nSe borran las notas, no la presentación. No se puede deshacer.`, { boton: 'Borrar las notas', peligro: true })
     if (!ok) return
@@ -388,7 +416,8 @@ export default function ListaPresentaciones(p: PropsListaPresentaciones) {
     if (!x.en_pizarra) out.push({ texto: 'Poner en la pizarra', hacer: () => enPizarra(x) })
     if (x.de !== 'blanco') out.push({ texto: 'Descargar', hacer: () => descargar(x) })
     if (x.notas) out.push({ texto: 'Descargar con las notas', hacer: () => abrirConNotas(x.id) })
-    if (x.notas && hayDestino) out.push({ texto: 'Pasar las notas a otra presentación…', hacer: () => setPasando(x.id) })
+    if (x.notas && hayDestino) out.push({ texto: 'Pasar las notas a otra presentación…', hacer: () => (setASesion(''), setPasando(x.id)) })
+    if (x.de === 'equipo') out.push({ texto: 'Pasar a otra sesión…', nota: x.notas ? 'con sus notas' : undefined, hacer: () => elegirSesion(x.id) })
     if (x.de === 'equipo' || (x.de === 'alumnos' && p.chapterId))
       out.push({
         texto: 'Cambiar el archivo',
@@ -514,6 +543,7 @@ export default function ListaPresentaciones(p: PropsListaPresentaciones) {
           </a>
         ) : null}
         {pasando === x.id ? pasarAOtra() : null}
+        {aSesion === x.id ? aOtraSesion(x.id, x.nombre, true) : null}
       </li>
     )
   }
@@ -553,6 +583,45 @@ export default function ListaPresentaciones(p: PropsListaPresentaciones) {
     )
   }
 
+  /** A qué sesión de la misma clase se pasa: se elige aquí mismo. */
+  const aOtraSesion = (id: string, nombre: string, conArchivo: boolean) => (
+    <div className="mt-3 rounded-xl border border-[#E3E8F2] bg-[#FAFBFD] px-4 py-3.5">
+      <p className="text-[13.5px] font-semibold text-[#0B1033]">{conArchivo ? `Pasar «${nombre}» a otra sesión de esta clase:` : 'Pasar estas notas a otra sesión de esta clase:'}</p>
+      <p className="mt-0.5 text-[12.5px] leading-relaxed text-[#6B7393]">
+        {conArchivo
+          ? 'Se va de esta sesión y aparece en la que elijas, con lo escrito encima. Lo que ya ven los alumnos de esta sesión no cambia.'
+          : 'Dejan de estar en esta sesión y aparecen en la que elijas.'}
+      </p>
+      {sesiones === null ? (
+        <p className="mt-2.5 flex items-center gap-2 text-[13px] text-[#6B7393]">
+          <Loader2 size={14} className="animate-spin" /> Leyendo las sesiones…
+        </p>
+      ) : sesiones.length ? (
+        <div className="mt-2.5 flex max-h-[232px] flex-col gap-1.5 overflow-y-auto">
+          {sesiones.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => pasarALaSesion(id, nombre, s)}
+              disabled={!!ocupado}
+              className="flex items-center gap-3 rounded-lg border border-[#E2E7F0] bg-white px-3 py-2 text-left transition-colors hover:border-[#0b2da0] disabled:opacity-50"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block break-words text-[13.5px] font-semibold text-[#0B1033]">{s.tema || 'Sin tema todavía'}</span>
+                <span className="block text-[12px] text-[#6B7393] first-letter:uppercase">{s.fecha ? diaCorto(s.fecha) : 'sin día'}</span>
+              </span>
+              <span className="shrink-0 text-[13px] font-semibold text-[#0b2da0]">{ocupado === id ? 'Pasando…' : 'Pasar aquí'}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2.5 text-[13px] text-[#6B7393]">Esta clase no tiene más sesiones creadas. Crea la sesión en el calendario de la sala de profesores y vuelve.</p>
+      )}
+      <button onClick={() => setASesion('')} className="mt-2.5 text-[13px] font-semibold text-[#6B7393] hover:underline">
+        Cancelar
+      </button>
+    </div>
+  )
+
   const suelta = (s: NotasSueltas) => (
     <div key={s.id} className="mt-3 rounded-xl border border-[#F0E3C4] bg-[#FFFBF2] px-4 py-3">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -563,10 +632,15 @@ export default function ListaPresentaciones(p: PropsListaPresentaciones) {
         </p>
         <span className="flex shrink-0 items-center gap-4">
           {filas.length ? (
-            <button onClick={() => setPasando(s.id)} disabled={!!ocupado} className={ENLACE}>
+            <button onClick={() => (setASesion(''), setPasando(s.id))} disabled={!!ocupado} className={ENLACE}>
               Pasarlas a…
             </button>
           ) : null}
+          {s.id.startsWith('clase:') ? null : (
+            <button onClick={() => elegirSesion(s.id)} disabled={!!ocupado} className={ENLACE}>
+              A otra sesión…
+            </button>
+          )}
           <button onClick={() => abrirConNotas(s.id)} className={ENLACE}>
             Descargar
           </button>
@@ -576,6 +650,7 @@ export default function ListaPresentaciones(p: PropsListaPresentaciones) {
         </span>
       </div>
       {pasando === s.id ? pasarAOtra() : null}
+      {aSesion === s.id ? aOtraSesion(s.id, s.nombre, false) : null}
     </div>
   )
 

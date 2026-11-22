@@ -73,6 +73,7 @@ import {
   type TrazoTexto,
 } from '@/lib/nawar/pizarra'
 import { bajarFuente, getPizarra, guardarNotas, listaDe, OtraPizarra, PIZARRA_EN_BLANCO, ponerEnPizarra, publicarPizarra, quitarPublicada, urlPdfConNotas, type ListaPresentaciones as Lista, type Pizarra } from '@services/pizarra/pizarra'
+import { rotuloDeSesion } from '@/lib/nawar/sesionDeLaSala'
 import { subirArchivoProfe } from '@services/tareas/tareas'
 import { VisorPresentacionClase } from '@components/Pages/Clases/pasosSemana'
 import ListaPresentaciones from '@components/Pages/Presentaciones/ListaPresentaciones'
@@ -177,10 +178,11 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   const ultimaGuardada = useRef(0)
   const escribibleRef = useRef<boolean | null>(null)
   // Lo pedido en la dirección: /pizarra/<semana>?fuente=<id>&descargar=1 (fuera de la sala).
-  const pedido = useRef<{ fuente: string; descargar: boolean } | null>(null)
+  // Con `&guardar=1` (desde la semana, «Guardar para los alumnos»): pregunta ya si se guarda.
+  const pedido = useRef<{ fuente: string; descargar: boolean; guardar: boolean } | null>(null)
   if (pedido.current === null) {
     const q = typeof window !== 'undefined' && !enSala ? new URLSearchParams(window.location.search) : null
-    pedido.current = { fuente: q?.get('fuente') || '', descargar: q?.get('descargar') === '1' }
+    pedido.current = { fuente: q?.get('fuente') || '', descargar: q?.get('descargar') === '1', guardar: q?.get('guardar') === '1' }
   }
   const [pdfListo, setPdfListo] = useState(0)
   const [tams, setTams] = useState<Tam[]>([])
@@ -1451,6 +1453,21 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     return () => clearTimeout(t)
   }, [pdfListo, falloPdf])
 
+  // /pizarra/<semana>?fuente=<id>&guardar=1: en cuanto se abre, pregunta si se
+  // guarda para los alumnos (la semana de la clase avisa de las notas sin guardar).
+  const publicarRef = useRef(publicar)
+  publicarRef.current = publicar
+  const guardadoPedido = useRef(false)
+  useEffect(() => {
+    if (!pdfListo || falloPdf || !pedido.current?.guardar || guardadoPedido.current) return
+    const t = setTimeout(() => {
+      if (guardadoPedido.current) return
+      guardadoPedido.current = true
+      publicarRef.current()
+    }, 600)
+    return () => clearTimeout(t)
+  }, [pdfListo, falloPdf])
+
   const quitar = async () => {
     if (!(await confirmar('¿Quitar la presentación con notas de la semana de los alumnos? Lo que has escrito aquí no se borra.', { boton: 'Quitar', peligro: false }))) return
     try {
@@ -1552,7 +1569,8 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
           )}
           <p className={`flex min-w-0 items-center gap-1.5 truncate text-[12px] leading-tight text-[#6B7393] ${cabMuyCorta ? '' : 'mt-0.5'}`}>
             {/* En la sala el nombre de la clase ya está arriba: aquí, solo si se ha guardado. */}
-            {enSala ? null : <span className="truncate">{info.semana.curso}</span>}
+            {/* Fuera de la sala: de qué clase y de qué día es esta pizarra (22/11/2026). */}
+            {enSala ? null : <span className="truncate">{rotuloDeSesion(info.semana.curso, info.semana.fecha)}</span>}
             {enSala ? null : <span className="text-[#C3C9D8]">·</span>}
             {soloLectura ? <span>Solo para mirar y descargar</span> : <EstadoGuardado estado={guardado} at={guardadaAt} onReintentar={() => guardar()} corto={cabMuyCorta} />}
           </p>

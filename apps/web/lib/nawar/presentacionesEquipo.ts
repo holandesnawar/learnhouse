@@ -11,7 +11,7 @@
  * Funciones puras, sin pantalla.
  */
 import type { ListaPresentaciones, Presentacion } from '@services/pizarra/pizarra'
-import { avisos } from './presentaciones'
+import { avisos, ultimaNota } from './presentaciones'
 import { diaLegible, horaDe, quienDa, type SemanaEquipo } from './salaProfes'
 import { diasEntre, lunesDe, sumarDias } from './semanasTrabajo'
 
@@ -94,10 +94,7 @@ export function nombreDeClase(f: FilaPresentaciones): string {
   return `${f.semana.curso} del ${diaLegible(f.semana.fecha)}`
 }
 
-/** Cuándo se escribió por última vez en alguna presentación de la clase ('' si nunca). */
-export function ultimaNota(lista: ListaPresentaciones): string {
-  return lista.presentaciones.reduce((m, x) => (x.notas && x.notas.at > m ? x.notas.at : m), '')
-}
+export { ultimaNota } from './presentaciones'
 
 /**
  * Lo que hay que mirar, lo urgente primero:

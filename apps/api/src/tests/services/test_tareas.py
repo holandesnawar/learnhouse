@@ -233,7 +233,7 @@ async def test_aviso_de_presentacion_nueva(db, org, monkeypatch, contenido):
     assert [a["kind"] for a in avisos] == ["semana"]
     a = avisos[0]
     assert a["id"] == f"semana:{sid}:activity_70" and a["title"] == "Nueva clase: De kleding"
-    assert a["url"] == "/course/mc/activity/70" and "lunes 2 de noviembre" in a["excerpt"]
+    assert a["url"] == f"/presentacion/{sid}" and "lunes 2 de noviembre" in a["excerpt"]
     assert "T" in a["date"] and a["date"].endswith("+00:00")  # misma forma que el resto de la campana
     # Ana ya la abrió: no. El de otra clase (fuera del grupo), tampoco.
     assert await T.avisos_alumno(7, db) == []

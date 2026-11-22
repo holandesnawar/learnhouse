@@ -77,7 +77,8 @@ import toast from 'react-hot-toast'
 import { conMano, haceCuantoMano, manosLevantadas, sinMano, tieneMano, type ManoLevantada } from '@/lib/nawar/mano'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { avisarPresencia, entrarPizarra, entrarSala, getSala, guardarSala, type EntradaSala } from '@services/salas/salas'
-import { getSemanas, diaCorto, type Semana } from '@services/tareas/tareas'
+import { crearClase, getSemanas, diaCorto, type Semana } from '@services/tareas/tareas'
+import { diaDeSesion, rotuloDeSesion, sesionParaLaSala } from '@/lib/nawar/sesionDeLaSala'
 import { confirmar } from '@/lib/nawar/confirmar'
 import { useOrg } from '@components/Contexts/OrgContext'
 import EtiquetaCurso from '@components/Pages/Courses/EtiquetaCurso'
@@ -235,12 +236,34 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
       const lista = [...(datos.semanas || [])].sort((a, b) => (a.fecha < b.fecha ? -1 : 1))
       setSemanas(lista)
       setHoy(datos.hoy)
-      // La de hoy; si no, la próxima; si no, la de esta semana; si no, la última.
-      const deHoy = lista.find((x) => x.fecha === datos.hoy)
-      setSemanaId(deHoy?.id ?? datos.proxima ?? datos.actual ?? lista[lista.length - 1]?.id ?? null)
+      // Solo se abre sola la de HOY (22/11/2026). Si hoy no hay sesión creada
+      // no se abre en silencio la próxima: se dice, y se deja crear la de hoy
+      // o elegir otra a sabiendas (lib/nawar/sesionDeLaSala.ts).
+      setSemanaId(sesionParaLaSala(lista, datos.hoy).deHoy?.id ?? null)
     } catch (e: any) {
       setSemanas([])
       toast.error(e?.message || 'No se pudieron leer las semanas de esta clase')
+    }
+  }
+
+  // Hoy no hay sesión creada: se crea aquí mismo (la misma «Nueva clase» del
+  // calendario de la sala de profesores, sin tema) y se abre su pizarra.
+  const [creandoHoy, setCreandoHoy] = useState(false)
+  async function crearSesionDeHoy() {
+    if (!token || !hoy || creandoHoy) return
+    setCreandoHoy(true)
+    try {
+      await crearClase(curso, { fecha: hoy }, token)
+      const datos = await getSemanas(curso, token)
+      const lista = [...(datos.semanas || [])].sort((a, b) => (a.fecha < b.fecha ? -1 : 1))
+      setSemanas(lista)
+      const deHoy = sesionParaLaSala(lista, datos.hoy).deHoy
+      if (deHoy) setSemanaId(deHoy.id)
+      else toast.error(t('No se ha podido crear la clase de hoy. Créala en el calendario de la sala de profesores.'))
+    } catch (e: any) {
+      toast.error(e?.message || t('No se ha podido crear la clase de hoy'))
+    } finally {
+      setCreandoHoy(false)
     }
   }
 
@@ -380,6 +403,9 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
     if (!semanas) return []
     return semanas.slice().reverse()
   }, [semanas])
+
+  const sesionAbierta = useMemo(() => (semanas || []).find((x) => x.id === semanaId) || null, [semanas, semanaId])
+  const otraSesion = useMemo(() => (semanas && hoy ? sesionParaLaSala(semanas, hoy).otra : null), [semanas, hoy])
 
   // Salir de la página estando en la llamada: se pregunta antes.
   useEffect(() => {
@@ -847,9 +873,54 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
                     <Loader2 size={18} className="animate-spin" /> Buscando la semana…
                   </div>
                 ) : !semanaId ? (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
-                    <p className="text-[15px] font-semibold text-[#0a1656]">Esta clase aún no tiene semanas</p>
-                    <p className="text-[13.5px] text-[#5A6480]">Crea la semana de hoy (con su presentación en PDF) desde la página de la clase y vuelve a abrir la pizarra.</p>
+                  // Hoy no hay sesión creada de esta clase: no se abre otra en
+                  // silencio. Se crea la de hoy o se elige otra a sabiendas.
+                  <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+                    <p className="text-[16px] font-semibold text-[#0a1656]">
+                      {t('Hoy no hay ninguna clase creada')}
+                      {nombreCurso ? ` de ${nombreCurso}` : ''}
+                    </p>
+                    <p className="max-w-[440px] text-[13.5px] leading-relaxed text-[#5A6480]">
+                      {t('La pizarra guarda la presentación y lo que escribas en la clase de un día concreto. Crea la de hoy y todo quedará en su sitio; o abre la de otro día si es esa la que quieres.')}
+                    </p>
+                    <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        onClick={crearSesionDeHoy}
+                        disabled={creandoHoy || !hoy}
+                        className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#0b2da0] px-4 text-[14px] font-semibold text-white hover:bg-[#0a2690] disabled:opacity-60"
+                      >
+                        {creandoHoy ? <Loader2 size={15} className="animate-spin" /> : null}
+                        {t('Crear la clase de hoy')}
+                      </button>
+                      {otraSesion ? (
+                        <button
+                          onClick={() => setSemanaId(otraSesion.id)}
+                          disabled={creandoHoy}
+                          className="inline-flex h-10 items-center rounded-lg border border-[#D5DEEE] bg-white px-4 text-[14px] font-semibold text-[#0a1656] hover:bg-[#F7F9FD] disabled:opacity-60"
+                        >
+                          Usar la del {diaDeSesion(otraSesion.fecha)}
+                          {otraSesion.tema ? ` · ${otraSesion.tema}` : ''}
+                        </button>
+                      ) : null}
+                    </div>
+                    {opcionesSemana.length > 1 ? (
+                      <label className="mt-1 flex w-full max-w-[420px] flex-col items-center gap-1.5 text-[12.5px] text-[#5A6480] sm:w-auto sm:flex-row sm:gap-2">
+                        <span className="shrink-0">U otra:</span>
+                        <select
+                          value=""
+                          onChange={(e) => e.target.value && setSemanaId(Number(e.target.value))}
+                          className="w-full min-w-0 rounded-md border border-[#D5DEEE] bg-white px-2 py-1 text-[12.5px] text-[#0a1656] sm:w-auto"
+                        >
+                          <option value="">Elegir…</option>
+                          {opcionesSemana.map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {diaCorto(x.fecha)}
+                              {x.tema ? ` · ${x.tema}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="flex h-full flex-col">
@@ -857,26 +928,38 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
                       <div className="flex shrink-0 items-center gap-2 border-b border-[#F3D3D1] bg-[#FDF3F2] px-3 py-1.5 text-[12.5px] font-semibold text-[#9B2C26]">
                         <span className="h-2 w-2 animate-pulse rounded-full bg-[#B4413C]" /> Los alumnos ven esta página en la llamada
                       </div>
-                    ) : opcionesSemana.length > 1 ? (
-                      <div className="flex shrink-0 items-center gap-2 border-b border-[#E2E8F4] bg-[#F7F9FD] px-3 py-1.5 text-[12.5px] text-[#5A6480]">
-                        Semana:
-                        <select
-                          value={semanaId}
-                          onChange={(e) => {
-                            if (ensenando) pararEmision()
-                            setSemanaId(Number(e.target.value))
-                          }}
-                          className="rounded-md border border-[#D5DEEE] bg-white px-2 py-1 text-[12.5px] text-[#0a1656]"
-                        >
-                          {opcionesSemana.map((x) => (
-                            <option key={x.id} value={x.id}>
-                              {x.tema || 'Semana'} · {diaCorto(x.fecha)}
-                              {x.fecha === hoy ? ' (hoy)' : ''}
-                            </option>
-                          ))}
-                        </select>
+                    ) : (
+                      // Siempre a la vista: de qué clase y de qué día es esta
+                      // pizarra (lo que se suba o se escriba queda en ESA).
+                      <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-[#E2E8F4] bg-[#F7F9FD] px-3 py-1.5 text-[12.5px] text-[#5A6480]">
+                        <span className="font-semibold text-[#0a1656]">{rotuloDeSesion(nombreCurso, sesionAbierta?.fecha || '', hoy)}</span>
+                        {sesionAbierta && sesionAbierta.fecha !== hoy ? (
+                          <span className="font-semibold text-[#8A6A2A]">· no es la de hoy</span>
+                        ) : null}
+                        {opcionesSemana.length > 1 ? (
+                          <label className="ml-auto flex items-center gap-1.5">
+                            <span className="max-sm:hidden">Cambiar:</span>
+                            <select
+                              value={semanaId}
+                              onChange={(e) => {
+                                if (ensenando) pararEmision()
+                                setSemanaId(Number(e.target.value))
+                              }}
+                              aria-label={t('De qué clase es la pizarra')}
+                              className="max-w-[230px] rounded-md border border-[#D5DEEE] bg-white px-2 py-1 text-[12.5px] text-[#0a1656]"
+                            >
+                              {opcionesSemana.map((x) => (
+                                <option key={x.id} value={x.id}>
+                                  {diaCorto(x.fecha)}
+                                  {x.fecha === hoy ? ' (hoy)' : ''}
+                                  {x.tema ? ` · ${x.tema}` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : null}
                       </div>
-                    ) : null}
+                    )}
                     <div className="min-h-0 flex-1">
                       <PizarraClase
                         key={semanaId}

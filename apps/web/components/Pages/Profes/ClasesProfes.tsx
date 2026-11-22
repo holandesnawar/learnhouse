@@ -413,7 +413,7 @@ function Siguiente({ t, hoy, ruta, onLista }: { t: Tarjeta; hoy: string; ruta: (
         <div className="flex flex-wrap gap-2 shrink-0">
           {pres ? (
             <Link
-              href={ruta(`/course/${t.courseUuid}/activity/${pres.activity_uuid.replace('activity_', '')}`)}
+              href={ruta(`/presentacion/${t.semanaId}`)}
               className="inline-flex items-center gap-2 rounded-lg bg-[#4da3ff] hover:bg-[#5eb4ff] px-4 py-2.5 text-[14px] font-bold text-[#0a1656]"
             >
               <Presentation size={16} /> Ver la presentación
@@ -510,7 +510,7 @@ function TarjetaClase({ t, hoy, ruta, onLista }: { t: Tarjeta; hoy: string; ruta
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         {t.presentaciones.map((c) => (
-          <Link key={c.activity_uuid} href={actividad(c)} className={BOTON_SUAVE}>
+          <Link key={c.activity_uuid} href={ruta(`/presentacion/${t.semanaId}`)} className={BOTON_SUAVE}>
             <FileText size={13} /> Presentación
           </Link>
         ))}

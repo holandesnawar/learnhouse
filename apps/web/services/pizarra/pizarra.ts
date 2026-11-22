@@ -134,6 +134,28 @@ export const ponerEnPizarra = (semanaId: number, fuente: string, token: string) 
 export const pasarNotas = (semanaId: number, de: string, a: string, token: string) =>
   pedir<ListaPresentaciones & { pasadas: boolean }>(`${base()}/semana/${semanaId}/notas/pasar`, token, 'POST', { de, a })
 
+/** Otra sesión de la misma clase (para pasarle una presentación). */
+export interface OtraSesion {
+  id: number
+  tema: string
+  fecha: string
+}
+
+/** Las demás sesiones de la misma clase, la más cercana primero. */
+export const getSesiones = (semanaId: number, token: string) => pedir<{ sesiones: OtraSesion[] }>(`${base()}/semana/${semanaId}/sesiones`, token)
+
+/**
+ * Pasa una presentación del equipo, con lo escrito encima, a otra sesión de la
+ * misma clase («se subió en la sesión que no era»). Devuelve cómo queda ESTA.
+ */
+export const pasarASesion = (semanaId: number, fuente: string, a: number, token: string) =>
+  pedir<ListaPresentaciones & { pasada: { archivo: boolean; notas: boolean; en_pizarra: boolean }; a: OtraSesion }>(
+    `${base()}/semana/${semanaId}/pasar-a-sesion`,
+    token,
+    'POST',
+    { fuente, a }
+  )
+
 export const borrarNotas = (semanaId: number, fuente: string, token: string) =>
   pedir<ListaPresentaciones>(`${base()}/semana/${semanaId}/notas?fuente=${encodeURIComponent(fuente)}`, token, 'DELETE')
 
@@ -238,3 +260,34 @@ export async function urlPdfConNotas(semanaId: number, token: string): Promise<s
   }
   return URL.createObjectURL(await res.blob())
 }
+
+// ── La presentación en su propia página (22/11/2026) ───────────────────────
+
+/** De qué clase es una semana (quien ve la clase). */
+export interface ClaseDeSemana {
+  id: number
+  tema: string
+  fecha: string
+  course_uuid: string
+  curso: string
+  equipo: boolean
+}
+
+export const getClaseDeSemana = (semanaId: number, token: string) => pedir<ClaseDeSemana>(`${base()}/semana/${semanaId}/clase`, token)
+
+async function comoDireccion(url: string, token: string): Promise<string> {
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include', cache: 'no-store' })
+  if (!res.ok) {
+    const datos = await res.json().catch(() => null)
+    throw new Error(datos && typeof datos.detail === 'string' ? datos.detail : `Error ${res.status}`)
+  }
+  return URL.createObjectURL(await res.blob())
+}
+
+/** El PDF que los alumnos ven antes de la clase, como dirección que se puede abrir. */
+export const urlPdfAntes = (semanaId: number, token: string, actividad = '') =>
+  comoDireccion(`${base()}/semana/${semanaId}/antes${actividad ? `?actividad=${encodeURIComponent(actividad)}` : ''}`, token)
+
+/** Una presentación de la clase (equipo), como dirección que se puede abrir. */
+export const urlPdfFuente = (semanaId: number, fuente: string, token: string) =>
+  comoDireccion(`${base()}/semana/${semanaId}/fuente/${encodeURIComponent(fuente)}`, token)

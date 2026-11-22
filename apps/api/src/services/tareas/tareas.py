@@ -1671,7 +1671,8 @@ def aviso_presentacion(semana: dict, presentacion: dict, curso: str, course_uuid
         "kind": "semana",
         "title": f"Nueva clase: {semana['tema']}",
         "excerpt": f"{curso} · {texto}" if curso else texto,
-        "url": f"/course/{course_uuid}/activity/{presentacion['activity_uuid'].replace('activity_', '')}",
+        # La presentación en su propia página, no «como un curso» (22/11/2026).
+        "url": f"/presentacion/{semana['id']}",
         "date": _iso(presentacion.get("creada") or "") or (semana.get("created_at") or ""),
     }
 

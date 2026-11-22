@@ -194,7 +194,7 @@ export default function ArchivoClases({
                       <p className="text-[15px] font-semibold text-[#0B1033] leading-snug mt-0.5">{s.tema || 'Sin tema'}</p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
                         {s.presentaciones.map((p) => (
-                          <Link key={p.activity_uuid} href={actividad(s, p.activity_uuid)} className="font-semibold text-[#0b2da0] hover:underline">
+                          <Link key={p.activity_uuid} href={s.semanaId ? ruta(`/presentacion/${s.semanaId}`) : actividad(s, p.activity_uuid)} className="font-semibold text-[#0b2da0] hover:underline">
                             {s.material?.archivos.length ? 'Presentación alumnos' : 'Presentación'}
                           </Link>
                         ))}

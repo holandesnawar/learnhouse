@@ -67,3 +67,33 @@ export const archivoDe = (id: string): string => (id.startsWith('profe:') ? id.s
 export function avisos(lista: ListaPresentaciones): { fuera: Presentacion[]; sueltas: number } {
   return { fuera: lista.presentaciones.filter((p) => p.notas && !p.en_pizarra && p.de !== 'blanco'), sueltas: lista.sueltas.length }
 }
+
+/** Cuándo se escribió por última vez en alguna presentación de la clase ('' si nunca). */
+export function ultimaNota(lista: Pick<ListaPresentaciones, 'presentaciones'>): string {
+  return lista.presentaciones.reduce((m, x) => (x.notas && x.notas.at > m ? x.notas.at : m), '')
+}
+
+/**
+ * La presentación con notas que los alumnos NO tienen todavía (la clase ya se
+ * dio, o es hoy): nunca se guardó para ellos, o se escribió después de
+ * guardar. Devuelve la que tiene lo último escrito, para abrir su pizarra.
+ * Es el caso «se quedó en la pizarra sin guardar».
+ */
+export function sinGuardarParaAlumnos(lista: ListaPresentaciones, fechaClase: string, hoy: string): Presentacion | null {
+  if (!fechaClase || fechaClase > hoy) return null
+  const escrita = ultimaNota(lista)
+  if (!escrita) return null
+  if (lista.publicada && escrita <= lista.publicada.at) return null
+  return lista.presentaciones.find((x) => x.notas && x.notas.at === escrita) || null
+}
+
+/** En una línea: qué ven ahora los alumnos de esa clase. */
+export function queVenLosAlumnos(lista: ListaPresentaciones, fechaClase: string, hoy: string, ahora: Date = new Date()): string {
+  const antes = lista.presentaciones.find((x) => x.de === 'alumnos')
+  const pub = lista.publicada
+  const yaFue = !!fechaClase && fechaClase <= hoy
+  if (pub && yaFue) return `la versión de la clase, con lo escrito en la pizarra (guardada ${cuandoFue(pub.at, ahora) || 'en la pizarra'})`
+  if (pub) return antes ? 'la de antes de la clase; el día de la clase pasarán a ver la versión guardada desde la pizarra' : 'nada hasta el día de la clase; ese día verán la versión guardada desde la pizarra'
+  if (antes) return `la de antes de la clase («${antes.nombre}»)`
+  return 'ninguna presentación todavía'
+}

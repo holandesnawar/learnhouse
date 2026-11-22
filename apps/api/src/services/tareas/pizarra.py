@@ -501,6 +501,88 @@ def borrar_notas(p: dict, fuente: str) -> dict:
     return _con_compat({**p, "notas": notas})
 
 
+def a_otra_sesion(org_id: int, origen: dict, destino: dict, fuente: str, ahora: str, tope: int = 12) -> tuple[dict, dict, dict]:
+    """Pasa una presentación del equipo (con sus notas), o unas notas sueltas,
+    de la semana `origen` a la semana `destino` de la misma clase
+    (22/11/2026: «se subió en la sesión que no era»). Devuelve (material de
+    origen, material de destino, qué pasó).
+
+    - Los dos son materiales ya leídos (`material_profe.leer`). El archivo no
+      se mueve en el disco: lo que cambia es de qué semana cuelga.
+    - Si en destino ya está ese mismo archivo (lo copió «guardar también en el
+      otro grupo»), no se duplica: solo pasan las notas, juntándose.
+    - Si era la de la pizarra en origen, deja de serlo allí; en destino pasa a
+      serlo si allí no había ninguna presentación elegida (o era la pizarra en
+      blanco).
+    - La versión que ya ven los alumnos de la semana de origen NO se toca.
+    - La de los alumnos (`clase:`) no se pasa: es una clase del capítulo."""
+    fuente = (fuente or "").strip()
+    if fuente.startswith("clase:"):
+        raise TareaError("La presentación de los alumnos no se puede pasar: súbela en la otra sesión")
+    po, pd = leer(origen), leer(destino)
+    archivos_o = list(origen.get("archivos") or [])
+    archivos_d = list(destino.get("archivos") or [])
+    ident = fuente[6:] if fuente.startswith("profe:") else ""
+    archivo = next((a for a in archivos_o if ident and a.get("id") == ident and a.get("tipo") == "archivo"), None)
+    notas_o = dict(po.get("notas") or {})
+    nota = notas_o.get(fuente)
+    if archivo is None and nota is None:
+        raise TareaError("Esa presentación ya no está en esta sesión", 404)
+
+    paso_archivo = False
+    if archivo is not None:
+        if not any(a.get("id") == ident for a in archivos_d):
+            if len(archivos_d) >= tope:
+                raise TareaError(f"La otra sesión ya tiene {tope} archivos: quita alguno antes")
+            archivos_d.append(dict(archivo))
+        archivos_o = [a for a in archivos_o if a.get("id") != ident]
+        paso_archivo = True
+
+    notas_d = dict(pd.get("notas") or {})
+    paso_notas = False
+    if nota is not None:
+        ya = notas_d.get(fuente)
+        if ya and ya.get("ruta") and ya.get("ruta") != nota.get("ruta"):
+            doc = leer_anotaciones(po, fuente)
+            if doc is not None:
+                junto = juntar(leer_anotaciones(pd, fuente), doc)
+                relativa = _escribir(org_id, ya["ruta"], junto)
+                escritas, algo = contar(junto)
+                notas_d[fuente] = {
+                    **ya,
+                    "ruta": relativa,
+                    "at": max(nota.get("at") or "", ya.get("at") or "") or ahora,
+                    "por": (nota.get("por") or ya.get("por") or "")[:120],
+                    "paginas": escritas,
+                    "algo": algo,
+                    "sesion": "",
+                    "cambio": ahora,
+                }
+                if nota.get("ruta"):
+                    _borrar(nota["ruta"])
+        else:
+            notas_d[fuente] = {**nota, "sesion": "", "cambio": ahora}
+        notas_o.pop(fuente, None)
+        paso_notas = True
+
+    nuevo_o = {**po, "notas": notas_o}
+    if (po.get("fuente") or "") == fuente:
+        nuevo_o["fuente"] = ""
+    nuevo_d = {**pd, "notas": notas_d}
+    elegida = pd.get("fuente") or ""
+    reales_d = {f"profe:{a.get('id')}" for a in destino.get("archivos") or [] if a.get("tipo") == "archivo" and str(a.get("ruta") or "").lower().endswith(".pdf")}
+    en_pizarra = False
+    if archivo is not None and str(archivo.get("ruta") or "").lower().endswith(".pdf"):
+        if not elegida or elegida == BLANCO or (elegida.startswith("profe:") and elegida not in reales_d):
+            nuevo_d["fuente"] = fuente
+            en_pizarra = True
+    return (
+        {**origen, "archivos": archivos_o, "pizarra": _con_compat(nuevo_o)},
+        {**destino, "archivos": archivos_d, "pizarra": _con_compat(nuevo_d)},
+        {"archivo": paso_archivo, "notas": paso_notas, "en_pizarra": en_pizarra},
+    )
+
+
 def _resumen_notas(n: Optional[dict]) -> Optional[dict]:
     if not n or not n.get("algo", True):
         return None

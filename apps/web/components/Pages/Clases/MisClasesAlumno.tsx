@@ -322,7 +322,7 @@ function GrabadasDeUnaClase({ uuid, nombre, mostrarNombre }: { uuid: string; nom
       .map((s) => {
         const g = (s.clases || []).find((c) => c.tipo === 'grabacion')
         const p = (s.clases || []).find((c) => c.tipo === 'presentacion')
-        return { fecha: s.fecha, tema: s.tema, href: g ? ruta(g.activity_uuid) : p ? ruta(p.activity_uuid) : '', tiene: g ? 'Grabación' : p ? 'Solo presentación' : 'Sin grabación', vista: !!g?.hecha }
+        return { fecha: s.fecha, tema: s.tema, href: g ? ruta(g.activity_uuid) : p ? getUriWithOrg(org?.slug || '', `/presentacion/${s.id}`) : '', tiene: g ? 'Grabación' : p ? 'Solo presentación' : 'Sin grabación', vista: !!g?.hecha }
       })
     const sueltas = (data.archivo || []).map((c) => ({ fecha: c.fecha || '', tema: c.tema || c.nombre, href: ruta(c.activity_uuid), tiene: c.profe ? `Grabación · con ${c.profe}` : 'Grabación', vista: c.hecha }))
     return [...semanas, ...sueltas].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))

@@ -113,7 +113,7 @@ function Hero({
             detalle={pres ? 'La que miran antes de la clase.' : 'Opcional. Se sube en la ficha de la clase.'}
             accion={
               pres ? (
-                <Link href={actividad(pres.activity_uuid)} className={BOTON}>
+                <Link href={ruta(`/presentacion/${s.semanaId}`)} className={BOTON}>
                   Ver la presentación
                 </Link>
               ) : (

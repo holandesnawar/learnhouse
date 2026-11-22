@@ -74,11 +74,12 @@ function pasosSinPalabra(semana: Semana, courseUuid: string, ruta: (p: string) =
       titulo: 'Repasa la presentación de la clase',
       detalle: `La de tu clase, con lo que se escribió en ella${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`,
       estado: 'pendiente',
-      notas: { semanaId: notas.semana_id || semana.id },
+      // En su propia página, no «como un curso» (22/11/2026): /presentacion/<semana>.
+      href: ruta(`/presentacion/${semana.id}`),
     })
   else
     for (const c of pres)
-      out.push({ key: c.activity_uuid, titulo: NOMBRE.presentacion, detalle: 'Antes de la clase, para llegar con el tema visto', href: actividad(c), estado: c.hecha ? 'hecho' : 'pendiente' })
+      out.push({ key: c.activity_uuid, titulo: NOMBRE.presentacion, detalle: 'Antes de la clase, para llegar con el tema visto', href: ruta(`/presentacion/${semana.id}`), estado: c.hecha ? 'hecho' : 'pendiente' })
   // Si esa semana va a la clase del otro grupo (08/11/2026), su día y su sala.
   const fechaClase = semana.cambio?.fecha || semana.fecha
   const pasada = !!fechaClase && fechaClase < hoy

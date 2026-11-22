@@ -36,7 +36,7 @@ import {
   Video,
 } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import { pasosDeSemana, FilaPaso, VisorPresentacionClase } from '@components/Pages/Clases/pasosSemana'
+import { pasosDeSemana, FilaPaso } from '@components/Pages/Clases/pasosSemana'
 import { Vienes } from '@components/Pages/Clases/Vienes'
 import { getUriWithOrg } from '@services/config/config'
 import toast from 'react-hot-toast'
@@ -59,6 +59,7 @@ import { tituloDeClase } from '@/lib/nawar/salaProfes'
 import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
 import FilaGrabacionAlumno from '@components/Pages/Grabaciones/FilaGrabacionAlumno'
 import { Cargando, Esqueleto } from '@components/Objects/Esqueleto'
+import PresentacionesSemana from '@components/Pages/Presentaciones/PresentacionesSemana'
 
 export const claveSemanas = (courseUuid: string) => ['tareas', 'semanas', String(courseUuid || '').replace(/^course_/, '')]
 
@@ -139,25 +140,21 @@ const Hecho = ({ texto = 'Hecho' }: { texto?: string }) => (
   </span>
 )
 
-/** La presentación de la clase (la que guardó el profe desde la pizarra): se abre aquí mismo. */
-function FilaVersionClase({ semanaId, detalle }: { semanaId: number; detalle: string }) {
-  const [abierta, setAbierta] = useState(false)
+/** La presentación de la clase (la que guardó el profe desde la pizarra): en su propia página. */
+function FilaVersionClase({ href, detalle }: { href: string; detalle: string }) {
   const t = usePalabra()
   return (
-    <>
-      <button type="button" onClick={() => setAbierta(true)} className="block w-full text-left transition-colors hover:bg-[#F8FAFF]">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <Icono tipo="presentacion" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[14.5px] font-semibold text-gray-900">{t('Presentación de la clase')}</p>
-            <p className="text-[12.5px] leading-snug text-[#6B7280]">{detalle}</p>
-          </div>
-          <div className="shrink-0 text-[12.5px] font-bold text-[#0b2da0]">Ábrela</div>
-          <ChevronRight size={15} className="shrink-0 text-[#B9C6DC]" />
+    <Link href={href} prefetch={false} className="block w-full text-left transition-colors hover:bg-[#F8FAFF]">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <Icono tipo="presentacion" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14.5px] font-semibold text-gray-900">{t('Presentación de la clase')}</p>
+          <p className="text-[12.5px] leading-snug text-[#6B7280]">{detalle}</p>
         </div>
-      </button>
-      {abierta ? <VisorPresentacionClase semanaId={semanaId} onClose={() => setAbierta(false)} /> : null}
-    </>
+        <div className="shrink-0 text-[12.5px] font-bold text-[#0b2da0]">Ábrela</div>
+        <ChevronRight size={15} className="shrink-0 text-[#B9C6DC]" />
+      </div>
+    </Link>
   )
 }
 
@@ -178,12 +175,15 @@ function ContenidoSemana({
   rutaClase,
   orgslug,
   admin,
+  onCambio,
 }: {
   semana: Semana
   hoy: string
   rutaClase: (c: ClaseSemana) => string
   orgslug: string
   admin: boolean
+  /** Al equipo: algo cambió en las presentaciones de la semana. */
+  onCambio?: () => void
 }) {
   const clases = semana.clases || []
   const presentaciones = clases.filter((c) => c.tipo === 'presentacion')
@@ -207,17 +207,23 @@ function ContenidoSemana({
       titulo={c.nombre || 'Presentación'}
       detalle={t(admin && notas ? 'La de antes de la clase (los alumnos ya ven la de abajo)' : 'Para mirar antes de la clase')}
       estado={c.hecha ? <Hecho texto="Vista" /> : <span className="text-[#0b2da0]">Ábrela</span>}
-      href={rutaClase(c)}
+      href={getUriWithOrg(orgslug, `/presentacion/${semana.id}`)}
     />
   ))
   const filaClase = notas ? (
     <FilaVersionClase
       key="version-clase"
-      semanaId={notas.semana_id || semana.id}
+      href={getUriWithOrg(orgslug, `/presentacion/${semana.id}`)}
       detalle={t(`${admin ? 'La que ven los alumnos de este grupo' : 'La de tu clase'}, con lo que se escribió en ella${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`)}
     />
   ) : null
-  const filasPresentacion = notas ? (admin ? [...filasAntes, filaClase] : [filaClase]) : filasAntes
+  // El equipo ve la MISMA lista que en la pizarra y en la ficha de la clase
+  // (22/11/2026: «no hay correlación entre la semana y la pizarra»).
+  const filasPresentacion = admin
+    ? [<PresentacionesSemana key="presentaciones" semana={semana} hoy={hoy} ruta={(x) => getUriWithOrg(orgslug, x)} onCambio={() => onCambio?.()} palabra={t} />]
+    : notas
+      ? [filaClase]
+      : filasAntes
 
   if (cerrada && !admin) {
     const seAbre = queSeAbre(semana)
@@ -321,7 +327,7 @@ function ContenidoSemana({
           href={getUriWithOrg(orgslug, `/tarea/${semana.id}`)}
         />
       ) : null}
-      {!clases.length && !semana.tiene_tarea ? (
+      {!admin && !clases.length && !semana.tiene_tarea ? (
         <p className="px-4 py-4 text-[13px] text-[#9CA3AF]">Aún no hay nada en esta semana.</p>
       ) : null}
     </div>
@@ -648,7 +654,7 @@ export default function SemanasClase({
         <div className="border-t border-[#EEF1F7]">
           {equipo ? (
             <>
-              <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
+              <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} onCambio={recargar} />
               <CabeceraAdmin semana={semana} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(semana)} onCambio={recargar} esAdmin={!!admin} />
             </>
           ) : (
@@ -704,7 +710,7 @@ export default function SemanasClase({
         </button>
         {abierta ? (
           <div className="mx-4 mb-3 rounded-xl border border-[#EEF2F9] overflow-hidden">
-            <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
+            <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} onCambio={recargar} />
             {otroGrupo(s, true)}
             {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} onCambio={recargar} esAdmin={!!admin} /> : null}
           </div>
