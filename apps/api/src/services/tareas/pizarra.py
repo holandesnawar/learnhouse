@@ -109,7 +109,21 @@ def _nota(v: Any) -> Optional[dict]:
         "paginas": int(paginas) if isinstance(paginas, (int, float)) and not isinstance(paginas, bool) else None,
         "algo": bool(v.get("algo", True)),
         "nombre": str(v.get("nombre") or ""),
+        # Desde qué pizarra abierta se guardó por última vez (para avisar si
+        # dos pestañas escriben en la misma presentación).
+        "sesion": str(v.get("sesion") or "")[:40],
+        # Cuándo cambió el archivo por última vez, lo hiciera quien lo hiciera
+        # (escribir o pasarle notas de otra): `at` es de quién las escribió.
+        "cambio": str(v.get("cambio") or v.get("at") or ""),
     }
+
+
+def _nombres(v: Any) -> dict[str, str]:
+    """Los nombres que el equipo ha puesto a las presentaciones de los alumnos
+    (la clase PDF del curso se llama siempre «Presentación»)."""
+    if not isinstance(v, dict):
+        return {}
+    return {str(k): str(n).strip()[:160] for k, n in v.items() if str(n or "").strip()}
 
 
 def leer(material: dict) -> dict:
@@ -137,11 +151,14 @@ def leer(material: dict) -> dict:
             "paginas": None,
             "algo": True,
             "nombre": "",
+            "sesion": "",
+            "cambio": str(p.get("guardada_at") or ""),
         }
     actual = notas.get(fuente) or {}
     return {
         "fuente": fuente,
         "notas": notas,
+        "nombres": _nombres(p.get("nombres")),
         # Compatibilidad: las de la presentación de la pizarra.
         "anotaciones": str(actual.get("ruta") or ""),
         "guardada_at": str(actual.get("at") or ""),
@@ -198,19 +215,47 @@ def fuentes(material: dict, clases: list[dict]) -> list[dict]:
                     "tam": int(a.get("tam") or 0),
                 }
             )
+    puestos = _nombres(((material.get("pizarra") or {}) if isinstance(material.get("pizarra"), dict) else {}).get("nombres"))
     for c in clases or []:
         if c.get("tipo") == "presentacion" and c.get("activity_uuid"):
+            ident = f"clase:{c['activity_uuid']}"
             out.append(
                 {
-                    "id": f"clase:{c['activity_uuid']}",
+                    "id": ident,
                     "de": "alumnos",
-                    "nombre": c.get("nombre") or "Presentación",
+                    "nombre": puestos.get(ident) or nombre_de_alumnos(c.get("nombre")),
                     "por": "",
                     "at": str(c.get("creada") or ""),
                     "tam": 0,
                 }
             )
     return out
+
+
+NOMBRE_ALUMNOS = "Presentación de los alumnos"
+
+
+def nombre_de_alumnos(nombre_de_la_clase: Any) -> str:
+    """El nombre con el que el equipo ve el PDF de los alumnos cuando nadie le
+    ha puesto uno. La clase del curso se crea siempre como «Presentación», que
+    no dice nada: entonces, «Presentación de los alumnos». Si alguien la
+    renombró en el editor del curso, ese nombre."""
+    n = str(nombre_de_la_clase or "").strip()
+    if not n or n.lower() in ("presentación", "presentacion"):
+        return NOMBRE_ALUMNOS
+    return n
+
+
+def con_nombre(p: dict, fuente: str, nombre: str) -> dict:
+    """Pone (o quita, con el nombre vacío) el nombre con el que el EQUIPO ve
+    una presentación de los alumnos. No cambia nada de lo que ve el alumno."""
+    nombres = dict(p.get("nombres") or {})
+    limpio = " ".join(str(nombre or "").split())[:160]
+    if limpio:
+        nombres[fuente] = limpio
+    else:
+        nombres.pop(fuente, None)
+    return {**p, "nombres": nombres}
 
 
 def fuente_valida(fuente: str, disponibles: list[dict]) -> str:
@@ -300,7 +345,28 @@ def _escribir(org_id: int, relativa: str, doc: dict) -> str:
     return relativa
 
 
-def guardar_anotaciones(org_id: int, p: dict, fuente: str, doc: dict, por: str, ahora: str, nombre: str = "") -> dict:
+def choque(p: dict, fuente: str, base: Optional[str], sesion: str) -> Optional[dict]:
+    """Si OTRA pizarra abierta (otra pestaña, otro ordenador) ha guardado en
+    esa presentación después de lo que tiene quien guarda ahora: quién y
+    cuándo. None si no hay choque. Función pura.
+
+    `base` es la `revision` que la pantalla tenía de esa presentación ("" si
+    la abrió sin notas; None = una pantalla de antes, que no avisa de nada) y
+    `sesion`, un identificador al azar de esa pizarra abierta. Sin esto, la
+    segunda pestaña pisaba en silencio lo escrito en la primera."""
+    if base is None or not sesion:
+        return None
+    n = (p.get("notas") or {}).get(fuente)
+    if not n or not n.get("algo", True):
+        return None
+    if (n.get("sesion") or "") == sesion:
+        return None
+    if str(n.get("cambio") or n.get("at") or "") <= str(base or ""):
+        return None
+    return {"por": str(n.get("por") or ""), "at": str(n.get("at") or "")}
+
+
+def guardar_anotaciones(org_id: int, p: dict, fuente: str, doc: dict, por: str, ahora: str, nombre: str = "", sesion: str = "") -> dict:
     """Guarda las notas de ESA presentación (en su mismo archivo si ya tenía)
     y devuelve la pizarra nueva. Las de las demás no se tocan. Si la semana
     aún no tenía presentación de la pizarra, pasa a serlo esta."""
@@ -316,6 +382,8 @@ def guardar_anotaciones(org_id: int, p: dict, fuente: str, doc: dict, por: str, 
         "paginas": escritas,
         "algo": algo,
         "nombre": (nombre or vieja.get("nombre") or "")[:160],
+        "sesion": (sesion or "")[:40],
+        "cambio": ahora,
     }
     return _con_compat({**p, "fuente": p.get("fuente") or fuente, "notas": notas})
 
@@ -410,6 +478,10 @@ def pasar(org_id: int, p: dict, de: str, a: str, por: str, ahora: str, nombre_a:
         "paginas": escritas,
         "algo": algo,
         "nombre": (nombre_a or (destino or {}).get("nombre") or "")[:160],
+        # Quien la tenga abierta en otra pestaña tiene que enterarse antes de
+        # guardar encima: no es de ninguna pizarra abierta y ha cambiado ahora.
+        "sesion": "",
+        "cambio": ahora,
     }
     notas.pop(de, None)
     # El archivo del origen ya está copiado dentro del destino.

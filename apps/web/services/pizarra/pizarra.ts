@@ -81,6 +81,8 @@ export interface Pizarra {
   anotaciones: DocPizarra | null
   guardada_at: string
   guardada_por: string
+  /** Con qué versión de las notas se abrió: se manda de vuelta al guardar. */
+  revision?: string
   publicada: Publicada | null
   admin: boolean
 }
@@ -162,8 +164,49 @@ export async function bajarFuente(semanaId: number, fuente: string, token: strin
   return res.arrayBuffer()
 }
 
-export const guardarNotas = (semanaId: number, fuente: string, doc: DocPizarra, token: string) =>
-  pedir<{ guardada_at: string; guardada_por: string; paginas?: number }>(`${base()}/semana/${semanaId}/notas`, token, 'PUT', { fuente, doc })
+/** Otra pizarra abierta (otra pestaña, otro ordenador) guardó en esa presentación después. */
+export class OtraPizarra extends Error {
+  por: string
+  at: string
+  constructor(por: string, at: string) {
+    super('Alguien ha escrito en esta presentación desde otra pizarra abierta.')
+    this.name = 'OtraPizarra'
+    this.por = por
+    this.at = at
+  }
+}
+
+export interface AlGuardar {
+  /** La revisión que esta pizarra tenía de la presentación ('' si la abrió sin notas). */
+  base: string
+  /** Un identificador al azar de ESTA pizarra abierta. */
+  sesion: string
+  /** Avisado del choque, guardar encima igualmente. */
+  forzar?: boolean
+}
+
+/**
+ * Guarda lo escrito en UNA presentación. Si otra pizarra abierta guardó en
+ * ella después de lo que tiene esta, no pisa: lanza `OtraPizarra` (con quién
+ * y cuándo) para que la pantalla avise y deje elegir.
+ */
+export async function guardarNotas(semanaId: number, fuente: string, doc: DocPizarra, token: string, control?: AlGuardar) {
+  const res = await fetch(`${base()}/semana/${semanaId}/notas`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    credentials: 'include',
+    cache: 'no-store',
+    body: JSON.stringify(control ? { fuente, doc, base: control.base, sesion: control.sesion, forzar: !!control.forzar } : { fuente, doc }),
+  })
+  const datos = await res.json().catch(() => null)
+  if (res.status === 409 && datos && datos.codigo === 'otra_pizarra') throw new OtraPizarra(String(datos.por || ''), String(datos.at || ''))
+  if (!res.ok) throw new Error(datos && typeof datos.detail === 'string' ? datos.detail : `Error ${res.status}`)
+  return datos as { guardada_at: string; guardada_por: string; paginas?: number; revision?: string }
+}
+
+/** El nombre con el que el EQUIPO ve la presentación de los alumnos (el alumno no lo ve). */
+export const nombrarPresentacion = (semanaId: number, fuente: string, nombre: string, token: string) =>
+  pedir<ListaPresentaciones>(`${base()}/semana/${semanaId}/nombre`, token, 'PUT', { fuente, nombre })
 
 export function publicarPizarra(semanaId: number, pdf: Blob, paginas: number, token: string, fuente = '') {
   const f = new FormData()

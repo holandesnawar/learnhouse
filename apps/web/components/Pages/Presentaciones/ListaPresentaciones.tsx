@@ -28,6 +28,7 @@ import {
   descargarFuente,
   getPizarra,
   listaDe,
+  nombrarPresentacion,
   pasarNotas,
   PIZARRA_EN_BLANCO,
   ponerEnPizarra,
@@ -273,13 +274,13 @@ export default function ListaPresentaciones(p: PropsListaPresentaciones) {
     const viejas = deAlumnos.map((x) => ({ activity_uuid: actividadDe(x.id), nombre: x.nombre }))
     const nueva = await ponerPresentacion(archivo, p.chapterId, viejas, token)
     // Lo escrito sobre la de antes pasa a la nueva (cambia de id: si no, se quedaría suelto).
-    await llevarNotas(semanaId, viejas, nueva, token)
+    await llevarNotas(semanaId, viejas, nueva, token, archivo.name)
     // Si la pizarra de la clase estaba en blanco, esta pasa a ser la suya.
     if (lista?.fuente === PIZARRA_EN_BLANCO) await ponerEnPizarra(semanaId, `clase:${nueva}`, token).catch(() => undefined)
     if (enLaOtra && gemela?.chapter_id) {
       try {
         const nuevaAlli = await ponerPresentacion(archivo, gemela.chapter_id, gemela.presentaciones || [], token)
-        await llevarNotas(gemela.id, gemela.presentaciones || [], nuevaAlli, token)
+        await llevarNotas(gemela.id, gemela.presentaciones || [], nuevaAlli, token, archivo.name)
       } catch (e: any) {
         toast.error(`Cambiada aquí, pero no en ${gemela.curso}: ${e?.message || 'vuelve a intentarlo'}`)
       }
@@ -365,8 +366,12 @@ export default function ListaPresentaciones(p: PropsListaPresentaciones) {
     setRenombrando(null)
     if (!nombre) return
     hacer(r.id, async () => {
-      await nombreProfe(semanaId, archivoDe(r.id), nombre, token)
-      await leer()
+      // La de los alumnos: solo cambia el nombre con el que la ve el equipo.
+      if (r.id.startsWith('clase:')) poner(await nombrarPresentacion(semanaId, r.id, nombre, token))
+      else {
+        await nombreProfe(semanaId, archivoDe(r.id), nombre, token)
+        await leer()
+      }
     })
   }
 
@@ -395,6 +400,7 @@ export default function ListaPresentaciones(p: PropsListaPresentaciones) {
         },
       })
     if (x.de === 'equipo') out.push({ texto: 'Cambiar el nombre', hacer: () => setRenombrando({ id: x.id, nombre: x.nombre.replace(/\.pdf$/i, '') }) })
+    if (x.de === 'alumnos') out.push({ texto: 'Cambiar el nombre', nota: 'solo lo ve el equipo', hacer: () => setRenombrando({ id: x.id, nombre: x.nombre.replace(/\.pdf$/i, '') }) })
     if (x.notas) out.push({ texto: 'Borrar sus notas', rojo: true, raya: true, hacer: () => borrar(x.id, x.nombre) })
     if (x.de === 'equipo') out.push({ texto: 'Quitar la presentación', rojo: true, raya: !x.notas, hacer: () => quitar(x) })
     if (x.de === 'alumnos') out.push({ texto: 'Dejar de enseñarla a los alumnos', rojo: true, raya: !x.notas, hacer: () => quitar(x) })

@@ -14,7 +14,7 @@ La pizarra de clase (10/11/2026). La explicación, en
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -36,6 +36,17 @@ _SIN_CACHE = {"Cache-Control": "private, no-store"}
 class NotasIn(BaseModel):
     fuente: str = ""
     doc: Any = None
+    # Para no pisar en silencio lo que otra pestaña ha guardado (22/11/2026):
+    # la revisión que esta pizarra tenía de esa presentación, quién es esta
+    # pizarra abierta y si, avisado, quiere guardar encima igualmente.
+    base: Optional[str] = None
+    sesion: str = ""
+    forzar: bool = False
+
+
+class NombreIn(BaseModel):
+    fuente: str = ""
+    nombre: str = ""
 
 
 class FuenteIn(BaseModel):
@@ -118,6 +129,8 @@ async def api_pizarra(
         "anotaciones": PZ.leer_anotaciones(p, abierta),
         "guardada_at": str(notas.get("at") or ""),
         "guardada_por": str(notas.get("por") or ""),
+        # Con qué versión de las notas se abre: se manda de vuelta al guardar.
+        "revision": str(notas.get("cambio") or notas.get("at") or ""),
         "publicada": PZ.publicada_para_la_pantalla(p),
         "admin": admin,
     }
@@ -190,16 +203,45 @@ async def api_guardar_notas(
     if not PZ.existe(fuente, disponibles):
         # Nunca se guarda «en la primera que haya»: sería escribir en otra.
         raise HTTPException(status_code=409, detail="Esa presentación ya no está en esta clase. Recarga la pizarra: lo escrito no se ha guardado en otra.")
+    if not data.forzar:
+        otra = PZ.choque(p, fuente, data.base, (data.sesion or "").strip())
+        if otra:
+            # Otra pizarra abierta ha guardado aquí después: no se pisa sin avisar.
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "Alguien ha escrito en esta presentación desde otra pizarra abierta.", "codigo": "otra_pizarra", "por": otra["por"], "at": otra["at"]},
+            )
     try:
         # Si la de la pizarra guardada ya no existe, pasa a serlo esta.
         if not PZ.existe(p["fuente"], disponibles):
             p = {**p, "fuente": ""}
-        p = PZ.guardar_anotaciones(s.org_id, p, fuente, data.doc, _nombre(current_user), MP._ahora(), PZ.nombre_de(fuente, disponibles))
+        p = PZ.guardar_anotaciones(
+            s.org_id, p, fuente, data.doc, _nombre(current_user), MP._ahora(), PZ.nombre_de(fuente, disponibles), (data.sesion or "").strip()
+        )
     except T.TareaError as exc:
         raise _error(exc)
     await _guardar(s, material, p, db_session)
     n = p["notas"][fuente]
-    return {"guardada_at": n["at"], "guardada_por": n["por"], "paginas": n["paginas"]}
+    return {"guardada_at": n["at"], "guardada_por": n["por"], "paginas": n["paginas"], "revision": n.get("cambio") or n["at"]}
+
+
+@router.put("/semana/{semana_id}/nombre", summary="El nombre con el que el equipo ve la presentación de los alumnos (equipo). No cambia lo que ve el alumno.")
+async def api_nombre(
+    semana_id: int,
+    data: NombreIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    s, _admin = await _semana_equipo(semana_id, current_user, db_session)
+    material = MP.leer(s.material_profe)
+    clases = await _clases_de(s, db_session)
+    fuente = (data.fuente or "").strip()
+    # Las del equipo se renombran en su archivo (`…/profe/{archivo}/nombre`).
+    if not fuente.startswith("clase:") or not PZ.existe(fuente, PZ.fuentes(material, clases)):
+        raise HTTPException(status_code=404, detail="Esa presentación ya no está en esta clase")
+    p = PZ.con_nombre(PZ.leer(material), fuente, data.nombre)
+    await _guardar(s, material, p, db_session)
+    return _estado(s, {**material, "pizarra": p}, clases)
 
 
 @router.put("/semana/{semana_id}/en-pizarra", summary="Marca cuál es la presentación de la pizarra: la que se abre al pulsar «Pizarra» (equipo).")

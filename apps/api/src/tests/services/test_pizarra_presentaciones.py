@@ -34,7 +34,12 @@ def test_lo_guardado_antes_se_lee_como_las_notas_de_su_presentacion():
     # Así está hoy en producción: un solo juego de notas y de qué documento era.
     viejo = {"fuente": "profe:buena", "anotaciones": "privado/tareas/1/pizarra/x.json", "guardada_at": "2026-11-18T02:25:51+00:00", "guardada_por": "Paul"}
     p = PZ.leer({"pizarra": viejo})
-    assert p["notas"] == {"profe:buena": {"ruta": "privado/tareas/1/pizarra/x.json", "at": "2026-11-18T02:25:51+00:00", "por": "Paul", "paginas": None, "algo": True, "nombre": ""}}
+    assert p["notas"] == {
+        "profe:buena": {
+            "ruta": "privado/tareas/1/pizarra/x.json", "at": "2026-11-18T02:25:51+00:00", "por": "Paul", "paginas": None, "algo": True, "nombre": "",
+            "sesion": "", "cambio": "2026-11-18T02:25:51+00:00",
+        }
+    }
     # Lo que leía el código de antes sigue igual.
     assert p["anotaciones"] == "privado/tareas/1/pizarra/x.json" and p["guardada_por"] == "Paul"
     lista = PZ.lista(_material(**viejo), CLASES)
@@ -213,3 +218,55 @@ def test_subir_un_pdf_a_una_clase_con_la_pizarra_en_blanco_lo_pone_en_la_pizarra
     # Sin pizarra todavía no se inventa nada: ya abre la primera del equipo.
     m5 = {"archivos": [{"id": "a1", "tipo": "archivo", "nombre": "Lego.pdf", "ruta": "privado/tareas/1/profe/a.pdf"}]}
     assert PZ.tras_subir(m5, "a1") is m5 and PZ.lista(m5, [])["fuente"] == "profe:a1"
+
+
+def test_dos_pizarras_abiertas_en_la_misma_presentacion_no_se_pisan_en_silencio(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    doc = {"paginas": [{"origen": 1, "trazos": [TRAZO]}]}
+    p = PZ.leer({})
+    # La pestaña A la abre sin notas (base "") y guarda.
+    assert PZ.choque(p, "profe:buena", "", "pestana-a") is None
+    p = PZ.guardar_anotaciones(1, p, "profe:buena", doc, "Luna", "2026-11-23T18:36:00+00:00", "Mijn huis.pdf", "pestana-a")
+    rev_a = p["notas"]["profe:buena"]["cambio"]
+    # A sigue guardando: nunca choca consigo misma, aunque se le perdiera una respuesta.
+    assert PZ.choque(p, "profe:buena", "", "pestana-a") is None
+    # La pestaña B la tenía abierta desde antes (base ""): al ir a guardar, se entera.
+    otra = PZ.choque(p, "profe:buena", "", "pestana-b")
+    assert otra == {"por": "Luna", "at": "2026-11-23T18:36:00+00:00"}
+    # Si B recarga (ya tiene la revisión de A), puede guardar.
+    assert PZ.choque(p, "profe:buena", rev_a, "pestana-b") is None
+    # Una pantalla de antes del cambio (sin base ni sesión) no avisa de nada.
+    assert PZ.choque(p, "profe:buena", None, "") is None
+    # En otra presentación no hay choque.
+    assert PZ.choque(p, "profe:mala", "", "pestana-b") is None
+
+
+def test_pasar_notas_a_una_presentacion_avisa_a_quien_la_tiene_abierta(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    doc = {"paginas": [{"origen": 1, "trazos": [TRAZO]}]}
+    p = PZ.guardar_anotaciones(1, PZ.leer({}), "profe:buena", doc, "Rida", "2026-11-23T18:40:00+00:00", "Mijn huis.pdf", "pestana-a")
+    p = PZ.guardar_anotaciones(1, p, "profe:mala", doc, "Luna", "2026-11-23T18:30:00+00:00", "equivocada.pdf", "pestana-c")
+    rev = p["notas"]["profe:buena"]["cambio"]
+    # Alguien pasa a la buena unas notas MÁS VIEJAS que las suyas: la fecha de
+    # quién escribió no cambia, pero el archivo sí, y la pestaña A se entera.
+    p, paso = PZ.pasar(1, p, "profe:mala", "profe:buena", "admin", "2026-11-23T19:00:00+00:00", "Mijn huis.pdf")
+    assert paso and p["notas"]["profe:buena"]["at"] == "2026-11-23T18:40:00+00:00"
+    assert PZ.choque(p, "profe:buena", rev, "pestana-a") is not None
+
+
+def test_la_presentacion_de_los_alumnos_tiene_nombre_para_el_equipo():
+    # La clase del curso se llama siempre «Presentación»: no dice nada.
+    lista = PZ.lista(_material(), CLASES)
+    alumnos = next(x for x in lista["presentaciones"] if x["de"] == "alumnos")
+    assert alumnos["nombre"] == "Presentación de los alumnos"
+    # Si se renombró en el editor del curso, ese nombre.
+    otra = [{**CLASES[0], "nombre": "Dossier Mijn huis"}]
+    assert next(x for x in PZ.lista(_material(), otra)["presentaciones"] if x["de"] == "alumnos")["nombre"] == "Dossier Mijn huis"
+    # Y el que le ponga el equipo (el del archivo, al subirla) manda; el alumno no lo ve.
+    p = PZ.con_nombre(PZ.leer({}), "clase:activity_1", "  Mijn huis · para antes.pdf ")
+    lista = PZ.lista(_material(**p), CLASES)
+    assert next(x for x in lista["presentaciones"] if x["de"] == "alumnos")["nombre"] == "Mijn huis · para antes.pdf"
+    assert PZ.leer(_material(**p))["nombres"] == {"clase:activity_1": "Mijn huis · para antes.pdf"}
+    # Con el nombre vacío vuelve al de serie.
+    p = PZ.con_nombre(p, "clase:activity_1", "")
+    assert PZ.leer(_material(**p))["nombres"] == {}

@@ -81,9 +81,9 @@ const PUNTO: Record<string, string> = {
 const esPresentacion = (a: ArchivoProfe) => a.tipo === 'archivo' && /\.pdf$/i.test(a.nombre || '')
 
 /** Una parte de la ficha: título, para qué sirve y lo de dentro. */
-function Seccion({ titulo, ayuda, children, derecha }: { titulo: string; ayuda?: string; children: React.ReactNode; derecha?: React.ReactNode }) {
+function Seccion({ titulo, ayuda, children, derecha, ancla }: { titulo: string; ayuda?: string; children: React.ReactNode; derecha?: React.ReactNode; ancla?: string }) {
   return (
-    <section className="px-5 py-6 sm:px-7 border-b border-[#EEF1F6] last:border-b-0">
+    <section data-seccion={ancla} className="px-5 py-6 sm:px-7 border-b border-[#EEF1F6] last:border-b-0">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="text-[15px] font-semibold text-[#0B1033]" style={POPPINS}>
@@ -123,6 +123,7 @@ function FichaDentro({
   token,
   onCerrar,
   onCambio,
+  irA,
 }: {
   semana: SemanaEquipo
   clase: ClaseEquipo | undefined
@@ -134,6 +135,8 @@ function FichaDentro({
   onCerrar: () => void
   /** Algo ha cambiado: que quien abre la ficha vuelva a leer las clases. */
   onCambio: () => void
+  /** Abrirla ya en una parte (desde el listado de presentaciones). */
+  irA?: 'presentaciones'
 }) {
   const [tema, setTema] = useState(semana.tema)
   const [fecha, setFecha] = useState(semana.fecha)
@@ -308,7 +311,14 @@ function FichaDentro({
 
   // La ficha tiene dos caras: preparar la clase y lo de después. Ya dada,
   // se abre en «Después» (lo que queda es ver qué pasó).
-  const [cara, setCara] = useState<'preparar' | 'despues'>(yaFue && !esHoy ? 'despues' : 'preparar')
+  const [cara, setCara] = useState<'preparar' | 'despues'>(irA === 'presentaciones' ? 'preparar' : yaFue && !esHoy ? 'despues' : 'preparar')
+  // Desde el listado de presentaciones: la ficha se abre ya en esa parte.
+  const cuerpoRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (irA !== 'presentaciones') return
+    const t = setTimeout(() => cuerpoRef.current?.querySelector('[data-seccion="presentaciones"]')?.scrollIntoView({ block: 'start' }), 80)
+    return () => clearTimeout(t)
+  }, [irA])
   const pendientesDespues = (semana.porCorregir || 0) + (hayNotas && !publicadaAt ? 1 : 0)
 
   const despuesDeLaClase = yaFue ? (
@@ -435,7 +445,7 @@ function FichaDentro({
         ) : null}
       </Seccion>
 
-      <Seccion titulo="Presentaciones" ayuda="Todos los PDF de esta clase, en un solo sitio. Cada uno guarda sus propias notas de la pizarra: cambiar de uno a otro no borra nada.">
+      <Seccion ancla="presentaciones" titulo="Presentaciones" ayuda="Todos los PDF de esta clase, en un solo sitio. Cada uno guarda sus propias notas de la pizarra: cambiar de uno a otro no borra nada.">
         <ListaPresentaciones
           semanaId={semana.semanaId}
           chapterId={semana.chapterId}
@@ -634,7 +644,7 @@ function FichaDentro({
           )}
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div ref={cuerpoRef} className="min-h-0 flex-1 overflow-y-auto">
           {/* El mensaje del administrador, tal como lo ve el profe */}
           {!admin && semana.material?.mensaje?.texto ? (
             <div className="px-5 pt-5 sm:px-7">
