@@ -60,11 +60,23 @@ async def _curso(request: Request, course_uuid: str, current_user, db_session: A
     return curso
 
 
-async def _roles(current_user, org_id: int, db_session: AsyncSession) -> tuple[bool, bool]:
-    """(es del equipo, es administrador)."""
+async def _roles(
+    current_user, org_id: int, db_session: AsyncSession, course_uuid: str | None = None
+) -> tuple[bool, bool]:
+    """(es del equipo, es administrador).
+
+    Con `course_uuid`, es «del equipo EN ESA CLASE»: un monitor solo lo es en
+    su Spreekclub. En la Masterclass y en la formación mira como un alumno
+    (22/11/2026, `services/equipo/monitores.py`): no es anfitrión de la sala
+    ni ve los botones del equipo."""
     superadmin = await is_user_superadmin(current_user.id, db_session)
     admin = superadmin or await is_org_admin(current_user.id, org_id, db_session)
     equipo = admin or await is_org_staff(current_user.id, org_id, db_session)
+    if equipo and not admin and course_uuid:
+        from src.services.equipo.monitores import fuera_de_sus_clases
+
+        if await fuera_de_sus_clases(current_user.id, org_id, course_uuid, db_session):
+            equipo = False
     return equipo, admin
 
 
@@ -80,7 +92,7 @@ async def api_sala(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, admin = await _roles(current_user, curso.org_id, db_session)
+    equipo, admin = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     ajustes = await salas.config_de(curso.org_id, curso.course_uuid, db_session)
     con_clave = bool(salas.clave_api())
     dentro = await salas.presentes(curso.course_uuid) if ajustes["activo"] and con_clave else []
@@ -108,7 +120,7 @@ async def api_presencia(
     from src.services.salas import presencia
 
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, admin = await _roles(current_user, curso.org_id, db_session)
+    equipo, admin = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if isinstance(current_user, AnonymousUser):
         return {"ok": False, "segundos": 0}
     if not equipo:
@@ -130,7 +142,7 @@ async def api_entrar(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     ajustes = await salas.config_de(curso.org_id, curso.course_uuid, db_session)
     if not ajustes["activo"]:
         raise HTTPException(status_code=409, detail="La sala de este curso no está abierta")
@@ -154,7 +166,7 @@ async def api_pizarra(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if not equipo:
         raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     ajustes = await salas.config_de(curso.org_id, curso.course_uuid, db_session)
@@ -190,7 +202,7 @@ async def api_guardar(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, admin = await _roles(current_user, curso.org_id, db_session)
+    equipo, admin = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if not equipo:
         raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     if body.etiqueta is not None and not admin:
@@ -233,7 +245,7 @@ async def api_recuadro(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if not equipo:
         raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     try:
@@ -250,7 +262,7 @@ async def api_grabaciones(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if not equipo:
         raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     try:
@@ -271,7 +283,7 @@ async def api_descarga(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     curso = await _curso(request, course_uuid, current_user, db_session)
-    equipo, _ = await _roles(current_user, curso.org_id, db_session)
+    equipo, _ = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     if not equipo:
         raise HTTPException(status_code=403, detail="Solo el equipo de la escuela")
     try:

@@ -55,6 +55,9 @@ export default function WeeklyClassBanner({
   // al entrar y cada 30 s mientras la página está a la vista; hasta la primera
   // respuesta manda lo de la configuración.
   const [abiertaAhora, setAbiertaAhora] = useState<boolean | null>(null)
+  // ¿Es del equipo EN ESTA clase? Un monitor ve la Masterclass, pero no la
+  // cambia (22/11/2026): lo dice el servidor; mientras no contesta, el papel.
+  const [equipoAqui, setEquipoAqui] = useState<boolean | null>(null)
   const abierta = abiertaAhora ?? !!ajustes.activo
 
   useEffect(() => {
@@ -65,6 +68,7 @@ export default function WeeklyClassBanner({
         .then((s) => {
           if (!vivo) return
           setAbiertaAhora(!!s.activo)
+          setEquipoAqui(!!s.equipo)
           setDentro(s.activo ? s.presentes || [] : [])
         })
         .catch(() => {})
@@ -304,7 +308,7 @@ export default function WeeklyClassBanner({
             </button>
           ) : null}
           {/* El recuadro (día, hora, profe) lo cambia el equipo, también los profes (02/11/2026). */}
-          {isStaff ? (
+          {isStaff && equipoAqui !== false ? (
             <button
               onClick={startEdit}
               className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#5A6480] hover:text-[#0b2da0] transition-colors"
