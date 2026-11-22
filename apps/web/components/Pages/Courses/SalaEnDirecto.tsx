@@ -282,12 +282,13 @@ export default function SalaEnDirecto({ courseUuid, soloAjustes = false }: { cou
         >
           Grabaciones {verGrabaciones ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
+        {/* En rojo, que se vea (22/11/2026): era un texto gris y no se encontraba. */}
         <button
           onClick={() => cambiar({ activo: false })}
           disabled={guardando}
-          className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#5A6480] hover:text-gray-900"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#DC2626] bg-white px-3 text-[13px] font-semibold text-[#DC2626] transition-colors hover:bg-[#FEF2F2] disabled:opacity-50"
         >
-          <Power size={13} /> Apagar la sala
+          <Power size={14} /> Apagar la sala
         </button>
       </div>
       {verGrabaciones && <Grabaciones curso={curso} token={token} />}
