@@ -1,23 +1,26 @@
 'use client'
 
 /**
- * La portada del panel: el negocio de un vistazo, y de ahí a lo que toca.
+ * La portada del panel: los números de la semana y, de ahí, a lo que toca.
  *
- * Sustituye a DashboardHome, la de LearnHouse (bienvenida, "crear curso",
- * uso del plan, cursos recientes…): pensada para quien monta cursos, no
- * para quien lleva una escuela.
+ * Rehecha el 22/11/2026 (usuario: «diseño más clean general, de software
+ * caro, no tan IA… investiga qué puede ser lo mejor para mí en la parte
+ * admin»). Antes era un banner azul con cuatro tarjetas de cristal y cajas
+ * blancas debajo, y no decía cómo iba la semana ni contra qué compararla.
  *
- * Repaso del 04/11/2026 (usuario: "el panel es caótico… no encuentro lo
- * importante… colores sin vida"):
- * - Arriba, una cabecera con el fondo azul de la escuela, el saludo y las
- *   cuatro cifras que importan (al closer, las suyas: nuevas, por llamar,
- *   agendadas y sus tareas de hoy).
- * - «Lo que toca hoy»: lo que pide una acción ahora, cada cosa con su botón.
- * - El tablero de Matrículas con los mismos colores que el tablero.
- * - Fuera el bloque «Ir a»: repetía la barra de la izquierda.
+ * El administrador ve, de arriba abajo:
+ * - el saludo y el selector de periodo (esta semana / 30 días / este mes);
+ * - UNA tira de cifras (vendido con lo cobrado, ventas, llamadas, leads,
+ *   alumnos activos), cada una con su flecha contra el periodo anterior;
+ * - «Hoy» (lo que pide hacer algo ahora) y «Mis tareas» con el medidor
+ *   flotar / mover;
+ * - «Del clic a la venta» (visitas → datos → llamada → vino → compró);
+ * - las últimas ventas, con lo vendido y lo cobrado.
+ * Todo sale de UNA llamada (`/panel/org/{id}/inicio`, services/panel/inicio.py);
+ * si un bloque no se puede calcular, lo dice y los demás salen.
  *
- * Los números salen de las mismas llamadas que Estadísticas y Contactos.
- * Si algo no carga, la tarjeta lo dice y el resto sigue.
+ * El closer no ve dinero: sus cifras salen del tablero, como siempre, con el
+ * mismo estilo.
  */
 
 import React, { useEffect, useState } from 'react'
@@ -25,74 +28,48 @@ import Link from 'next/link'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
-import { cobradoDe, euros, getSchoolStats, vendidoDe, type SchoolStats } from '@services/stats/school'
-import { getContactos, type Contacto } from '@services/stats/contactos'
-import { ETAPA_TEXTO } from '@services/stats/contactos'
-import { ArrowRight, CheckCircle, Kanban, ListChecks, PhoneCall, Tag, Sparkle } from '@phosphor-icons/react'
+import { getContactos, ETAPA_TEXTO, hoyISO, type Contacto } from '@services/stats/contactos'
 import {
-  euros as eurosPanel,
-  getAds,
-  getPorDecidir,
+  euros,
+  fechaCorta,
+  getInicio,
   getTablero,
   getTareas,
   type BalanceTareas,
-  type PanelAds,
+  type CifraComparada,
+  type InicioPanel,
+  type PeriodoInicio,
   type Tablero,
   type Tarea,
 } from '@services/panel/panel'
-import { hoyISO } from '@services/stats/contactos'
 import FichaCliente from '@components/Dashboard/Pages/Panel/FichaCliente'
-import { FilaTarea, MedidorSemana, TareaForm } from '@components/Dashboard/Pages/Panel/Tareas'
-import { FONDO_MARCA, POPPINS } from '@/lib/nawar/marca'
+import CabeceraPagina from '@components/Dashboard/Pages/Panel/Cabecera'
+import { FilaTarea, MedidorSemana, TareaForm, useEquipo } from '@components/Dashboard/Pages/Panel/Tareas'
+import {
+  BarraEmbudo,
+  Cambio,
+  Cifra,
+  EnlaceSeccion,
+  Estado,
+  Fila,
+  Seccion,
+  Segmentado,
+  SUB,
+  TABLA,
+  TD,
+  TD_NUM,
+  TH,
+  TH_NUM,
+  Tira,
+} from '@components/Dashboard/Pages/Panel/ui'
 import { COLOR_COLUMNA } from '@/lib/nawar/coloresTablero'
+import { colorCloser } from '@/lib/nawar/colorCloser'
 
-const CARD = 'rounded-2xl border border-[#E2E8F4] bg-white p-4 sm:p-5'
-
-function Titulo({ children, extra }: { children: React.ReactNode; extra?: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3 mb-3">
-      <h2 className="text-[16px] font-bold text-[#0a1656]" style={POPPINS}>
-        {children}
-      </h2>
-      {extra}
-    </div>
-  )
-}
-
-function VerTodo({ href, children = 'Ver todo' }: { href: string; children?: React.ReactNode }) {
-  return (
-    <Link href={href} className="text-[13px] font-semibold text-[#025dc7] inline-flex items-center gap-1 shrink-0">
-      {children} <ArrowRight size={14} />
-    </Link>
-  )
-}
-
-/** Una cifra dentro de la cabecera azul. */
-function Cifra({ etiqueta, valor, nota, href }: { etiqueta: string; valor: string; nota?: string; href?: string }) {
-  const inner = (
-    <div className="h-full rounded-xl bg-white/10 border border-white/15 px-3.5 py-3 hover:bg-white/[0.14] transition-colors">
-      <p className="text-[10.5px] sm:text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">{etiqueta}</p>
-      <p className="text-[24px] sm:text-[28px] font-semibold text-white tabular-nums leading-tight mt-0.5">{valor}</p>
-      {nota ? <p className="text-[12px] text-white/70 mt-0.5 truncate">{nota}</p> : null}
-    </div>
-  )
-  return href ? <Link href={href} className="block">{inner}</Link> : inner
-}
-
-/** Una cosa que toca hacer hoy, con su botón. */
-function Toca({ icono, color, texto, boton, href }: { icono: React.ReactNode; color: string; texto: React.ReactNode; boton: string; href: string }) {
-  return (
-    <Link href={href} className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-[#F4F7FD] transition-colors">
-      <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-white" style={{ background: color }}>
-        {icono}
-      </span>
-      <span className="flex-1 min-w-0 text-[13.5px] text-[#1F2A44] leading-snug">{texto}</span>
-      <span className="text-[13px] font-semibold text-[#025dc7] inline-flex items-center gap-1 shrink-0">
-        {boton} <ArrowRight size={14} />
-      </span>
-    </Link>
-  )
-}
+const PERIODOS: { id: PeriodoInicio; label: string }[] = [
+  { id: 'semana', label: 'Esta semana' },
+  { id: '30', label: '30 días' },
+  { id: 'mes', label: 'Este mes' },
+]
 
 function fechaLarga(): string {
   try {
@@ -103,38 +80,42 @@ function fechaLarga(): string {
   }
 }
 
+/** «↑ 18 %» o, si antes no había nada, «↑ 3». Sin con qué comparar, nada. */
+function Flecha({ c, dinero = false }: { c?: CifraComparada; dinero?: boolean }) {
+  if (!c || c.antes === null || c.dif === null) return null
+  if (!c.sentido) return <span>igual</span>
+  const texto = c.pct !== null ? `${Math.abs(c.pct)} %` : dinero ? euros(Math.abs(c.dif)) : String(Math.abs(c.dif))
+  return <Cambio sentido={c.sentido}>{texto}</Cambio>
+}
+
+/** Junta trozos con « · », saltándose los vacíos. */
+function Partes({ children }: { children: React.ReactNode[] }) {
+  const llenas = children.filter((x) => x !== null && x !== undefined && x !== false && x !== '')
+  return (
+    <>
+      {llenas.map((x, i) => (
+        <React.Fragment key={i}>
+          {i ? ' · ' : null}
+          {x}
+        </React.Fragment>
+      ))}
+    </>
+  )
+}
+
+const MARCO = 'h-full w-full bg-white px-4 sm:px-9 lg:px-11 py-6 sm:py-8 pb-24 lg:pb-16'
+
 export default function NawarHome() {
   const session = useLHSession() as any
   const org = useOrg() as any
   const token = session?.data?.tokens?.access_token
   const { isCloser } = useAdminStatus()
-  const [stats, setStats] = useState<SchoolStats | null | 'error'>(null)
-  const [contactos, setContactos] = useState<Contacto[] | null>(null)
-  const [tablero, setTablero] = useState<Tablero | null>(null)
+  const [abierta, setAbierta] = useState<string | null>(null)
+
+  // Las tareas: las ven los dos (cada uno, las suyas).
   const [tareas, setTareas] = useState<Tarea[] | null>(null)
   const [yo, setYo] = useState(0)
   const [balance, setBalance] = useState<BalanceTareas | null>(null)
-  const [abierta, setAbierta] = useState<string | null>(null)
-  const [ads, setAds] = useState<PanelAds | null>(null)
-  // Alumnos que han pagado y esperan que se elija su grupo: programa nuevo o
-  // beta (Tandas y grupos, 25/10/2026). El aviso es aquí y en la campana, no
-  // por correo.
-  const [porDecidir, setPorDecidir] = useState<{ id: number; nombre: string }[]>([])
-
-  useEffect(() => {
-    if (!org?.id || !token) return
-    // El closer no ve los números: no se le piden (darían 403).
-    if (!isCloser) getSchoolStats(org.id, token).then((s) => setStats(s ?? 'error'))
-    if (!isCloser) getAds(org.id, token).then((r) => setAds(r.ok && r.datos ? r.datos : null))
-    if (!isCloser) getPorDecidir(org.id, token).then((r) => setPorDecidir(r.ok && r.datos ? r.datos.alumnos : []))
-    getContactos(org.id, '', token).then((r) => setContactos(r?.contactos ?? []))
-    getTablero(org.id, token).then((r) => setTablero(r.ok && r.datos ? r.datos : null))
-    leerTareas()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [org?.id, token, isCloser])
-
-  // Tareas pendientes + el medidor flotar/mover de la semana (lo cuenta el
-  // servidor: se relee al marcar o cambiar una).
   function leerTareas() {
     if (!org?.id || !token) return
     getTareas(org.id, token, { pendientes: true }).then((r) => {
@@ -145,278 +126,458 @@ export default function NawarHome() {
       } else setTareas([])
     })
   }
+  useEffect(() => {
+    leerTareas()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [org?.id, token])
 
   const misTareas = (tareas ?? []).filter((t) => t.asignado_id === yo && t.estado !== 'hecha')
-  const hoy = hoyISO()
-  const urgentes = misTareas.filter((t) => t.fecha && t.fecha <= hoy).length
+  const urgentes = misTareas.filter((t) => t.fecha && t.fecha <= hoyISO()).length
+  const nombre = session?.data?.user?.first_name || session?.data?.user?.username || ''
+  const hora = new Date().getHours()
+  const saludo = `${hora < 13 ? 'Buenos días' : hora < 20 ? 'Buenas tardes' : 'Buenas noches'}${nombre ? `, ${nombre}` : ''}`
+
+  const bloqueTareas = (
+    <Seccion titulo="Mis tareas" extra={<EnlaceSeccion href="/dash/estadisticas?tab=tareas">Todas</EnlaceSeccion>}>
+      <MedidorSemana balance={balance} compacto />
+      <div className="border-t border-[#E6E8EE]">
+        {tareas === null ? (
+          <p className="py-3 text-[13px] text-[#8A93A3]">Cargando…</p>
+        ) : misTareas.length === 0 ? (
+          <p className="py-3 text-[13.5px] text-[#8A93A3]">No tienes nada pendiente.</p>
+        ) : (
+          <div className="divide-y divide-[#F0F1F5]">
+            {misTareas.slice(0, 5).map((t) => (
+              <FilaTarea
+                key={t.id}
+                tarea={t}
+                onCambio={(n) => {
+                  setTareas((ts) => (ts ?? []).map((x) => (x.id === n.id ? n : x)))
+                  leerTareas()
+                }}
+                onBorrada={(id) => setTareas((ts) => (ts ?? []).filter((x) => x.id !== id))}
+                onAbrirPersona={setAbierta}
+              />
+            ))}
+          </div>
+        )}
+        {misTareas.length > 5 ? (
+          <Link href="/dash/estadisticas?tab=tareas" className="block py-2 text-[13px] text-[#8A93A3] hover:text-[#0B1020]">
+            y {misTareas.length - 5} más
+          </Link>
+        ) : null}
+        <div className="border-t border-[#F0F1F5] pt-1">
+          <TareaForm compacto onCreada={(t) => setTareas((ts) => [t, ...(ts ?? [])])} />
+        </div>
+      </div>
+    </Seccion>
+  )
+
+  return (
+    <div className={MARCO}>
+      <div className="max-w-[1180px] mx-auto">
+        {isCloser ? (
+          <InicioCloser saludo={saludo} urgentes={tareas ? urgentes : null} bloqueTareas={bloqueTareas} onAbrir={setAbierta} />
+        ) : (
+          <InicioAdmin saludo={saludo} urgentes={urgentes} bloqueTareas={bloqueTareas} onAbrir={setAbierta} />
+        )}
+      </div>
+      {abierta ? <FichaCliente email={abierta} onClose={() => setAbierta(null)} /> : null}
+    </div>
+  )
+}
+
+/* ───────────────────────── administrador ───────────────────────── */
+
+function InicioAdmin({
+  saludo,
+  urgentes,
+  bloqueTareas,
+  onAbrir,
+}: {
+  saludo: string
+  urgentes: number
+  bloqueTareas: React.ReactNode
+  onAbrir: (email: string) => void
+}) {
+  const session = useLHSession() as any
+  const org = useOrg() as any
+  const token = session?.data?.tokens?.access_token
+  const equipo = useEquipo()
+  const [periodo, setPeriodo] = useState<PeriodoInicio>('semana')
+  const [datos, setDatos] = useState<InicioPanel | null | 'error'>(null)
+  const [cargando, setCargando] = useState(false)
+
+  useEffect(() => {
+    try {
+      const g = localStorage.getItem('nawar.inicio.periodo')
+      if (g === 'semana' || g === '30' || g === 'mes') setPeriodo(g)
+    } catch {}
+  }, [])
+  useEffect(() => {
+    if (!org?.id || !token) return
+    let vivo = true
+    setCargando(true)
+    getInicio(org.id, periodo, token).then((r) => {
+      if (!vivo) return
+      setDatos(r.ok && r.datos ? r.datos : 'error')
+      setCargando(false)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [org?.id, token, periodo])
+  function elegir(p: PeriodoInicio) {
+    setPeriodo(p)
+    try {
+      localStorage.setItem('nawar.inicio.periodo', p)
+    } catch {}
+  }
+
+  const d = datos && datos !== 'error' ? datos : null
+  const c = d?.cifras
+  const antes = d?.rango.antes_texto || ''
+  const v = (x: React.ReactNode) => (d ? x : '…')
+
+  const filasHoy = [...(d?.hoy_filas ?? [])]
+  if (urgentes > 0)
+    filasHoy.splice(Math.min(filasHoy.length, 1), 0, {
+      clave: 'tareas',
+      tono: 'rojo',
+      titulo: 'Tareas tuyas para hoy o vencidas',
+      n: urgentes,
+      detalle: '',
+      href: '/dash/estadisticas?tab=tareas',
+    })
+  const max = Math.max(1, ...(d?.embudo ?? []).map((p) => p.n))
+
+  return (
+    <div className={cargando && d ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
+      <CabeceraPagina sobre={fechaLarga()} titulo={saludo} acciones={<Segmentado opciones={PERIODOS} valor={periodo} onChange={elegir} />} />
+
+      {datos === 'error' ? (
+        <p className="mt-7 text-[14px] text-[#4B5565]">No se han podido cargar los números. Prueba a recargar la página.</p>
+      ) : (
+        <Tira className="mt-7">
+          <Cifra
+            rotulo="Vendido"
+            valor={v(c?.vendido ? euros(c.vendido.valor) : '—')}
+            href="/dash/estadisticas"
+            nota={
+              c?.vendido ? (
+                <Partes>
+                  {[<Flecha key="f" c={c.vendido} dinero />, `cobrado ${euros(c.vendido.cobrado_cents)}`]}
+                </Partes>
+              ) : null
+            }
+          />
+          <Cifra
+            rotulo="Ventas"
+            valor={v(c?.ventas ? c.ventas.valor : '—')}
+            href="/dash/estadisticas?tab=clientes"
+            nota={
+              c?.ventas ? (
+                <Partes>
+                  {[
+                    c.ventas.antes !== null && c.ventas.sentido ? (
+                      <span key="f">
+                        <Cambio sentido={c.ventas.sentido}>{Math.abs(c.ventas.dif ?? 0)}</Cambio> {c.ventas.sentido > 0 ? 'más' : 'menos'} {antes}
+                      </span>
+                    ) : c.ventas.antes !== null ? (
+                      `igual ${antes}`
+                    ) : null,
+                    c.ventas.a_plazos ? `${c.ventas.a_plazos} a plazos` : null,
+                  ]}
+                </Partes>
+              ) : null
+            }
+          />
+          <Cifra
+            rotulo="Llamadas"
+            valor={v(c?.llamadas ? c.llamadas.valor : '—')}
+            sufijo={c?.llamadas && c.llamadas.con_resultado ? `de ${c.llamadas.con_resultado}` : undefined}
+            href="/dash/estadisticas?tab=kpis"
+            nota={
+              c?.llamadas ? (
+                <Partes>
+                  {[
+                    c.llamadas.con_resultado ? (
+                      <span key="v">
+                        vinieron{c.llamadas.no_vino ? <span className="text-[#C8322B] font-medium"> · {c.llamadas.no_vino} no</span> : null}
+                      </span>
+                    ) : (
+                      'ninguna con resultado todavía'
+                    ),
+                    c.llamadas.futuras ? `${c.llamadas.futuras} por venir` : null,
+                  ]}
+                </Partes>
+              ) : null
+            }
+          />
+          <Cifra
+            rotulo="Leads"
+            valor={v(c?.leads ? c.leads.valor : '—')}
+            href="/dash/webs"
+            nota={
+              c?.leads ? (
+                <Partes>{[<Flecha key="f" c={c.leads} />, `${c.leads.visitas.toLocaleString('es-ES')} ${c.leads.visitas === 1 ? 'visita' : 'visitas'}`]}</Partes>
+              ) : null
+            }
+          />
+          <Cifra
+            rotulo="Alumnos activos"
+            valor={v(c?.alumnos ? c.alumnos.activos : '—')}
+            sufijo={c?.alumnos ? `de ${c.alumnos.total}` : undefined}
+            href="/dash/estadisticas?tab=progreso"
+            nota={
+              c?.alumnos
+                ? c.alumnos.sin_avanzar
+                  ? `${c.alumnos.sin_avanzar} sin avanzar hace 14 días`
+                  : 'entraron en los últimos 7 días'
+                : null
+            }
+          />
+        </Tira>
+      )}
+
+      <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-10 lg:gap-14">
+        <Seccion titulo="Hoy">
+          {datos === null ? (
+            <p className="border-t border-[#E6E8EE] py-3 text-[13px] text-[#8A93A3]">Cargando…</p>
+          ) : d && d.hoy_filas === null && !filasHoy.length ? (
+            <p className="border-t border-[#E6E8EE] py-3 text-[13.5px] text-[#8A93A3]">No se ha podido calcular lo de hoy.</p>
+          ) : filasHoy.length === 0 ? (
+            <p className="border-t border-[#E6E8EE] py-3 text-[13.5px] text-[#8A93A3]">Nada pendiente. Todo al día.</p>
+          ) : (
+            <div>
+              {filasHoy.map((f) => (
+                <Fila key={f.clave} tono={f.tono as any} titulo={f.titulo} detalle={f.detalle || undefined} n={f.n} accion="Abrir" href={f.href} />
+              ))}
+            </div>
+          )}
+        </Seccion>
+        {bloqueTareas}
+      </div>
+
+      <Seccion
+        junto
+        className="mt-10"
+        titulo="Del clic a la venta"
+        nota={d ? `Quien dejó sus datos ${d.rango.periodo === 'semana' ? 'esta semana' : d.rango.periodo === 'mes' ? 'este mes' : 'en estos 30 días'}, y hasta dónde ha llegado` : undefined}
+        extra={<EnlaceSeccion href="/dash/webs">Ver la analítica</EnlaceSeccion>}
+      >
+        {datos === null ? (
+          <p className="text-[13px] text-[#8A93A3]">Cargando…</p>
+        ) : !d?.embudo ? (
+          <p className="text-[13.5px] text-[#8A93A3]">No se ha podido calcular.</p>
+        ) : (
+          d.embudo.map((p, i) => (
+            <BarraEmbudo
+              key={p.clave}
+              nombre={p.nombre}
+              n={p.n}
+              max={max}
+              pct={p.pct !== null ? `${String(p.pct).replace('.', ',')} %` : ''}
+              fuerte={i === d.embudo!.length - 1}
+            />
+          ))
+        )}
+      </Seccion>
+
+      <Seccion className="mt-10" titulo="Últimas ventas" extra={<EnlaceSeccion href="/dash/estadisticas?tab=clientes">Todos los clientes</EnlaceSeccion>}>
+        {datos === null ? (
+          <p className="text-[13px] text-[#8A93A3]">Cargando…</p>
+        ) : !d?.ventas ? (
+          <p className="text-[13.5px] text-[#8A93A3]">No se han podido leer las ventas.</p>
+        ) : d.ventas.length === 0 ? (
+          <p className="border-t border-[#E6E8EE] py-3 text-[13.5px] text-[#8A93A3]">Todavía no hay ventas.</p>
+        ) : (
+          <>
+            {/* Ordenador: tabla. Móvil: filas apiladas. */}
+            <table className={`${TABLA} hidden md:table`}>
+              <thead>
+                <tr>
+                  <th className={TH}>Persona</th>
+                  <th className={TH}>Forma de pago</th>
+                  <th className={TH}>Closer</th>
+                  <th className={TH_NUM}>Vendido</th>
+                  <th className={TH_NUM}>Cobrado</th>
+                  <th className={TH_NUM}>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.ventas.map((x) => (
+                  <tr key={x.email + x.dia} onClick={() => onAbrir(x.email)} className="cursor-pointer hover:bg-[#F7F8FA]">
+                    <td className={TD}>
+                      {x.nombre}
+                      {x.origen ? <span className={SUB}>{x.origen}</span> : null}
+                    </td>
+                    <td className={TD}>
+                      {x.pago.texto}
+                      {x.pago.detalle ? <span className={SUB} style={x.pago.aviso ? { color: '#C8322B' } : undefined}>{x.pago.detalle}</span> : null}
+                    </td>
+                    <td className={TD}>
+                      {x.closer ? (
+                        <Estado color={colorCloser(x.closer_id ?? 0, equipo?.equipo ?? [], x.closer)}>{x.closer}</Estado>
+                      ) : (
+                        <span className="text-[13px] text-[#B4BAC6]">—</span>
+                      )}
+                    </td>
+                    <td className={`${TD_NUM} font-semibold`}>{euros(x.vendido_cents)}</td>
+                    <td className={TD_NUM}>{euros(x.cobrado_cents)}</td>
+                    <td className={`${TD_NUM} text-[#8A93A3]`}>{fechaCorta(x.dia)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="md:hidden">
+              {d.ventas.map((x) => (
+                <Fila
+                  key={x.email + x.dia}
+                  onClick={() => onAbrir(x.email)}
+                  titulo={x.nombre}
+                  detalle={
+                    <span style={x.pago.aviso ? { color: '#C8322B' } : undefined}>
+                      {[x.pago.texto, x.pago.detalle, x.closer, fechaCorta(x.dia)].filter(Boolean).join(' · ')}
+                    </span>
+                  }
+                  n={
+                    <span className="text-right">
+                      {euros(x.vendido_cents)}
+                      {x.cobrado_cents !== x.vendido_cents ? <span className={`${SUB} font-normal`}>cobrado {euros(x.cobrado_cents)}</span> : null}
+                    </span>
+                  }
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </Seccion>
+    </div>
+  )
+}
+
+/* ───────────────────────── closer ───────────────────────── */
+
+function InicioCloser({
+  saludo,
+  urgentes,
+  bloqueTareas,
+  onAbrir,
+}: {
+  saludo: string
+  urgentes: number | null
+  bloqueTareas: React.ReactNode
+  onAbrir: (email: string) => void
+}) {
+  const session = useLHSession() as any
+  const org = useOrg() as any
+  const token = session?.data?.tokens?.access_token
+  const [tablero, setTablero] = useState<Tablero | null>(null)
+  const [contactos, setContactos] = useState<Contacto[] | null>(null)
+
+  useEffect(() => {
+    if (!org?.id || !token) return
+    getTablero(org.id, token).then((r) => setTablero(r.ok && r.datos ? r.datos : { etapas: [], tarjetas: [] } as any))
+    getContactos(org.id, '', token).then((r) => setContactos(r?.contactos ?? []))
+  }, [org?.id, token])
+
   const cuenta = (ids: string[]) => (tablero?.tarjetas ?? []).filter((t) => ids.includes(t.etapa) && !t.oculto).length
   const columnas = (tablero?.etapas ?? []).map((e) => ({ ...e, n: cuenta([e.id]) }))
   const nuevas = cuenta(['nuevo'])
   const porLlamar = cuenta(['llamar', 'no-contesta'])
   const agendadas = cuenta(['agendado'])
-
-  const s = stats && stats !== 'error' ? stats : null
-  // El mes en curso, por su clave («2026-11»). Antes se cogía la última fila
-  // de la lista, que va del mes más nuevo al más viejo: salía el mes más
-  // ANTIGUO con ventas como «este mes».
-  const claveMes = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Amsterdam', year: 'numeric', month: '2-digit' }).format(new Date())
-  const mesActual = s?.sales?.by_month?.find((m) => m.key === claveMes)
-  const porAtender = (s?.requests ?? []).filter((r: any) => !r.contacted_at).length + (s?.sales?.funnel?.pending ?? []).filter((p) => !p.ya_alumno).length
+  const tc = (n: number) => (tablero ? n : '…')
   const ultimos = (contactos ?? []).slice(0, 6)
-  const nombre = session?.data?.user?.first_name || session?.data?.user?.username || ''
-  const hora = new Date().getHours()
-  const saludo = hora < 13 ? 'Buenos días' : hora < 20 ? 'Buenas tardes' : 'Buenas noches'
-  const tc = (n: number) => (tablero ? String(n) : '…')
-
-  // Lo que pide hacer algo hoy. Si no hay nada, se dice.
-  const toca: React.ReactNode[] = []
-  if (porDecidir.length > 0) {
-    toca.push(
-      <Toca
-        key="decidir"
-        icono={<Tag size={18} weight="fill" />}
-        color="#7C3AED"
-        href="/dash/estadisticas?tab=tandas"
-        boton="Elegir"
-        texto={
-          <>
-            <strong className="font-semibold">
-              {porDecidir.length === 1 ? `${porDecidir[0].nombre} ha pagado` : `${porDecidir.length} alumnos nuevos han pagado`}
-            </strong>
-            : elige {porDecidir.length === 1 ? 'su grupo' : 'el grupo de cada uno'}.
-          </>
-        }
-      />
-    )
-  }
-  if (nuevas > 0) {
-    toca.push(
-      <Toca
-        key="nuevas"
-        icono={<PhoneCall size={18} weight="fill" />}
-        color={COLOR_COLUMNA.nuevo}
-        href="/dash/estadisticas?tab=matriculas"
-        boton="Llamar"
-        texto={
-          <>
-            <strong className="font-semibold">{nuevas === 1 ? '1 matrícula nueva' : `${nuevas} matrículas nuevas`}</strong> de las
-            últimas 48 horas: cuanto antes se llama, más se cierra.
-          </>
-        }
-      />
-    )
-  }
-  if (urgentes > 0) {
-    toca.push(
-      <Toca
-        key="tareas"
-        icono={<ListChecks size={18} weight="bold" />}
-        color="#DC2626"
-        href="/dash/estadisticas?tab=tareas"
-        boton="Ver"
-        texto={
-          <>
-            <strong className="font-semibold">{urgentes === 1 ? '1 tarea' : `${urgentes} tareas`}</strong> para hoy o vencidas.
-          </>
-        }
-      />
-    )
-  }
-  if (porLlamar > 0) {
-    toca.push(
-      <Toca
-        key="llamar"
-        icono={<Kanban size={18} weight="fill" />}
-        color={COLOR_COLUMNA.llamar}
-        href="/dash/estadisticas?tab=matriculas"
-        boton="Abrir"
-        texto={
-          <>
-            <strong className="font-semibold">{porLlamar === 1 ? '1 persona' : `${porLlamar} personas`}</strong> por llamar o que no
-            contestaron.
-          </>
-        }
-      />
-    )
-  }
 
   return (
-    <div className="h-full w-full bg-[#F4F7FD] px-4 sm:px-9 py-6 sm:py-9 pb-24 lg:pb-10">
-      <div className="max-w-[1200px] mx-auto space-y-5 sm:space-y-6">
-        {/* La cabecera: el mismo azul que la barra de la escuela. */}
-        <div className="relative overflow-hidden rounded-2xl px-5 py-5 sm:px-7 sm:py-6 text-white" style={FONDO_MARCA}>
-          <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-white/65">{fechaLarga()}</p>
-          <h1 className="mt-1 text-[24px] sm:text-[30px] font-bold leading-tight" style={POPPINS}>
-            {saludo}
-            {nombre ? `, ${nombre}` : ''}.
-          </h1>
-          <p className="text-[14px] text-white/80 mt-0.5">Así va la escuela hoy.</p>
+    <div>
+      <CabeceraPagina sobre={fechaLarga()} titulo={saludo} />
+      <Tira className="mt-7">
+        <Cifra rotulo="Nuevas" valor={tc(nuevas)} nota="de las últimas 48 horas" href="/dash/estadisticas?tab=matriculas" />
+        <Cifra rotulo="Por llamar" valor={tc(porLlamar)} nota="y las que no contestaron" href="/dash/estadisticas?tab=matriculas" />
+        <Cifra rotulo="Agendadas" valor={tc(agendadas)} nota="con llamada reservada" href="/dash/estadisticas?tab=llamadas" />
+        <Cifra
+          rotulo="Tus tareas"
+          valor={urgentes === null ? '…' : urgentes}
+          nota="para hoy o vencidas"
+          href="/dash/estadisticas?tab=tareas"
+          color={urgentes ? '#C8322B' : undefined}
+        />
+      </Tira>
 
-          {isCloser ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mt-5">
-              <Cifra etiqueta="Nuevas" valor={tc(nuevas)} nota="Últimas 48 horas" href="/dash/estadisticas?tab=matriculas" />
-              <Cifra etiqueta="Por llamar" valor={tc(porLlamar)} nota="Y las que no contestaron" href="/dash/estadisticas?tab=matriculas" />
-              <Cifra etiqueta="Agendadas" valor={tc(agendadas)} nota="Con llamada reservada" href="/dash/estadisticas?tab=llamadas" />
-              <Cifra etiqueta="Tus tareas" valor={tareas ? String(urgentes) : '…'} nota="Para hoy o vencidas" href="/dash/estadisticas?tab=tareas" />
-            </div>
-          ) : stats === 'error' ? (
-            <p className="mt-4 text-[13.5px] text-white/85">No se han podido cargar los números. Prueba a recargar.</p>
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mt-5">
-              <Cifra etiqueta="Por atender" valor={s ? String(porAtender) : '…'} nota="Pidieron plaza o dejaron el pago" href="/dash/estadisticas?tab=matriculas" />
-              <Cifra etiqueta="Ventas este mes" valor={s ? String(mesActual?.sales ?? 0) : '…'} nota={s && mesActual ? `${euros(vendidoDe(mesActual))} vendidos · ${euros(cobradoDe(mesActual))} cobrados` : undefined} href="/dash/estadisticas" />
-              <Cifra
-                etiqueta="Vendido · 30 días"
-                valor={s ? euros(vendidoDe(s.sales?.last_30_days)) : '…'}
-                nota={s ? `${s.sales?.last_30_days?.sales ?? 0} ventas · cobrado ${euros(cobradoDe(s.sales?.last_30_days))}` : undefined}
-                href="/dash/estadisticas"
-              />
-              <Cifra
-                etiqueta="Alumnos activos"
-                valor={s ? String(s.students?.active_30d ?? 0) : '…'}
-                nota={s ? `de ${s.students?.total ?? 0}, últimos 30 días` : undefined}
-                href="/dash/estadisticas?tab=progreso"
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          {/* Lo que toca hoy: cada cosa con su botón. */}
-          <div className={`${CARD} lg:col-span-3`}>
-            <Titulo>Lo que toca hoy</Titulo>
-            {tablero === null && tareas === null ? (
-              <p className="text-[13px] text-gray-400">Cargando…</p>
-            ) : toca.length === 0 ? (
-              <div className="flex items-center gap-3 rounded-xl bg-[#F0FDF4] px-3.5 py-3 text-[13.5px] text-[#15803D]">
-                <CheckCircle size={20} weight="fill" className="shrink-0" />
-                Nada urgente por ahora. Todo al día.
-              </div>
-            ) : (
-              <div className="-mx-1 space-y-0.5">{toca}</div>
-            )}
-          </div>
-
-          {/* Mis tareas: lo que me toca, sin ir a otra pantalla. */}
-          <div className={`${CARD} lg:col-span-2`}>
-            <Titulo extra={<VerTodo href="/dash/estadisticas?tab=tareas">Todas</VerTodo>}>Mis tareas</Titulo>
-            <div className="mb-3">
-              <MedidorSemana balance={balance} compacto />
-            </div>
-            <TareaForm compacto onCreada={(t) => setTareas((ts) => [t, ...(ts ?? [])])} />
-            {tareas === null ? (
-              <p className="text-[13px] text-gray-400 mt-2">Cargando…</p>
-            ) : misTareas.length === 0 ? (
-              <p className="text-[13px] text-gray-500 mt-3 inline-flex items-center gap-1.5">
-                <Sparkle size={14} className="text-[#4da3ff]" weight="fill" /> No tienes nada pendiente.
-              </p>
-            ) : (
-              <div className="mt-1 divide-y divide-[#EEF2FA]">
-                {misTareas.slice(0, 5).map((t) => (
-                  <FilaTarea
-                    key={t.id}
-                    tarea={t}
-                    onCambio={(n) => {
-                      setTareas((ts) => (ts ?? []).map((x) => (x.id === n.id ? n : x)))
-                      leerTareas()
-                    }}
-                    onBorrada={(id) => setTareas((ts) => (ts ?? []).filter((x) => x.id !== id))}
-                    onAbrirPersona={setAbierta}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* El tablero de matrículas de un vistazo, con los colores del tablero. */}
-        <div className={CARD}>
-          <Titulo extra={<VerTodo href="/dash/estadisticas?tab=matriculas">Abrir el tablero</VerTodo>}>Matrículas</Titulo>
+      <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-10 lg:gap-14">
+        <Seccion titulo="Hoy">
           {tablero === null ? (
-            <p className="text-[13px] text-gray-400">Cargando…</p>
+            <p className="border-t border-[#E6E8EE] py-3 text-[13px] text-[#8A93A3]">Cargando…</p>
+          ) : !nuevas && !porLlamar && !urgentes ? (
+            <p className="border-t border-[#E6E8EE] py-3 text-[13.5px] text-[#8A93A3]">Nada pendiente. Todo al día.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {columnas.map((c) => (
-                <Link
-                  key={c.id}
+            <div>
+              {nuevas > 0 ? (
+                <Fila
+                  tono="rojo"
+                  titulo="Matrículas nuevas sin llamar"
+                  detalle="De las últimas 48 horas: cuanto antes, más se cierra"
+                  n={nuevas}
+                  accion="Llamar"
                   href="/dash/estadisticas?tab=matriculas"
-                  className="rounded-xl border border-[#E8EDF7] bg-[#FAFBFF] hover:border-[#B9CBEA] hover:bg-white px-3 py-2.5 transition-colors"
-                >
-                  <p className="flex items-center gap-1.5 text-[12px] font-semibold text-[#5A6480] truncate">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: COLOR_COLUMNA[c.id] || '#94A3B8' }} />
-                    <span className="truncate">{c.nombre}</span>
-                  </p>
-                  <p className="text-[22px] font-semibold tabular-nums leading-tight text-[#0a1656] mt-0.5">{c.n}</p>
-                </Link>
-              ))}
+                />
+              ) : null}
+              {urgentes ? <Fila tono="rojo" titulo="Tareas para hoy o vencidas" n={urgentes} accion="Ver" href="/dash/estadisticas?tab=tareas" /> : null}
+              {porLlamar > 0 ? (
+                <Fila tono="ambar" titulo="Por llamar o que no contestaron" n={porLlamar} accion="Abrir" href="/dash/estadisticas?tab=matriculas" />
+              ) : null}
             </div>
           )}
-        </div>
-
-        {/* Anuncios: qué está trayendo cada campaña. Solo si hay alguna. */}
-        {ads && ads.campanas.length ? (
-          <div className={CARD}>
-            <Titulo extra={<VerTodo href="/dash/estadisticas?tab=anuncios" />}>Anuncios</Titulo>
-            <ul className="divide-y divide-[#EEF2FA]">
-              {[...ads.campanas]
-                .sort((a, b) => b.leads - a.leads)
-                .slice(0, 4)
-                .map((c) => (
-                  <li key={c.id} className="py-2.5 flex items-center gap-3">
-                    <span className="flex-1 min-w-0 text-[13.5px] font-semibold text-gray-900 truncate">{c.nombre}</span>
-                    <span className="text-[12.5px] text-gray-500 tabular-nums">
-                      {c.leads} {c.leads === 1 ? 'lead' : 'leads'} · {c.ventas} {c.ventas === 1 ? 'venta' : 'ventas'}
-                    </span>
-                    <span className="w-24 text-right text-[12.5px] font-semibold tabular-nums text-[#1D0084]">
-                      {c.coste_por_lead_cents !== null ? `${eurosPanel(c.coste_por_lead_cents)}/lead` : '—'}
-                    </span>
-                  </li>
-                ))}
-            </ul>
-          </div>
-        ) : null}
-
-        <div className={CARD}>
-          <Titulo extra={<VerTodo href={isCloser ? '/dash/estadisticas?tab=matriculas' : '/dash/estadisticas?tab=contactos'} />}>
-            {isCloser ? 'Últimas matrículas' : 'Últimos contactos'}
-          </Titulo>
-          {contactos === null ? (
-            <p className="text-[13px] text-gray-400">Cargando…</p>
-          ) : ultimos.length === 0 ? (
-            <p className="text-[13px] text-gray-500">Todavía no hay contactos.</p>
-          ) : (
-            <ul className="divide-y divide-[#EEF2FA]">
-              {ultimos.map((c) => (
-                <li key={c.email} className="py-2.5 flex items-center gap-3 cursor-pointer hover:bg-[#F8FAFF] -mx-2 px-2 rounded-lg" onClick={() => setAbierta(c.email)}>
-                  <span className="w-8 h-8 rounded-full bg-[#EEF3FF] text-[#025dc7] text-[12px] font-bold flex items-center justify-center shrink-0 uppercase">
-                    {(c.nombre || c.email || '?').trim().charAt(0)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] font-semibold text-gray-900 truncate">{c.nombre || c.email}</p>
-                    <p className="text-[12px] text-gray-500 truncate">
-                      {c.ultimo_contacto.que}
-                      {c.utm_campaign ? ` · ${c.utm_campaign}` : ''}
-                    </p>
-                  </div>
-                  {/* La misma etapa que en Contactos (antes decía "Lead" a quien ya
-                      había pedido plaza). */}
-                  <span className="shrink-0 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#4B5563]">
-                    <span
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{
-                        background:
-                          c.etapa === 'alumno' ? '#16A34A' : c.etapa === 'en-pago' ? '#D97706' : c.etapa === 'pidio' ? '#2563EB' : '#9CA3AF',
-                      }}
-                    />
-                    {ETAPA_TEXTO[c.etapa] || 'Lead'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        </Seccion>
+        {bloqueTareas}
       </div>
-      {abierta ? <FichaCliente email={abierta} onClose={() => setAbierta(null)} /> : null}
+
+      <Seccion className="mt-10" titulo="Matrículas" extra={<EnlaceSeccion href="/dash/estadisticas?tab=matriculas">Abrir el tablero</EnlaceSeccion>}>
+        {tablero === null ? (
+          <p className="text-[13px] text-[#8A93A3]">Cargando…</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-8 border-t border-[#E6E8EE]">
+            {columnas.map((col) => (
+              <Link
+                key={col.id}
+                href="/dash/estadisticas?tab=matriculas"
+                className="flex items-center justify-between gap-2 py-2.5 border-b border-[#F0F1F5] hover:opacity-70"
+              >
+                <Estado color={COLOR_COLUMNA[col.id] || '#C5CAD6'} className="min-w-0 truncate">
+                  {col.nombre}
+                </Estado>
+                <span className="text-[14px] font-semibold tabular-nums text-[#0B1020]">{col.n}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Seccion>
+
+      <Seccion className="mt-10" titulo="Últimas matrículas" extra={<EnlaceSeccion href="/dash/estadisticas?tab=matriculas">Ver todo</EnlaceSeccion>}>
+        {contactos === null ? (
+          <p className="text-[13px] text-[#8A93A3]">Cargando…</p>
+        ) : ultimos.length === 0 ? (
+          <p className="border-t border-[#E6E8EE] py-3 text-[13.5px] text-[#8A93A3]">Todavía no hay contactos.</p>
+        ) : (
+          <div>
+            {ultimos.map((p) => (
+              <Fila
+                key={p.email}
+                onClick={() => onAbrir(p.email)}
+                titulo={p.nombre || p.email}
+                detalle={`${p.ultimo_contacto.que}${p.utm_campaign ? ` · ${p.utm_campaign}` : ''}`}
+                accion={
+                  <Estado tono={p.etapa === 'alumno' ? 'verde' : p.etapa === 'en-pago' ? 'ambar' : p.etapa === 'pidio' ? 'azul' : 'gris'}>
+                    {ETAPA_TEXTO[p.etapa] || 'Lead'}
+                  </Estado>
+                }
+              />
+            ))}
+          </div>
+        )}
+      </Seccion>
     </div>
   )
 }

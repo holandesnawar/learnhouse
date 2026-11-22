@@ -383,7 +383,13 @@ export function buildUtmUrl(link: Omit<UtmLink, 'name'>): string {
 /** 1234 (céntimos) → "12,34 €" */
 export function euros(cents: number | null | undefined): string {
   const value = (cents || 0) / 100
-  return value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: value % 1 === 0 ? 0 : 2 })
+  // `useGrouping: 'always'`: el punto de los miles también en 1.000-9.999.
+  return value.toLocaleString('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: value % 1 === 0 ? 0 : 2,
+    useGrouping: 'always',
+  } as Intl.NumberFormatOptions)
 }
 
 // ── Gastos (cuadro de mando, no contabilidad) ─────────────────────────────

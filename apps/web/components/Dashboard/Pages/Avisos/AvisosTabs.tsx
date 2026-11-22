@@ -40,7 +40,7 @@ export default function AvisosTabs() {
     }`
 
   return (
-    <div className="h-full w-full bg-[#F4F7FD] px-4 sm:px-9 py-6 sm:py-9 pb-24 lg:pb-10">
+    <div className="h-full w-full bg-white px-4 sm:px-9 py-6 sm:py-9 pb-24 lg:pb-10">
       <div className="mb-5">
         <CabeceraPagina
           icono={<Mail size={20} />}

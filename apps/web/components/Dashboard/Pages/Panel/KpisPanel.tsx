@@ -22,7 +22,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { getKpis, type Kpis, type PasoEmbudoWeb } from '@services/stats/kpis'
 import { euros } from '@services/stats/school'
 import { Loader2 } from 'lucide-react'
-import { ENLACE, META, Seccion, TARJETA, filtro } from './ui'
+import { Cifra, ENLACE, META, Seccion, TABLA, TD, TD_NUM, TH, TH_NUM, Tira, filtro } from './ui'
 
 const PERIODOS = [7, 14, 30, 90]
 
@@ -33,17 +33,7 @@ const diaCorto = (iso: string) => {
   return `${Number(d)}/${Number(m)}`
 }
 
-function Cifra({ titulo, valor, sub }: { titulo: string; valor: string; sub?: string }) {
-  return (
-    <div className={`${TARJETA} px-4 py-3.5 min-w-0`}>
-      <p className="text-[12px] font-medium text-[#6B7280]">{titulo}</p>
-      <p className="mt-1 text-[26px] font-semibold text-gray-900 leading-none tabular-nums">{valor}</p>
-      {sub ? <p className={`${META} mt-1.5 leading-snug`}>{sub}</p> : null}
-    </div>
-  )
-}
-
-/** Una barra por paso: cuántos llegan y qué parte del anterior. */
+/** Una barra por paso: cuántos llegan y qué parte del anterior. Sin caja. */
 function Escalones({
   pasos,
 }: {
@@ -51,20 +41,37 @@ function Escalones({
 }) {
   const max = Math.max(1, ...pasos.map((p) => p.n))
   return (
-    <div className={`${TARJETA} divide-y divide-[#F3F4F6]`}>
-      {pasos.map((p) => (
-        <div key={p.clave} className="px-4 py-2.5">
+    <div className="border-t border-[#E6E8EE]">
+      {pasos.map((p, i) => (
+        <div key={p.clave} className="py-2.5 border-b border-[#F0F1F5]">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[13.5px] text-gray-900">{p.nombre}</span>
-            <span className="text-[14px] font-semibold text-gray-900 tabular-nums shrink-0">{p.n}</span>
+            <span className="text-[14px] text-[#0B1020]">{p.nombre}</span>
+            <span className="text-[14px] font-semibold text-[#0B1020] tabular-nums shrink-0">{p.n.toLocaleString('es-ES')}</span>
           </div>
-          <div className="mt-1.5 h-1.5 rounded-full bg-[#F3F4F6] overflow-hidden" aria-hidden>
-            <div className="h-full rounded-full bg-[#025dc7]" style={{ width: `${(p.n / max) * 100}%` }} />
+          <div className="mt-1.5 h-1.5 rounded-full bg-[#EDEFF4] overflow-hidden" aria-hidden>
+            <div className="h-full rounded-full" style={{ width: `${(p.n / max) * 100}%`, background: i === pasos.length - 1 ? '#1D0084' : '#AEB8E6' }} />
           </div>
-          <p className={`${META} mt-1`}>
+          <p className="text-[12.5px] text-[#8A93A3] mt-1">
             {p.detalle}
-            {p.caida ? <span className="text-[#B4413C]"> · {p.caida}</span> : null}
+            {p.caida ? <span className="text-[#C8322B]"> · {p.caida}</span> : null}
           </p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Una lista de «texto … cifra» con filete, sin caja. */
+function Lista({ filas }: { filas: readonly (readonly [string, React.ReactNode, string?])[] }) {
+  return (
+    <div className="border-t border-[#E6E8EE] text-[14px]">
+      {filas.map(([texto, valor, nota]) => (
+        <div key={texto} className="py-2.5 flex items-baseline justify-between gap-3 border-b border-[#F0F1F5]">
+          <span className="text-[#0B1020]">
+            {texto}
+            {nota ? <span className="block text-[12.5px] text-[#8A93A3]">{nota}</span> : null}
+          </span>
+          <span className="font-semibold text-[#0B1020] tabular-nums">{valor}</span>
         </div>
       ))}
     </div>
@@ -169,7 +176,8 @@ export default function KpisPanel() {
   const nombreSerie = SERIES.find((s) => s.clave === serie)?.nombre || ''
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-9">
+      <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         {periodos}
         <p className={META}>
@@ -182,38 +190,32 @@ export default function KpisPanel() {
         <p className={META}>Calendly solo da 45 días hacia atrás: las llamadas más antiguas solo cuentan si tienen «¿Qué pasó?» apuntado.</p>
       ) : null}
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+      <Tira>
         <Cifra
-          titulo="Entradas al día"
+          rotulo="Entradas al día"
           valor={num(datos.entradas.por_dia)}
-          sub={`${datos.entradas.n} en ${datos.dias} días · ${datos.entradas.ads} de anuncio`}
+          nota={`${datos.entradas.n} en ${datos.dias} días · ${datos.entradas.ads} de anuncio`}
         />
-        <Cifra titulo="Llamadas reservadas" valor={String(datos.reservas.n)} sub={`${num(datos.reservas.por_dia)} al día`} />
+        <Cifra rotulo="Llamadas reservadas" valor={datos.reservas.n} nota={`${num(datos.reservas.por_dia)} al día`} />
         <Cifra
-          titulo="Se presentan"
+          rotulo="Se presentan"
           valor={pct(ll.pct_asistencia)}
-          sub={conResultado ? `${ll.presentadas} de ${conResultado} llamada${conResultado === 1 ? '' : 's'} con resultado` : 'Sin llamadas con resultado'}
+          nota={conResultado ? `${ll.presentadas} de ${conResultado} con resultado` : 'sin llamadas con resultado'}
         />
-        <Cifra titulo="No se presentan" valor={pct(ll.pct_no_show)} sub={`${ll.no_vino} llamada${ll.no_vino === 1 ? '' : 's'}`} />
+        <Cifra rotulo="No se presentan" valor={pct(ll.pct_no_show)} nota={`${ll.no_vino} llamada${ll.no_vino === 1 ? '' : 's'}`} />
+        <Cifra rotulo="Cierre" valor={pct(ll.pct_cierre)} nota={`${ll.personas_cerradas} de ${ll.personas_presentadas} que se presentaron ya han pagado`} />
         <Cifra
-          titulo="Cierre"
-          valor={pct(ll.pct_cierre)}
-          sub={`${ll.personas_cerradas} de ${ll.personas_presentadas} que se presentaron ya han pagado`}
-        />
-        <Cifra
-          titulo="Ventas"
-          valor={String(v.n)}
-          sub={
+          rotulo="Ventas"
+          valor={v.n}
+          nota={
             conDinero
-              ? `${euros(v.vendido_cents ?? v.cobrado_cents ?? 0)} vendidos · ${euros(v.cobrado_cents || 0)} cobrados${
-                  v.ticket_medio_cents ? ` · ${euros(v.ticket_medio_cents)} de media` : ''
-                }`
+              ? `${euros(v.vendido_cents ?? v.cobrado_cents ?? 0)} vendidos · ${euros(v.cobrado_cents || 0)} cobrados`
               : `en estos ${datos.dias} días`
           }
         />
-      </div>
+      </Tira>
       {ll.sin_apuntar ? (
-        <p className="text-[13px] text-[#8A6A2A]">
+        <p className="text-[13px] text-[#9A6B12]">
           Hay {ll.sin_apuntar} llamada{ll.sin_apuntar === 1 ? '' : 's'} pasada{ll.sin_apuntar === 1 ? '' : 's'} sin «¿Qué pasó?»: no cuentan ni
           como presentadas ni como no-show.{' '}
           <Link href="/dash/estadisticas?tab=llamadas" className={ENLACE}>
@@ -221,6 +223,7 @@ export default function KpisPanel() {
           </Link>
         </p>
       ) : null}
+      </div>
 
       {/* ¿Sirve confirmar la llamada? (27/10): el seteo del closer en números. */}
       {ll.confirmacion ? (
@@ -229,25 +232,21 @@ export default function KpisPanel() {
             Cuántos no se presentan entre las llamadas que la persona confirmó antes (Llamadas → Por confirmar) y entre las que no. Cuenta
             desde el {diaCorto(ll.confirmacion.desde)}, cuando se empezó a marcar, y solo las llamadas con «¿Qué pasó?» apuntado.
           </p>
-          <div className="grid grid-cols-2 gap-3 max-w-xl">
-            <Cifra
-              titulo="Confirmadas: no se presentan"
-              valor={pct(ll.confirmacion.si.pct_no_show)}
-              sub={
-                ll.confirmacion.si.con_resultado
-                  ? `${ll.confirmacion.si.no_vino} de ${ll.confirmacion.si.con_resultado}`
-                  : 'Todavía ninguna con resultado'
-              }
-            />
-            <Cifra
-              titulo="Sin confirmar: no se presentan"
-              valor={pct(ll.confirmacion.no.pct_no_show)}
-              sub={
-                ll.confirmacion.no.con_resultado
-                  ? `${ll.confirmacion.no.no_vino} de ${ll.confirmacion.no.con_resultado}`
-                  : 'Todavía ninguna con resultado'
-              }
-            />
+          <div className="max-w-xl">
+            <Tira>
+              <Cifra
+                pequena
+                rotulo="Confirmadas: no se presentan"
+                valor={pct(ll.confirmacion.si.pct_no_show)}
+                nota={ll.confirmacion.si.con_resultado ? `${ll.confirmacion.si.no_vino} de ${ll.confirmacion.si.con_resultado}` : 'todavía ninguna con resultado'}
+              />
+              <Cifra
+                pequena
+                rotulo="Sin confirmar: no se presentan"
+                valor={pct(ll.confirmacion.no.pct_no_show)}
+                nota={ll.confirmacion.no.con_resultado ? `${ll.confirmacion.no.no_vino} de ${ll.confirmacion.no.con_resultado}` : 'todavía ninguna con resultado'}
+              />
+            </Tira>
           </div>
         </Seccion>
       ) : null}
@@ -267,33 +266,29 @@ export default function KpisPanel() {
             </button>
           ))}
         </div>
-        <div className={`${TARJETA} p-3 sm:p-4`}>
+        <div>
           {tabla ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-[13px] tabular-nums">
+              <table className={TABLA}>
                 <thead>
-                  <tr className="text-left text-[#6B7280]">
-                    <th className="font-medium py-1.5 pr-3">Día</th>
-                    <th className="font-medium py-1.5 pr-3">Visitas</th>
-                    <th className="font-medium py-1.5 pr-3">Entradas</th>
-                    <th className="font-medium py-1.5 pr-3">Reservas</th>
-                    <th className="font-medium py-1.5 pr-3">Llamadas</th>
-                    <th className="font-medium py-1.5 pr-3">Se presentan</th>
-                    <th className="font-medium py-1.5 pr-3">No vienen</th>
-                    <th className="font-medium py-1.5">Ventas</th>
+                  <tr>
+                    <th className={TH}>Día</th>
+                    {['Visitas', 'Entradas', 'Reservas', 'Llamadas', 'Se presentan', 'No vienen', 'Ventas'].map((t) => (
+                      <th key={t} className={TH_NUM}>
+                        {t}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {[...datos.serie].reverse().map((d) => (
-                    <tr key={d.dia} className="border-t border-[#F3F4F6] text-gray-900">
-                      <td className="py-1.5 pr-3">{diaCorto(d.dia)}</td>
-                      <td className="py-1.5 pr-3">{d.visitas}</td>
-                      <td className="py-1.5 pr-3">{d.entradas}</td>
-                      <td className="py-1.5 pr-3">{d.reservas}</td>
-                      <td className="py-1.5 pr-3">{d.llamadas}</td>
-                      <td className="py-1.5 pr-3">{d.presentadas}</td>
-                      <td className="py-1.5 pr-3">{d.no_vino}</td>
-                      <td className="py-1.5">{d.ventas}</td>
+                    <tr key={d.dia}>
+                      <td className={`${TD} !py-2`}>{diaCorto(d.dia)}</td>
+                      {[d.visitas, d.entradas, d.reservas, d.llamadas, d.presentadas, d.no_vino, d.ventas].map((n, i) => (
+                        <td key={i} className={`${TD_NUM} !py-2 ${n ? '' : 'text-[#C5CAD6]'}`}>
+                          {n}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
@@ -302,30 +297,30 @@ export default function KpisPanel() {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={filasSerie} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                <CartesianGrid stroke="#F3F4F6" vertical={false} />
+                <CartesianGrid stroke="#F0F1F5" vertical={false} />
                 <XAxis
                   dataKey="dia"
-                  tick={{ fontSize: 11, fill: '#6B7280' }}
+                  tick={{ fontSize: 11, fill: '#8A93A3' }}
                   tickLine={false}
-                  axisLine={{ stroke: '#E5E7EB' }}
+                  axisLine={{ stroke: '#E6E8EE' }}
                   interval="preserveStartEnd"
                   minTickGap={12}
                 />
-                <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} tickLine={false} axisLine={false} allowDecimals={false} width={40} />
+                <YAxis tick={{ fontSize: 11, fill: '#8A93A3' }} tickLine={false} axisLine={false} allowDecimals={false} width={40} />
                 <Tooltip
-                  cursor={{ fill: '#F9FAFB' }}
-                  contentStyle={{ borderRadius: 6, border: '1px solid #E5E7EB', boxShadow: 'none', fontSize: 12 }}
+                  cursor={{ fill: '#F7F8FA' }}
+                  contentStyle={{ borderRadius: 8, border: '1px solid #E6E8EE', boxShadow: 'none', fontSize: 12 }}
                   formatter={(v: any) => [v, nombreSerie]}
                   labelFormatter={(l: any) => `Día ${l}`}
                 />
-                <Bar isAnimationActive={false} dataKey="valor" fill="#025dc7" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                <Bar isAnimationActive={false} dataKey="valor" fill="#1D0084" radius={[3, 3, 0, 0]} maxBarSize={20} />
               </BarChart>
             </ResponsiveContainer>
           )}
         </div>
       </Seccion>
 
-      <div className="grid lg:grid-cols-2 gap-6 items-start">
+      <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-start">
         <Seccion titulo="Embudo de la web">
           <div className="flex flex-wrap gap-1.5">
             {(
@@ -357,9 +352,7 @@ export default function KpisPanel() {
           {web[0]?.n ? (
             <Escalones pasos={pasosWeb(web)} />
           ) : (
-            <div className={`${TARJETA} px-4 py-6`}>
-              <p className="text-[13.5px] text-gray-700">Todavía no hay visitas en este embudo para estas fechas.</p>
-            </div>
+            <p className="border-t border-[#E6E8EE] py-5 text-[13.5px] text-[#8A93A3]">Todavía no hay visitas en este embudo para estas fechas.</p>
           )}
           <p className={META}>
             Se cuentan desde el {diaCorto(datos.visitas_desde)}, sin nombres ni correos: una visita es una pestaña del navegador. El vídeo
@@ -386,29 +379,28 @@ export default function KpisPanel() {
       {/* Cada closer con sus llamadas (28/10, al entrar la segunda closer). */}
       {datos.por_closer?.length ? (
         <Seccion titulo="Por closer">
-          <div className={`${TARJETA} overflow-x-auto`}>
-            <table className="w-full text-[13.5px]">
+          <div className="overflow-x-auto">
+            <table className={TABLA}>
               <thead>
-                <tr className="text-left text-[12px] text-gray-500">
-                  <th className="px-4 py-2.5 font-medium">Closer</th>
-                  <th className="px-3 py-2.5 font-medium text-right">Agendadas</th>
-                  <th className="px-3 py-2.5 font-medium text-right">Se presentaron</th>
-                  <th className="px-3 py-2.5 font-medium text-right">No vinieron</th>
-                  <th className="px-3 py-2.5 font-medium text-right">No-show</th>
-                  <th className="px-3 py-2.5 font-medium text-right">Pagaron</th>
-                  <th className="px-4 py-2.5 font-medium text-right">Cierre</th>
+                <tr>
+                  <th className={TH}>Closer</th>
+                  {['Agendadas', 'Se presentaron', 'No vinieron', 'No-show', 'Pagaron', 'Cierre'].map((t) => (
+                    <th key={t} className={TH_NUM}>
+                      {t}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F3F4F6]">
+              <tbody>
                 {datos.por_closer.map((g) => (
                   <tr key={g.closer}>
-                    <td className={`px-4 py-2.5 ${g.closer === 'Sin asignar' ? 'text-gray-500' : 'font-medium text-gray-900'}`}>{g.closer}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{g.agendadas}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{g.presentadas}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{g.no_vino}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{pct(g.pct_no_show)}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{g.cerradas}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-gray-900">{pct(g.pct_cierre)}</td>
+                    <td className={`${TD} ${g.closer === 'Sin asignar' ? 'text-[#8A93A3]' : ''}`}>{g.closer}</td>
+                    <td className={TD_NUM}>{g.agendadas}</td>
+                    <td className={TD_NUM}>{g.presentadas}</td>
+                    <td className={TD_NUM}>{g.no_vino}</td>
+                    <td className={TD_NUM}>{pct(g.pct_no_show)}</td>
+                    <td className={TD_NUM}>{g.cerradas}</td>
+                    <td className={`${TD_NUM} font-semibold`}>{pct(g.pct_cierre)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -421,28 +413,18 @@ export default function KpisPanel() {
         </Seccion>
       ) : null}
 
-      <div className="grid lg:grid-cols-2 gap-6 items-start">
+      <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-start">
         <Seccion titulo="Llamadas con fecha en estos días">
-          <div className={`${TARJETA} divide-y divide-[#F3F4F6] text-[13.5px]`}>
-            {(
-              [
-                ['Agendadas', ll.agendadas, 'sin contar las canceladas'],
-                ['Se presentaron', ll.presentadas, ll.pagadas_sin_apuntar ? `${ll.pagadas_sin_apuntar} sin «¿Qué pasó?» pero ya pagaron` : ''],
-                ['No vinieron', ll.no_vino, ''],
-                ['Sin «¿Qué pasó?» apuntado', ll.sin_apuntar, ''],
-                ['Todavía por hacer', ll.futuras, ''],
-                ['Canceladas o cambiadas de hora', ll.canceladas, ''],
-              ] as const
-            ).map(([texto, n, nota]) => (
-              <div key={texto} className="px-4 py-2.5 flex items-baseline justify-between gap-3">
-                <span className="text-gray-900">
-                  {texto}
-                  {nota ? <span className={`${META} block`}>{nota}</span> : null}
-                </span>
-                <span className="font-semibold text-gray-900 tabular-nums">{n}</span>
-              </div>
-            ))}
-          </div>
+          <Lista
+            filas={[
+              ['Agendadas', ll.agendadas, 'sin contar las canceladas'],
+              ['Se presentaron', ll.presentadas, ll.pagadas_sin_apuntar ? `${ll.pagadas_sin_apuntar} sin «¿Qué pasó?» pero ya pagaron` : ''],
+              ['No vinieron', ll.no_vino, ''],
+              ['Sin «¿Qué pasó?» apuntado', ll.sin_apuntar, ''],
+              ['Todavía por hacer', ll.futuras, ''],
+              ['Canceladas o cambiadas de hora', ll.canceladas, ''],
+            ]}
+          />
           <p className={META}>
             Resultados: {ll.resultados['pagado'] || 0} pagó · {ll.resultados['compra'] || 0} va a pagar · {ll.resultados['piensa'] || 0} lo piensa
             · {ll.resultados['no-encaja'] || 0} no encaja · {ll.resultados['no-vino'] || 0} no vino
@@ -452,26 +434,19 @@ export default function KpisPanel() {
 
         {conDinero ? (
         <Seccion titulo="Ventas de estos días">
-          <div className={`${TARJETA} divide-y divide-[#F3F4F6] text-[13.5px]`}>
-            {(
-              [
-                ['Ventas', String(v.n)],
-                ['Vendido', euros(v.vendido_cents ?? v.cobrado_cents ?? 0)],
-                ['Cobrado', euros(v.cobrado_cents || 0)],
-                ['Por cobrar', (v.por_cobrar_cents ?? 0) > 0 ? euros(v.por_cobrar_cents ?? 0) : '—'],
-                ['Ticket medio (sobre lo vendido)', v.ticket_medio_cents ? euros(v.ticket_medio_cents) : '—'],
-                ['Después de una llamada', String(v.con_llamada ?? 0)],
-                ['Pago único o Klarna', String(v.tipos?.unico ?? 0)],
-                ['A plazos', String(v.tipos?.plazos ?? 0)],
-                ['Otro importe o señal completada', String(v.tipos?.otro ?? 0)],
-              ] as const
-            ).map(([texto, valor]) => (
-              <div key={texto} className="px-4 py-2.5 flex items-baseline justify-between gap-3">
-                <span className="text-gray-900">{texto}</span>
-                <span className="font-semibold text-gray-900 tabular-nums">{valor}</span>
-              </div>
-            ))}
-          </div>
+          <Lista
+            filas={[
+              ['Ventas', String(v.n)],
+              ['Vendido', euros(v.vendido_cents ?? v.cobrado_cents ?? 0)],
+              ['Cobrado', euros(v.cobrado_cents || 0)],
+              ['Por cobrar', (v.por_cobrar_cents ?? 0) > 0 ? euros(v.por_cobrar_cents ?? 0) : '—'],
+              ['Ticket medio (sobre lo vendido)', v.ticket_medio_cents ? euros(v.ticket_medio_cents) : '—'],
+              ['Después de una llamada', String(v.con_llamada ?? 0)],
+              ['Pago único o Klarna', String(v.tipos?.unico ?? 0)],
+              ['A plazos', String(v.tipos?.plazos ?? 0)],
+              ['Otro importe o señal completada', String(v.tipos?.otro ?? 0)],
+            ]}
+          />
           <p className={META}>
             «Vendido» es el total de cada venta: una venta a plazos cuenta entera el día del primer pago. «Cobrado» es lo que ha
             entrado hasta hoy. Quien está fuera de los números (pruebas) no cuenta en nada de esta página.{' '}

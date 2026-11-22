@@ -1016,6 +1016,21 @@ async def _solo_admin(request: Request, org_id: int, current_user, db_session: A
         raise HTTPException(status_code=403, detail="Solo administradores")
 
 
+@router.get("/org/{org_id}/inicio", summary="El inicio del panel: cifras del periodo contra el anterior, lo de hoy, el embudo y las últimas ventas (administradores).")
+async def api_inicio(
+    request: Request,
+    org_id: int,
+    periodo: str = "semana",
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    # Lleva dinero: solo administradores. El closer tiene su inicio de siempre.
+    await _solo_admin(request, org_id, current_user, db_session)
+    from src.services.panel.inicio import inicio
+
+    return await inicio(org_id, periodo, db_session)
+
+
 class VerComo(BaseModel):
     user_id: int
 

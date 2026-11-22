@@ -27,6 +27,7 @@ import CorreosPanel from '../Panel/CorreosPanel'
 import PlazosPanel from '../Panel/PlazosPanel'
 import TandasPanel from '../Panel/TandasPanel'
 import CabeceraPagina from '../Panel/Cabecera'
+import { BOTON_PRINCIPAL, BOTON_TEXTO, Cifra as CifraTira, Fila, Seccion, Segmentado, SUB, TABLA, TD, TD_NUM, TH, TH_NUM, Tira } from '../Panel/ui'
 import ClasesProfes from '@components/Pages/Profes/ClasesProfes'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
@@ -91,16 +92,12 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const CARD = 'rounded-xl border border-[#E2E8F4] bg-white p-3.5 sm:p-5'
-// En móvil las etiquetas son de dos palabras ("ACTIVOS 30 DÍAS") y en tres
-// columnas se cortaban: letra más pequeña y sin `tracking` para que quepan.
-const LABEL =
-  'text-[10px] sm:text-[11px] font-semibold text-[#6B7280] uppercase tracking-normal sm:tracking-[0.08em] leading-tight'
-const BIG = 'text-[22px] sm:text-[28px] font-semibold text-[#1D0084] leading-tight mt-1 tabular-nums'
+// Caja con borde: solo para un ajuste o un formulario (objetos de verdad). Las
+// cifras y las tablas ya no van en cajas (22/11/2026, ver Panel/ui.tsx).
+const CARD = 'rounded-[10px] border border-[#E6E8EE] bg-white p-4 sm:p-5'
 const INPUT =
-  'h-9 bg-white rounded-md px-3 text-[13.5px] text-gray-900 placeholder:text-[#9CA3AF] border border-[#E5E7EB] outline-none focus:border-[#025dc7] transition-colors w-full'
-const BTN =
-  'inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-md bg-[#025dc7] hover:bg-[#014fa9] text-white text-[13.5px] font-medium transition-colors disabled:opacity-60'
+  'h-9 bg-white rounded-lg px-3 text-[13.5px] text-[#0B1020] placeholder:text-[#8A93A3] border border-[#E6E8EE] outline-none focus:border-[#0B1020] transition-colors w-full'
+const BTN = `${BOTON_PRINCIPAL} h-9 px-4 text-[13.5px]`
 
 /**
  * Cada sección del panel que vive en esta página: su icono, su título y para
@@ -182,7 +179,7 @@ function SalesTable({ rows }: { rows: SalesRow[] }) {
           lado para ver los ingresos, que es justo la columna que importa. */}
       <div className="sm:hidden space-y-2">
         {rows.map((r) => (
-          <div key={r.key} className="rounded-xl border border-[#E7EEF9] px-3.5 py-3">
+          <div key={r.key} className="border-t border-[#F0F1F5] first:border-[#E6E8EE] py-3">
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-[13.5px] font-bold text-gray-900 capitalize">{r.label}</span>
               <span className="text-[15px] font-semibold text-gray-900 tabular-nums">
@@ -213,46 +210,31 @@ function SalesTable({ rows }: { rows: SalesRow[] }) {
       </div>
 
       <div className="hidden sm:block overflow-x-auto">
-      <table className="w-full text-[13.5px] min-w-[680px]">
+      <table className={`${TABLA} min-w-[680px]`}>
         <thead>
-          <tr className="text-left text-[#9CA3AF]">
-            <th className="font-semibold py-2 pr-3">Periodo</th>
-            <th className="font-semibold py-2 pr-3 text-right">Ventas</th>
-            <th className="font-semibold py-2 pr-3 text-right">Vendido</th>
-            <th className="font-semibold py-2 pr-3 text-right">Cobrado</th>
-            <th className="font-semibold py-2 pr-3 text-right">Por cobrar</th>
-            <th className="font-semibold py-2 pr-3 text-right">Ticket medio</th>
-            <th className="font-semibold py-2">Productos</th>
+          <tr>
+            <th className={TH}>Periodo</th>
+            <th className={TH_NUM}>Ventas</th>
+            <th className={TH_NUM}>Vendido</th>
+            <th className={TH_NUM}>Cobrado</th>
+            <th className={TH_NUM}>Por cobrar</th>
+            <th className={TH_NUM}>Ticket medio</th>
+            <th className={`${TH} pl-6`}>Productos</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#EEF3FB]">
+        <tbody>
           {rows.map((r) => (
             <tr key={r.key}>
-              <td className="py-2.5 pr-3 font-semibold text-gray-900 capitalize">{r.label}</td>
-              <td className="py-2.5 pr-3 text-right tabular-nums">{r.sales}</td>
-              <td className="py-2.5 pr-3 text-right tabular-nums font-semibold text-gray-900">
-                {euros(vendidoDe(r))}
-              </td>
-              <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">
-                {euros(cobradoDe(r))}
-              </td>
-              <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">
-                {porCobrarDe(r) > 0 ? euros(porCobrarDe(r)) : '—'}
-              </td>
-              <td className="py-2.5 pr-3 text-right tabular-nums text-gray-500">
-                {euros(r.avg_ticket_cents)}
-              </td>
-              <td className="py-2.5">
-                <div className="flex flex-wrap gap-1">
-                  {Object.entries(r.by_product).map(([id, p]) => (
-                    <span
-                      key={id}
-                      className="text-[12px] text-[#6B7280]"
-                    >
-                      {productName(id)} · {p.sales}
-                    </span>
-                  ))}
-                </div>
+              <td className={`${TD} capitalize`}>{r.label}</td>
+              <td className={TD_NUM}>{r.sales}</td>
+              <td className={`${TD_NUM} font-semibold`}>{euros(vendidoDe(r))}</td>
+              <td className={TD_NUM}>{euros(cobradoDe(r))}</td>
+              <td className={`${TD_NUM} text-[#4B5565]`}>{porCobrarDe(r) > 0 ? euros(porCobrarDe(r)) : '—'}</td>
+              <td className={`${TD_NUM} text-[#4B5565]`}>{euros(r.avg_ticket_cents)}</td>
+              <td className={`${TD} pl-6 text-[12.5px] text-[#8A93A3]`}>
+                {Object.entries(r.by_product)
+                  .map(([id, p]) => `${productName(id)} · ${p.sales}`)
+                  .join('  ·  ')}
               </td>
             </tr>
           ))}
@@ -371,7 +353,7 @@ export default function EstadisticasPage() {
     // Mismo marco que el resto del panel (Avisos, Cursos): sin esto el
     // contenido se pegaba a los bordes de la pantalla en el móvil. El hueco
     // de abajo para la barra del navegador ya lo pone el layout del panel.
-    <div className="h-full w-full bg-[#F4F7FD] px-4 sm:px-9 py-6 sm:py-9 pb-10 space-y-5 sm:space-y-6">
+    <div className="h-full w-full bg-white px-4 sm:px-9 py-6 sm:py-9 pb-10 space-y-5 sm:space-y-6">
       {/* El título es el de la sección que se ha abierto en la barra, con una
           línea que dice para qué sirve (04/11/2026). Antes todo se llamaba
           "Estadísticas" con pestañas debajo que repetían la barra, y el closer
@@ -390,7 +372,7 @@ export default function EstadisticasPage() {
           <button
             onClick={refresh}
             aria-label="Actualizar"
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-[#025dc7] hover:bg-[#E9EFFB] transition-colors"
+            className={BOTON_TEXTO}
           >
             <RefreshCw size={15} className={reloading ? 'animate-spin' : ''} />
             <span className="hidden sm:inline">Actualizar</span>
@@ -473,189 +455,125 @@ export default function EstadisticasPage() {
           <Loader2 className="animate-spin text-gray-400" size={28} />
         </div>
       ) : !stats ? (
-        <div className={CARD}>
-          <p className="text-[14px] text-gray-600">
-            No se han podido cargar los números. Prueba a actualizar; si sigue igual, es que el
-            servidor no está respondiendo.
-          </p>
-        </div>
+        <p className="text-[14px] text-[#4B5565]">
+          No se han podido cargar los números. Prueba a actualizar; si sigue igual, es que el servidor no está respondiendo.
+        </p>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-10">
           {/* ── La escuela de un vistazo ─────────────────────────── */}
-          {/* Antes aquí iba la lista entera de "Matrículas nuevas", que repetía
-              Contactos → Matrículas hechas (donde además se atienden, se
-              anotan y se programan). Ahora solo el número y el enlace. */}
           <Resumen stats={stats} contactos={contactosResumen} />
 
           {/* ── Dinero ───────────────────────────────────────────── */}
-          <section className="space-y-3">
-            <h2 className="text-[15px] font-bold text-gray-900">Dinero</h2>
-            {!sales ? (
-              <div className={CARD}>
-                <Empty>No se han podido calcular las ventas.</Empty>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className={CARD}>
-                    <p className={LABEL}>Vendido</p>
-                    <p className={BIG}>{euros(sales.vendido_cents ?? sales.total_revenue_cents)}</p>
-                    <p className="text-[12px] text-[#6B7280] font-semibold mt-1 tabular-nums">
-                      Cobrado {euros(sales.cobrado_cents ?? sales.total_revenue_cents)}
-                      {(sales.por_cobrar_cents ?? 0) > 0 ? ` · por cobrar ${euros(sales.por_cobrar_cents ?? 0)}` : ''}
-                    </p>
-                  </div>
-                  <div className={CARD}>
-                    <p className={LABEL}>Ventas</p>
-                    <p className={BIG}>{sales.total_sales}</p>
-                    {(sales.a_plazos ?? 0) > 0 && (
-                      <p className="text-[12px] text-[#9CA3AF] font-semibold mt-1 tabular-nums">
-                        {sales.a_plazos} a plazos
-                        {(sales.con_fallo ?? 0) > 0 ? ` · ${sales.con_fallo} con un cobro fallido` : ''}
-                      </p>
-                    )}
-                  </div>
-                  <div className={CARD}>
-                    <p className={LABEL}>Ticket medio</p>
-                    <p className={BIG}>{euros(sales.avg_ticket_cents)}</p>
-                    <p className="text-[12px] text-[#9CA3AF] font-semibold mt-1">sobre lo vendido</p>
-                  </div>
-                  <div className={CARD}>
-                    <p className={LABEL}>Vendido · últimos 30 días</p>
-                    <p className={BIG}>{euros(vendidoDe(sales.last_30_days))}</p>
-                    <p className="text-[12px] text-[#9CA3AF] font-semibold mt-1 tabular-nums">
-                      {sales.last_30_days.sales} {sales.last_30_days.sales === 1 ? 'venta' : 'ventas'} · cobrado{' '}
-                      {euros(cobradoDe(sales.last_30_days))}
-                    </p>
-                  </div>
-                </div>
+          {!sales ? (
+            <Seccion titulo="Dinero" filete>
+              <Empty>No se han podido calcular las ventas.</Empty>
+            </Seccion>
+          ) : (
+            <>
+              <Seccion titulo="Dinero" nota="Desde que abrió la matrícula. Vendido es lo que cada persona se comprometió a pagar; cobrado, lo que ya ha entrado.">
+                <Tira>
+                  <CifraTira
+                    rotulo="Vendido"
+                    valor={euros(sales.vendido_cents ?? sales.total_revenue_cents)}
+                    nota={
+                      <>
+                        cobrado {euros(sales.cobrado_cents ?? sales.total_revenue_cents)}
+                        {(sales.por_cobrar_cents ?? 0) > 0 ? ` · por cobrar ${euros(sales.por_cobrar_cents ?? 0)}` : ''}
+                      </>
+                    }
+                  />
+                  <CifraTira
+                    rotulo="Ventas"
+                    valor={sales.total_sales}
+                    nota={
+                      (sales.a_plazos ?? 0) > 0 ? (
+                        <>
+                          {sales.a_plazos} a plazos
+                          {(sales.con_fallo ?? 0) > 0 ? (
+                            <span className="text-[#C8322B]"> · {sales.con_fallo} con un cobro fallido</span>
+                          ) : null}
+                        </>
+                      ) : (
+                        'todas en un pago'
+                      )
+                    }
+                  />
+                  <CifraTira rotulo="Ticket medio" valor={euros(sales.avg_ticket_cents)} nota="sobre lo vendido" />
+                  <CifraTira
+                    rotulo="Vendido en 30 días"
+                    valor={euros(vendidoDe(sales.last_30_days))}
+                    nota={`${sales.last_30_days.sales} ${sales.last_30_days.sales === 1 ? 'venta' : 'ventas'} · cobrado ${euros(cobradoDe(sales.last_30_days))}`}
+                  />
+                </Tira>
+              </Seccion>
 
-                <div className={CARD}>
-                  <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-                    <h3 className="text-[14px] font-bold text-gray-900">Ventas por periodo</h3>
-                    <div className="flex gap-1.5">
-                      {[
-                        { id: 'month' as const, label: 'Por mes' },
-                        { id: 'quarter' as const, label: 'Por trimestre' },
-                      ].map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() => setPeriod(p.id)}
-                          className={`h-8 px-3 rounded-md text-[13px] font-medium border transition-colors ${
-                            period === p.id ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-[#E5E7EB] text-gray-700 hover:bg-[#F9FAFB]'
-                          }`}
-                        >
-                          {p.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <SalesTable rows={salesRows} />
-                  {sales.undated > 0 && (
-                    <p className="mt-3 text-[12px] text-amber-700">
-                      {sales.undated} {sales.undated === 1 ? 'venta' : 'ventas'} sin fecha
-                      utilizable, fuera de la tabla (son de antes de que se guardara la fecha del
-                      cobro). Sí cuentan en los totales de arriba.
-                    </p>
-                  )}
-                </div>
-
-                {sales.by_product.length > 1 && (
-                  <div className={CARD}>
-                    <h3 className="text-[14px] font-bold text-gray-900 mb-3">Por producto</h3>
-                    <div className="space-y-2">
-                      {sales.by_product.map((p) => (
-                        <div key={p.product} className="flex items-center justify-between gap-3">
-                          <span className="text-[13.5px] font-semibold text-gray-800">
-                            {productName(p.product)}
-                          </span>
-                          <span className="text-[13.5px] tabular-nums text-gray-500">
-                            {p.sales} ·{' '}
-                            <span className="font-semibold text-gray-900">
-                              {euros(vendidoDe(p))}
-                            </span>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              <Seccion
+                titulo="Ventas por periodo"
+                extra={
+                  <Segmentado
+                    opciones={[
+                      { id: 'month', label: 'Por mes' },
+                      { id: 'quarter', label: 'Por trimestre' },
+                    ]}
+                    valor={period}
+                    onChange={setPeriod}
+                  />
+                }
+              >
+                <SalesTable rows={salesRows} />
+                {sales.undated > 0 && (
+                  <p className="text-[12.5px] text-[#9A6B12]">
+                    {sales.undated} {sales.undated === 1 ? 'venta' : 'ventas'} sin fecha utilizable, fuera de la tabla (son de antes de
+                    que se guardara la fecha del cobro). Sí cuentan en los totales de arriba.
+                  </p>
                 )}
+              </Seccion>
 
+              {sales.by_product.length > 1 && (
+                <Seccion titulo="Por producto" junto>
+                  {sales.by_product.map((p) => (
+                    <Fila key={p.product} titulo={productName(p.product)} detalle={`${p.sales} ${p.sales === 1 ? 'venta' : 'ventas'}`} n={euros(vendidoDe(p))} />
+                  ))}
+                </Seccion>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14">
                 {/* Embudo del checkout */}
-                <div className={CARD}>
-                  <h3 className="text-[14px] font-bold text-gray-900 mb-3">Checkout</h3>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
-                    <div>
-                      <p className={LABEL}>Empezaron</p>
-                      <p className="text-[20px] sm:text-[22px] font-semibold text-gray-900 tabular-nums mt-0.5">
-                        {sales.funnel.started}
-                      </p>
-                    </div>
-                    <div>
-                      <p className={LABEL}>Pagaron</p>
-                      <p className="text-[20px] sm:text-[22px] font-semibold text-[#15803D] tabular-nums mt-0.5">
-                        {sales.funnel.paid}
-                      </p>
-                    </div>
-                    <div>
-                      <p className={LABEL}>Conversión</p>
-                      <p className="text-[20px] sm:text-[22px] font-semibold text-gray-900 tabular-nums mt-0.5">
-                        {sales.funnel.conversion_pct}%
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 h-1.5 rounded-full bg-[#F3F4F6] overflow-hidden">
-                    <div
-                      className="h-full bg-gray-900 rounded-full"
-                      style={{ width: `${Math.min(100, sales.funnel.conversion_pct)}%` }}
-                    />
-                  </div>
-                  <p className="mt-2 text-[12px] text-[#9CA3AF]">
-                    {sales.funnel.abandoned} rellenaron el formulario y no llegaron a pagar. Esa es
-                    tu lista de recuperación
+                <Seccion
+                  titulo="Caja de pago"
+                  extra={
+                    (sales.funnel.pending?.length ?? 0) > 0 ? (
+                      <a href="/dash/estadisticas?tab=contactos&vista=matriculas" className="text-[13px] font-medium text-[#1F3FD0] hover:underline">
+                        Verlos en Contactos
+                      </a>
+                    ) : null
+                  }
+                >
+                  <Tira>
+                    <CifraTira pequena rotulo="Empezaron" valor={sales.funnel.started} />
+                    <CifraTira pequena rotulo="Pagaron" valor={sales.funnel.paid} />
+                    <CifraTira pequena rotulo="Conversión" valor={`${sales.funnel.conversion_pct} %`} />
+                  </Tira>
+                  <p className="text-[12.5px] text-[#8A93A3] leading-relaxed">
+                    {sales.funnel.abandoned} rellenaron el formulario y no llegaron a pagar. Esa es tu lista de recuperación
                     {(sales.funnel.pending?.length ?? 0) > 0
                       ? `: ${sales.funnel.pending!.length} ${sales.funnel.pending!.length === 1 ? 'persona' : 'personas'} (un intento repetido cuenta una vez).`
                       : '.'}
                   </p>
-                  {/* La lista de estas personas vive en Contactos (etapa
-                      "Llegaron al pago"). Aquí solo el enlace: un segundo sitio
-                      donde buscarlos es un sitio donde no mirar. */}
-                  {(sales.funnel.pending?.length ?? 0) > 0 && (
-                    <a
-                      href="/dash/estadisticas?tab=contactos&vista=matriculas"
-                      className="mt-2 inline-block text-[12px] text-[#025dc7] font-semibold hover:underline"
-                    >
-                      Los tienes en Contactos →
-                    </a>
-                  )}
-                </div>
+                </Seccion>
 
                 {/* Devoluciones: es dinero, así que se queda aquí. */}
-                <div className={CARD}>
-                  <p className={LABEL}>Devoluciones</p>
-                  <p className={BIG}>{stats.refunds?.available ? stats.refunds.refunds : '—'}</p>
-                  <p className="text-[12px] text-[#6B7280] mt-1">
-                    {stats.refunds?.available
-                      ? `${euros(stats.refunds.refunded_cents)} devueltos · ${stats.refunds.disputes} disputas`
-                      : 'Stripe no ha contestado'}
-                  </p>
-                </div>
-              </>
-            )}
-          </section>
-
-          {/* Lo de los alumnos (quién está activo, quién se descuelga, por
-              dónde va cada uno) vive en Alumnos → Progreso desde el 04/10:
-              aquí solo los números del negocio. */}
-          <a
-            href="/dash/estadisticas?tab=progreso"
-            className={`${CARD} flex items-center justify-between gap-3 hover:bg-[#F9FAFB] transition-colors`}
-          >
-            <span className="text-[13.5px] text-gray-700">
-              Por dónde va cada alumno y quién lleva días sin entrar
-            </span>
-            <span className="text-[13px] font-medium text-[#025dc7] shrink-0">Alumnos → Progreso</span>
-          </a>
+                <Seccion titulo="Devoluciones">
+                  <Tira>
+                    <CifraTira pequena rotulo="Devoluciones" valor={stats.refunds?.available ? stats.refunds.refunds : '—'} />
+                    <CifraTira pequena rotulo="Devuelto" valor={stats.refunds?.available ? euros(stats.refunds.refunded_cents) : '—'} />
+                    <CifraTira pequena rotulo="Disputas" valor={stats.refunds?.available ? stats.refunds.disputes : '—'} />
+                  </Tira>
+                  {!stats.refunds?.available ? <p className="text-[12.5px] text-[#8A93A3]">Stripe no ha contestado.</p> : null}
+                </Seccion>
+              </div>
+            </>
+          )}
 
           {/* ── Datos que escribes tú ────────────────────────────── */}
           <ManualBlocks stats={stats} onSaved={load} />
@@ -685,66 +603,44 @@ function Resumen({ stats, contactos }: { stats: SchoolStats; contactos: Contacto
   const ventas30 = stats.sales?.last_30_days
   const alumnos = stats.students
 
-  const Cifra = ({ label, valor, nota, href }: { label: string; valor: string; nota: string; href?: string }) => {
-    const cuerpo = (
-      <>
-        <p className={LABEL}>{label}</p>
-        <p className={BIG}>{valor}</p>
-        <p className="text-[12px] text-gray-500 mt-0.5">{nota}</p>
-      </>
-    )
-    return href ? (
-      <a href={href} className={`${CARD} block hover:bg-[#F9FAFB] transition-colors`}>
-        {cuerpo}
-      </a>
-    ) : (
-      <div className={CARD}>{cuerpo}</div>
-    )
-  }
-
   return (
-    <section className="space-y-3">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Cifra
-          label="Leads nuevos · 7 días"
-          valor={contactos ? String(leads7) : '—'}
+    <section>
+      <Tira>
+        <CifraTira
+          rotulo="Leads nuevos en 7 días"
+          valor={contactos ? leads7 : '—'}
           nota={contactos ? `${leads30} en 30 días` : 'Cargando…'}
           href="/dash/estadisticas?tab=contactos"
         />
-        <Cifra
-          label="Matrículas · 7 días"
-          valor={contactos ? String(mat7) : '—'}
+        <CifraTira
+          rotulo="Matrículas en 7 días"
+          valor={contactos ? mat7 : '—'}
           nota={contactos ? `${mat30} en 30 días` : 'Cargando…'}
           href="/dash/estadisticas?tab=contactos&vista=matriculas"
         />
-        <Cifra
-          label="Vendido · 30 días"
+        <CifraTira
+          rotulo="Vendido en 30 días"
           valor={ventas30 ? euros(vendidoDe(ventas30)) : '—'}
-          nota={
-            ventas30
-              ? `${ventas30.sales} ${ventas30.sales === 1 ? 'venta' : 'ventas'} · cobrado ${euros(cobradoDe(ventas30))}`
-              : ''
-          }
-          href="/dash/estadisticas?tab=facturas"
+          nota={ventas30 ? `${ventas30.sales} ${ventas30.sales === 1 ? 'venta' : 'ventas'} · cobrado ${euros(cobradoDe(ventas30))}` : ''}
+          href="/dash/estadisticas?tab=clientes"
         />
-        <Cifra
-          label="Alumnos activos · 7 días"
-          valor={alumnos ? String(alumnos.active_7d) : '—'}
-          nota={alumnos ? `de ${alumnos.total} alumnos` : ''}
+        <CifraTira
+          rotulo="Alumnos activos en 7 días"
+          valor={alumnos ? alumnos.active_7d : '—'}
+          sufijo={alumnos ? `de ${alumnos.total}` : undefined}
+          nota="Ver por dónde va cada uno"
           href="/dash/estadisticas?tab=progreso"
         />
-      </div>
+      </Tira>
       {porAtender > 0 ? (
-        <a
-          href="/dash/estadisticas?tab=contactos&vista=matriculas"
-          className="flex items-center justify-between gap-3 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 hover:bg-[#F9FAFB] transition-colors"
-        >
-          <span className="text-[13.5px] text-gray-800">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#DC2626] mr-2 align-middle" />
-            <strong>{porAtender}</strong> {porAtender === 1 ? 'matrícula espera' : 'matrículas esperan'} que las llamen
-          </span>
-          <span className="text-[13px] font-medium text-[#025dc7]">Abrir en Contactos →</span>
-        </a>
+        <div className="mt-1">
+          <Fila
+            tono="rojo"
+            titulo={`${porAtender === 1 ? 'Una matrícula espera' : `${porAtender} matrículas esperan`} que las llamen`}
+            accion="Abrir en Contactos"
+            href="/dash/estadisticas?tab=contactos&vista=matriculas"
+          />
+        </div>
       ) : null}
     </section>
   )
@@ -800,26 +696,11 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
   const attendance = stats.manual?.attendance ?? []
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-[15px] font-bold text-gray-900">Lo que apuntas tú</h2>
-
+    <Seccion titulo="Asistencia a la clase en vivo" nota="Lo que apuntas tú: la de las clases que no se dan en la sala de la escuela." filete>
       {/* Los gastos (captar y entregar) se apuntan ahora en UN solo sitio:
           la sección Gastos. Aquí había dos formularios más y una tabla de
           margen que repetían lo mismo; lo ya apuntado aquí sale en Gastos. */}
-      <p className="text-[12.5px] text-[#5A6480]">
-        Los gastos (profes, publicidad, herramientas) se apuntan en{' '}
-        <a href="/dash/estadisticas?tab=gastos" className="text-[#025dc7] font-semibold hover:underline">
-          Gastos
-        </a>
-        , con el margen y el coste por matrícula.
-      </p>
-
-      <div className={CARD}>
-        <h3 className="text-[14px] font-bold text-gray-900">Asistencia a la clase en vivo</h3>
-        <p className="text-[12.5px] text-[#9CA3AF] mt-0.5 mb-3">
-          La escuela no puede saber quién entra al directo, así que esto se apunta a mano después
-          de cada clase.
-        </p>
+      <div className="pt-2">
         <div className="grid grid-cols-1 sm:grid-cols-[150px_130px_1fr_auto] gap-2 items-start">
           <input type="date" value={attDate} onChange={(e) => setAttDate(e.target.value)} className={INPUT} />
           <input
@@ -845,21 +726,21 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
         </div>
 
         {attendance.length > 0 && (
-          <div className="mt-4 space-y-1.5">
+          <div className="mt-4">
             {attendance.map((a) => (
               <div
                 key={a.id}
-                className="flex items-center justify-between gap-3 border-b border-[#EEF3FB] pb-1.5"
+                className="flex items-center justify-between gap-3 border-t border-[#F0F1F5] first:border-[#E6E8EE] py-2.5"
               >
-                <span className="text-[13.5px] text-gray-800">
-                  <span className="font-semibold">{a.period}</span>
-                  {a.note && <span className="text-gray-500"> · {a.note}</span>}
+                <span className="text-[14px] text-[#0B1020]">
+                  {a.period}
+                  {a.note && <span className="text-[#8A93A3]"> · {a.note}</span>}
                 </span>
                 <span className="flex items-center gap-3">
-                  <span className="text-[13.5px] font-bold tabular-nums text-[#025dc7]">
+                  <span className="text-[14px] font-semibold tabular-nums text-[#0B1020]">
                     {a.value}
                     {stats.students?.total ? (
-                      <span className="text-[12px] text-[#9CA3AF] font-semibold">
+                      <span className="text-[12.5px] text-[#8A93A3] font-normal">
                         {' '}
                         de {stats.students.total}
                       </span>
@@ -878,7 +759,14 @@ function ManualBlocks({ stats, onSaved }: { stats: SchoolStats; onSaved: () => v
           </div>
         )}
       </div>
-    </section>
+      <p className="text-[12.5px] text-[#8A93A3]">
+        Los gastos (profes, publicidad, herramientas) se apuntan en{' '}
+        <a href="/dash/estadisticas?tab=gastos" className="text-[#1F3FD0] font-medium hover:underline">
+          Gastos
+        </a>
+        , con el margen y el coste por matrícula.
+      </p>
+    </Seccion>
   )
 }
 
@@ -936,14 +824,14 @@ function QueVenLosClosers({
               onClick={() => elegir(a.id)}
               disabled={alcance === null || guardando !== null}
               className={`text-left rounded-lg border px-3 py-2.5 transition-colors disabled:opacity-60 ${
-                activo ? 'border-[#1D0084] bg-[#F0F5FF]' : 'border-[#E2E8F4] hover:bg-[#F7F9FD]'
+                activo ? 'border-[#0B1020] bg-[#F7F8FA]' : 'border-[#E6E8EE] hover:bg-[#F7F8FA]'
               }`}
             >
               <span className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-900">
                 {guardando === a.id ? (
                   <Loader2 size={13} className="animate-spin" />
                 ) : (
-                  <Check size={13} className={activo ? 'text-[#1D0084]' : 'opacity-0'} strokeWidth={3} />
+                  <Check size={13} className={activo ? 'text-[#0B1020]' : 'opacity-0'} strokeWidth={3} />
                 )}
                 {a.titulo}
               </span>

@@ -64,7 +64,7 @@ export default function WebsPage() {
     return () => window.clearInterval(id)
   }, [])
   return (
-    <div className="h-full w-full bg-[#F4F7FD] px-4 sm:px-9 py-6 sm:py-9 pb-24 lg:pb-10 space-y-5 sm:space-y-6">
+    <div className="h-full w-full bg-white px-4 sm:px-9 py-6 sm:py-9 pb-24 lg:pb-10 space-y-5 sm:space-y-6">
       <CabeceraPagina
         icono={<Globe size={20} />}
         titulo="Web"
