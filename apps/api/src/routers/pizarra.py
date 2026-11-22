@@ -293,6 +293,68 @@ async def api_pasar_notas(
     return {**_estado(s, {**material, "pizarra": p}, clases), "pasadas": paso}
 
 
+class SesionIn(BaseModel):
+    fuente: str = ""
+    a: int = 0
+
+
+def _otras_sesiones(s, todas: list) -> list[dict]:
+    """Las demás sesiones de la misma clase, la más cercana a esta primero."""
+    from datetime import date
+
+    def dia(texto: str):
+        try:
+            return date.fromisoformat((texto or "")[:10])
+        except ValueError:
+            return None
+
+    aqui = dia(s.fecha)
+    otras = [x for x in todas if x.id != s.id]
+
+    def lejos(x) -> int:
+        d = dia(x.fecha)
+        return abs((d - aqui).days) if d and aqui else 10**6
+
+    otras.sort(key=lambda x: (lejos(x), x.fecha or ""))
+    return [{"id": x.id, "tema": x.tema or "", "fecha": x.fecha or ""} for x in otras]
+
+
+@router.get("/semana/{semana_id}/sesiones", summary="Las demás sesiones de la misma clase, para pasarles una presentación (equipo).")
+async def api_sesiones(
+    semana_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    s, _admin = await _semana_equipo(semana_id, current_user, db_session)
+    todas = await T.semanas_de(s.org_id, s.course_uuid, db_session)
+    return {"sesiones": _otras_sesiones(s, todas)}
+
+
+@router.post("/semana/{semana_id}/pasar-a-sesion", summary="Pasa una presentación del equipo, con sus notas, a otra sesión de la misma clase (equipo).")
+async def api_pasar_a_sesion(
+    semana_id: int,
+    data: SesionIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    s, _admin = await _semana_equipo(semana_id, current_user, db_session)
+    if int(data.a or 0) == s.id:
+        raise HTTPException(status_code=400, detail="Es la misma sesión")
+    d, _admin_d = await _semana_equipo(int(data.a or 0), current_user, db_session)
+    if d.org_id != s.org_id or T.uuid_curso(d.course_uuid) != T.uuid_curso(s.course_uuid):
+        raise HTTPException(status_code=400, detail="Solo se puede pasar a otra sesión de la misma clase")
+    origen, destino = MP.leer(s.material_profe), MP.leer(d.material_profe)
+    try:
+        origen, destino, paso = PZ.a_otra_sesion(s.org_id, origen, destino, (data.fuente or "").strip(), MP._ahora(), MP.MAX_ARCHIVOS)
+    except T.TareaError as exc:
+        raise _error(exc)
+    # Primero el destino: si algo fallara a medias, la presentación está en
+    # las dos sesiones, nunca en ninguna.
+    await MP.guardar(d, destino, db_session)
+    await MP.guardar(s, origen, db_session)
+    return {**_estado(s, origen, await _clases_de(s, db_session)), "pasada": paso, "a": {"id": d.id, "tema": d.tema or "", "fecha": d.fecha or ""}}
+
+
 @router.delete("/semana/{semana_id}/notas", summary="Borra las notas de una presentación (equipo).")
 async def api_borrar_notas(
     semana_id: int,

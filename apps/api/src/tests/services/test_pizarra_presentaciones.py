@@ -270,3 +270,86 @@ def test_la_presentacion_de_los_alumnos_tiene_nombre_para_el_equipo():
     # Con el nombre vacío vuelve al de serie.
     p = PZ.con_nombre(p, "clase:activity_1", "")
     assert PZ.leer(_material(**p))["nombres"] == {}
+
+
+# ── Pasar una presentación a otra sesión de la misma clase (22/11/2026) ─────
+
+
+def _disco(tmp_path, monkeypatch):
+    monkeypatch.setattr(PZ, "CONTENT_DIR", tmp_path)
+    monkeypatch.setattr(T, "CONTENT_DIR", tmp_path)
+
+
+def test_pasar_una_presentacion_con_sus_notas_a_otra_sesion(tmp_path, monkeypatch):
+    # «Se subió en la sesión que no era»: el archivo y lo escrito pasan a la buena.
+    _disco(tmp_path, monkeypatch)
+    origen = MP.leer(json.dumps(_material()))
+    p = PZ.guardar_anotaciones(1, PZ.leer(origen), "profe:mala", {"paginas": [{"origen": 1, "trazos": [TRAZO]}]}, "Luna", "2026-11-20T18:00:00+00:00")
+    origen = {**origen, "pizarra": PZ.con_fuente(p, "profe:mala")}
+    destino = MP.leer("")
+    o, d, paso = PZ.a_otra_sesion(1, origen, destino, "profe:mala", "2026-11-22T10:00:00+00:00")
+    assert paso == {"archivo": True, "notas": True, "en_pizarra": True}
+    # En la de origen ya no está, ni el archivo ni sus notas, y deja de ser la de la pizarra.
+    assert [a["id"] for a in o["archivos"]] == ["buena", "ppt"]
+    assert PZ.leer(o)["notas"] == {} and PZ.leer(o)["fuente"] == ""
+    assert PZ.lista(o, [])["fuente"] == "profe:buena"
+    # En la de destino está, con lo escrito, y es la que abre la pizarra.
+    lista = PZ.lista(d, [])
+    assert [x["id"] for x in lista["presentaciones"]] == ["profe:mala"] and lista["fuente"] == "profe:mala"
+    assert lista["presentaciones"][0]["notas"]["por"] == "Luna" and lista["presentaciones"][0]["notas"]["paginas"] == 1
+    assert PZ.leer_anotaciones(PZ.leer(d), "profe:mala")["paginas"][0]["trazos"] == [TRAZO]
+    # No se pierde nada por el camino: el archivo sigue siendo el mismo.
+    assert d["archivos"][0]["ruta"] == "privado/tareas/1/profe/m.pdf"
+
+
+def test_al_pasar_a_otra_sesion_no_se_cambia_la_que_ya_abre_alli_la_pizarra(tmp_path, monkeypatch):
+    _disco(tmp_path, monkeypatch)
+    origen = MP.leer(json.dumps(_material()))
+    destino = MP.leer(json.dumps({"archivos": [{"id": "suya", "tipo": "archivo", "nombre": "Otra.pdf", "ruta": "privado/tareas/1/profe/o.pdf"}], "pizarra": {"fuente": "profe:suya"}}))
+    o, d, paso = PZ.a_otra_sesion(1, origen, destino, "profe:mala", "2026-11-22T10:00:00+00:00")
+    assert paso == {"archivo": True, "notas": False, "en_pizarra": False}
+    assert PZ.lista(d, [])["fuente"] == "profe:suya"
+    assert [a["id"] for a in d["archivos"]] == ["suya", "mala"]
+
+
+def test_si_el_mismo_archivo_ya_esta_en_la_otra_sesion_las_notas_se_juntan(tmp_path, monkeypatch):
+    # «Guardar también en el otro grupo» copia el archivo con el mismo id.
+    _disco(tmp_path, monkeypatch)
+    origen = MP.leer(json.dumps(_material()))
+    origen = {**origen, "pizarra": PZ.guardar_anotaciones(1, PZ.leer(origen), "profe:buena", {"paginas": [{"origen": 1, "trazos": [TRAZO]}]}, "Luna", "2026-11-20T18:00:00+00:00")}
+    destino = MP.leer(json.dumps({"archivos": [dict(origen["archivos"][0])]}))
+    destino = {**destino, "pizarra": PZ.guardar_anotaciones(1, PZ.leer(destino), "profe:buena", {"paginas": [{"origen": 1, "trazos": [OTRO]}, {"origen": 2, "trazos": [OTRO]}]}, "Paul", "2026-11-21T18:00:00+00:00")}
+    o, d, paso = PZ.a_otra_sesion(1, origen, destino, "profe:buena", "2026-11-22T10:00:00+00:00")
+    assert paso["archivo"] and paso["notas"]
+    assert [a["id"] for a in d["archivos"]] == ["buena"]  # no se duplica
+    doc = PZ.leer_anotaciones(PZ.leer(d), "profe:buena")
+    assert doc["paginas"][0]["trazos"] == [OTRO, TRAZO] and doc["paginas"][1]["trazos"] == [OTRO]
+    assert PZ.leer(o)["notas"] == {}
+
+
+def test_las_notas_sueltas_tambien_se_pasan_a_otra_sesion(tmp_path, monkeypatch):
+    _disco(tmp_path, monkeypatch)
+    origen = MP.leer(json.dumps(_material()))
+    p = PZ.guardar_anotaciones(1, PZ.leer(origen), "profe:mala", {"paginas": [{"origen": 1, "trazos": [TRAZO]}]}, "Luna", "2026-11-20T18:00:00+00:00")
+    origen = {**origen, "archivos": [a for a in origen["archivos"] if a["id"] != "mala"], "pizarra": p}
+    assert [x["id"] for x in PZ.lista(origen, [])["sueltas"]] == ["profe:mala"]
+    o, d, paso = PZ.a_otra_sesion(1, origen, MP.leer(""), "profe:mala", "2026-11-22T10:00:00+00:00")
+    assert paso == {"archivo": False, "notas": True, "en_pizarra": False}
+    assert PZ.lista(o, [])["sueltas"] == [] and [x["id"] for x in PZ.lista(d, [])["sueltas"]] == ["profe:mala"]
+
+
+def test_la_de_los_alumnos_no_se_pasa_a_otra_sesion():
+    with pytest.raises(T.TareaError):
+        PZ.a_otra_sesion(1, MP.leer(json.dumps(_material())), MP.leer(""), "clase:activity_1", "2026-11-22T10:00:00+00:00")
+    with pytest.raises(T.TareaError):
+        PZ.a_otra_sesion(1, MP.leer(json.dumps(_material())), MP.leer(""), "profe:no-existe", "2026-11-22T10:00:00+00:00")
+
+
+def test_las_otras_sesiones_salen_de_la_mas_cercana_a_la_mas_lejana():
+    from types import SimpleNamespace as S
+
+    from src.routers.pizarra import _otras_sesiones
+
+    esta = S(id=1, tema="A", fecha="2026-11-20")
+    todas = [esta, S(id=2, tema="B", fecha="2026-11-27"), S(id=3, tema="C", fecha="2026-11-13"), S(id=4, tema="D", fecha="2026-12-25"), S(id=5, tema="", fecha="")]
+    assert [x["id"] for x in _otras_sesiones(esta, todas)] == [3, 2, 4, 5]

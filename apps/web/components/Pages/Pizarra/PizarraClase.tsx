@@ -177,10 +177,11 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   const ultimaGuardada = useRef(0)
   const escribibleRef = useRef<boolean | null>(null)
   // Lo pedido en la dirección: /pizarra/<semana>?fuente=<id>&descargar=1 (fuera de la sala).
-  const pedido = useRef<{ fuente: string; descargar: boolean } | null>(null)
+  // Con `&guardar=1` (desde la semana, «Guardar para los alumnos»): pregunta ya si se guarda.
+  const pedido = useRef<{ fuente: string; descargar: boolean; guardar: boolean } | null>(null)
   if (pedido.current === null) {
     const q = typeof window !== 'undefined' && !enSala ? new URLSearchParams(window.location.search) : null
-    pedido.current = { fuente: q?.get('fuente') || '', descargar: q?.get('descargar') === '1' }
+    pedido.current = { fuente: q?.get('fuente') || '', descargar: q?.get('descargar') === '1', guardar: q?.get('guardar') === '1' }
   }
   const [pdfListo, setPdfListo] = useState(0)
   const [tams, setTams] = useState<Tam[]>([])
@@ -1448,6 +1449,21 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       descargaHecha.current = true
       descargarRef.current()
     }, 500)
+    return () => clearTimeout(t)
+  }, [pdfListo, falloPdf])
+
+  // /pizarra/<semana>?fuente=<id>&guardar=1: en cuanto se abre, pregunta si se
+  // guarda para los alumnos (la semana de la clase avisa de las notas sin guardar).
+  const publicarRef = useRef(publicar)
+  publicarRef.current = publicar
+  const guardadoPedido = useRef(false)
+  useEffect(() => {
+    if (!pdfListo || falloPdf || !pedido.current?.guardar || guardadoPedido.current) return
+    const t = setTimeout(() => {
+      if (guardadoPedido.current) return
+      guardadoPedido.current = true
+      publicarRef.current()
+    }, 600)
     return () => clearTimeout(t)
   }, [pdfListo, falloPdf])
 

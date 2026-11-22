@@ -134,6 +134,28 @@ export const ponerEnPizarra = (semanaId: number, fuente: string, token: string) 
 export const pasarNotas = (semanaId: number, de: string, a: string, token: string) =>
   pedir<ListaPresentaciones & { pasadas: boolean }>(`${base()}/semana/${semanaId}/notas/pasar`, token, 'POST', { de, a })
 
+/** Otra sesión de la misma clase (para pasarle una presentación). */
+export interface OtraSesion {
+  id: number
+  tema: string
+  fecha: string
+}
+
+/** Las demás sesiones de la misma clase, la más cercana primero. */
+export const getSesiones = (semanaId: number, token: string) => pedir<{ sesiones: OtraSesion[] }>(`${base()}/semana/${semanaId}/sesiones`, token)
+
+/**
+ * Pasa una presentación del equipo, con lo escrito encima, a otra sesión de la
+ * misma clase («se subió en la sesión que no era»). Devuelve cómo queda ESTA.
+ */
+export const pasarASesion = (semanaId: number, fuente: string, a: number, token: string) =>
+  pedir<ListaPresentaciones & { pasada: { archivo: boolean; notas: boolean; en_pizarra: boolean }; a: OtraSesion }>(
+    `${base()}/semana/${semanaId}/pasar-a-sesion`,
+    token,
+    'POST',
+    { fuente, a }
+  )
+
 export const borrarNotas = (semanaId: number, fuente: string, token: string) =>
   pedir<ListaPresentaciones>(`${base()}/semana/${semanaId}/notas?fuente=${encodeURIComponent(fuente)}`, token, 'DELETE')
 

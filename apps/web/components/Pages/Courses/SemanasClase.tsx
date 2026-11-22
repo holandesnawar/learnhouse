@@ -59,6 +59,7 @@ import { tituloDeClase } from '@/lib/nawar/salaProfes'
 import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
 import FilaGrabacionAlumno from '@components/Pages/Grabaciones/FilaGrabacionAlumno'
 import { Cargando, Esqueleto } from '@components/Objects/Esqueleto'
+import PresentacionesSemana from '@components/Pages/Presentaciones/PresentacionesSemana'
 
 export const claveSemanas = (courseUuid: string) => ['tareas', 'semanas', String(courseUuid || '').replace(/^course_/, '')]
 
@@ -178,12 +179,15 @@ function ContenidoSemana({
   rutaClase,
   orgslug,
   admin,
+  onCambio,
 }: {
   semana: Semana
   hoy: string
   rutaClase: (c: ClaseSemana) => string
   orgslug: string
   admin: boolean
+  /** Al equipo: algo cambió en las presentaciones de la semana. */
+  onCambio?: () => void
 }) {
   const clases = semana.clases || []
   const presentaciones = clases.filter((c) => c.tipo === 'presentacion')
@@ -217,7 +221,13 @@ function ContenidoSemana({
       detalle={t(`${admin ? 'La que ven los alumnos de este grupo' : 'La de tu clase'}, con lo que se escribió en ella${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`)}
     />
   ) : null
-  const filasPresentacion = notas ? (admin ? [...filasAntes, filaClase] : [filaClase]) : filasAntes
+  // El equipo ve la MISMA lista que en la pizarra y en la ficha de la clase
+  // (22/11/2026: «no hay correlación entre la semana y la pizarra»).
+  const filasPresentacion = admin
+    ? [<PresentacionesSemana key="presentaciones" semana={semana} hoy={hoy} ruta={(x) => getUriWithOrg(orgslug, x)} onCambio={() => onCambio?.()} palabra={t} />]
+    : notas
+      ? [filaClase]
+      : filasAntes
 
   if (cerrada && !admin) {
     const seAbre = queSeAbre(semana)
@@ -648,7 +658,7 @@ export default function SemanasClase({
         <div className="border-t border-[#EEF1F7]">
           {equipo ? (
             <>
-              <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
+              <ContenidoSemana semana={semana} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} onCambio={recargar} />
               <CabeceraAdmin semana={semana} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(semana)} onCambio={recargar} esAdmin={!!admin} />
             </>
           ) : (
@@ -704,7 +714,7 @@ export default function SemanasClase({
         </button>
         {abierta ? (
           <div className="mx-4 mb-3 rounded-xl border border-[#EEF2F9] overflow-hidden">
-            <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} />
+            <ContenidoSemana semana={s} hoy={hoy} rutaClase={rutaClase} orgslug={orgslug} admin={equipo} onCambio={recargar} />
             {otroGrupo(s, true)}
             {equipo ? <CabeceraAdmin semana={s} courseUuid={courseUuid} orgslug={orgslug} onEditar={() => setEditando(s)} onCambio={recargar} esAdmin={!!admin} /> : null}
           </div>
