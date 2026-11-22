@@ -65,6 +65,9 @@ export default function ClientesPanel() {
   const [datos, setDatos] = useState<{
     clientes: Cliente[]
     total_cents: number
+    vendido_cents?: number
+    cobrado_cents?: number
+    por_cobrar_cents?: number
     n: number
     comisiones?: ComisionesCloser[]
     porcentajes_comision?: number[]
@@ -170,6 +173,9 @@ export default function ClientesPanel() {
   }
 
   const sinEntrar = datos.clientes.filter((c) => actividad(c).tono !== 'verde').length
+  const cobradoTotal = datos.cobrado_cents ?? datos.total_cents
+  const vendidoTotal = datos.vendido_cents ?? datos.total_cents
+  const porCobrarTotal = datos.por_cobrar_cents ?? Math.max(0, vendidoTotal - cobradoTotal)
   const comisiones = datos.comisiones ?? []
   const nPendientes = datos.clientes.filter((c) => c.comision && !c.comision.pagada && c.comision.con_llamada).length
   const nPagadas = datos.clientes.filter((c) => c.comision?.pagada).length
@@ -178,10 +184,17 @@ export default function ClientesPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-        <Cifra label="Clientes" valor={String(datos.n)} />
-        <Cifra label="Cobrado" valor={euros(datos.total_cents)} />
-        <Cifra label="Ticket medio" valor={datos.n ? euros(Math.round(datos.total_cents / datos.n)) : '—'} />
+      {/* Vendido ≠ cobrado (22/11): una venta a plazos vale el total del plan
+          aunque hasta hoy solo haya entrado una parte. */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
+        <Cifra label="Vendido" valor={euros(vendidoTotal)} nota={`${datos.n} ${datos.n === 1 ? 'cliente' : 'clientes'}`} />
+        <Cifra label="Cobrado" valor={euros(cobradoTotal)} nota="Lo que ya ha entrado" />
+        <Cifra
+          label="Por cobrar"
+          valor={porCobrarTotal > 0 ? euros(porCobrarTotal) : '—'}
+          nota={porCobrarTotal > 0 ? 'Plazos que faltan' : 'Todo cobrado'}
+        />
+        <Cifra label="Ticket medio" valor={datos.n ? euros(Math.round(vendidoTotal / datos.n)) : '—'} nota="Sobre lo vendido" />
         <Cifra label="Sin entrar esta semana" valor={String(sinEntrar)} nota="Los que conviene escribir" />
       </div>
 
@@ -267,6 +280,8 @@ export default function ClientesPanel() {
             const a = actividad(c)
             const com = c.comision
             const base = com?.base_cents || c.total_cents
+            const vendido = c.vendido_cents ?? c.total_cents
+            const porCobrar = c.por_cobrar_cents ?? Math.max(0, vendido - c.total_cents)
             const pctPagada = com?.pagada ? pctQueCuadra(base, com.pagada.importe_cents, pcts) : null
             const enCaja = editando === c.email ? leerEuros(importe) : null
             const pctEnCaja = enCaja !== null ? pctQueCuadra(base, enCaja, pcts) : null
@@ -303,7 +318,9 @@ export default function ClientesPanel() {
                         }`}
                         title={c.plazos.fallo || undefined}
                       >
-                        Plazos {c.plazos.cuotas_pagadas} de {c.plazos.cuotas}
+                        {porCobrar > 0
+                          ? `Cobrado ${euros(c.total_cents)} de ${euros(vendido)} · pago ${c.plazos.cuotas_pagadas} de ${c.plazos.cuotas}`
+                          : `Plazos ${c.plazos.cuotas_pagadas} de ${c.plazos.cuotas}`}
                         {c.plazos.estado === 'fallido' ? ' · cobro fallido' : c.plazos.estado === 'cancelado' ? ' · sin completar' : ''}
                       </span>
                     ) : null}
@@ -347,8 +364,10 @@ export default function ClientesPanel() {
                   ) : null}
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-[14px] font-bold tabular-nums text-[#1D0084]">{euros(c.total_cents)}</p>
-                  {c.plazos && c.plazos.pendiente_cents > 0 ? (
+                  <p className="text-[14px] font-bold tabular-nums text-[#1D0084]">{euros(vendido)}</p>
+                  {porCobrar > 0 ? (
+                    <p className="text-[11.5px] text-[#9CA3AF] tabular-nums">cobrado {euros(c.total_cents)}</p>
+                  ) : c.plazos && c.plazos.estado === 'cancelado' && c.plazos.total_cents > c.total_cents ? (
                     <p className="text-[11.5px] text-[#9CA3AF] tabular-nums">de {euros(c.plazos.total_cents)}</p>
                   ) : null}
                   <p className="text-[11.5px] text-[#9CA3AF]">

@@ -35,6 +35,9 @@ import { getAPIUrl } from '@services/config/config'
 import { useOrg } from '@components/Contexts/OrgContext'
 import {
   baseSinUtm,
+  cobradoDe,
+  porCobrarDe,
+  vendidoDe,
   buildUtmUrl,
   deleteManualEntry,
   euros,
@@ -106,7 +109,7 @@ const BTN =
  */
 const ICONO = { size: 20 }
 const SECCIONES: Record<string, { titulo: string; icono: React.ReactNode; que: string }> = {
-  numeros: { titulo: 'Estadísticas', icono: <BarChart3 {...ICONO} />, que: 'Ventas, ingresos, el embudo del pago y la asistencia a la clase en vivo.' },
+  numeros: { titulo: 'Estadísticas', icono: <BarChart3 {...ICONO} />, que: 'Lo vendido y lo cobrado, el embudo del pago y la asistencia a la clase en vivo.' },
   kpis: { titulo: 'KPIs', icono: <Gauge {...ICONO} />, que: 'Cuánta gente entra, ve el vídeo, reserva, se presenta a la llamada y paga.' },
   vision: { titulo: 'Visión', icono: <Telescope {...ICONO} />, que: 'El mapa del negocio, el tablero de trabajo y las cuentas de cada campaña.' },
   anuncios: { titulo: 'Anuncios', icono: <Megaphone {...ICONO} />, que: 'Qué trae cada campaña y cuánto cuesta cada lead y cada venta.' },
@@ -183,11 +186,15 @@ function SalesTable({ rows }: { rows: SalesRow[] }) {
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-[13.5px] font-bold text-gray-900 capitalize">{r.label}</span>
               <span className="text-[15px] font-semibold text-gray-900 tabular-nums">
-                {euros(r.revenue_cents)}
+                {euros(vendidoDe(r))}
               </span>
             </div>
             <p className="text-[12px] text-[#9CA3AF] tabular-nums mt-0.5">
               {r.sales} {r.sales === 1 ? 'venta' : 'ventas'} · ticket {euros(r.avg_ticket_cents)}
+            </p>
+            <p className="text-[12px] text-[#6B7280] tabular-nums mt-0.5">
+              Cobrado {euros(cobradoDe(r))}
+              {porCobrarDe(r) > 0 ? ` · por cobrar ${euros(porCobrarDe(r))}` : ''}
             </p>
             {Object.keys(r.by_product).length > 1 && (
               <div className="flex flex-wrap gap-1 mt-2">
@@ -206,12 +213,14 @@ function SalesTable({ rows }: { rows: SalesRow[] }) {
       </div>
 
       <div className="hidden sm:block overflow-x-auto">
-      <table className="w-full text-[13.5px] min-w-[520px]">
+      <table className="w-full text-[13.5px] min-w-[680px]">
         <thead>
           <tr className="text-left text-[#9CA3AF]">
             <th className="font-semibold py-2 pr-3">Periodo</th>
             <th className="font-semibold py-2 pr-3 text-right">Ventas</th>
-            <th className="font-semibold py-2 pr-3 text-right">Ingresos</th>
+            <th className="font-semibold py-2 pr-3 text-right">Vendido</th>
+            <th className="font-semibold py-2 pr-3 text-right">Cobrado</th>
+            <th className="font-semibold py-2 pr-3 text-right">Por cobrar</th>
             <th className="font-semibold py-2 pr-3 text-right">Ticket medio</th>
             <th className="font-semibold py-2">Productos</th>
           </tr>
@@ -222,7 +231,13 @@ function SalesTable({ rows }: { rows: SalesRow[] }) {
               <td className="py-2.5 pr-3 font-semibold text-gray-900 capitalize">{r.label}</td>
               <td className="py-2.5 pr-3 text-right tabular-nums">{r.sales}</td>
               <td className="py-2.5 pr-3 text-right tabular-nums font-semibold text-gray-900">
-                {euros(r.revenue_cents)}
+                {euros(vendidoDe(r))}
+              </td>
+              <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">
+                {euros(cobradoDe(r))}
+              </td>
+              <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">
+                {porCobrarDe(r) > 0 ? euros(porCobrarDe(r)) : '—'}
               </td>
               <td className="py-2.5 pr-3 text-right tabular-nums text-gray-500">
                 {euros(r.avg_ticket_cents)}
@@ -483,22 +498,34 @@ export default function EstadisticasPage() {
               <>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   <div className={CARD}>
-                    <p className={LABEL}>Ingresos totales</p>
-                    <p className={BIG}>{euros(sales.total_revenue_cents)}</p>
+                    <p className={LABEL}>Vendido</p>
+                    <p className={BIG}>{euros(sales.vendido_cents ?? sales.total_revenue_cents)}</p>
+                    <p className="text-[12px] text-[#6B7280] font-semibold mt-1 tabular-nums">
+                      Cobrado {euros(sales.cobrado_cents ?? sales.total_revenue_cents)}
+                      {(sales.por_cobrar_cents ?? 0) > 0 ? ` · por cobrar ${euros(sales.por_cobrar_cents ?? 0)}` : ''}
+                    </p>
                   </div>
                   <div className={CARD}>
                     <p className={LABEL}>Ventas</p>
                     <p className={BIG}>{sales.total_sales}</p>
+                    {(sales.a_plazos ?? 0) > 0 && (
+                      <p className="text-[12px] text-[#9CA3AF] font-semibold mt-1 tabular-nums">
+                        {sales.a_plazos} a plazos
+                        {(sales.con_fallo ?? 0) > 0 ? ` · ${sales.con_fallo} con un cobro fallido` : ''}
+                      </p>
+                    )}
                   </div>
                   <div className={CARD}>
                     <p className={LABEL}>Ticket medio</p>
                     <p className={BIG}>{euros(sales.avg_ticket_cents)}</p>
+                    <p className="text-[12px] text-[#9CA3AF] font-semibold mt-1">sobre lo vendido</p>
                   </div>
                   <div className={CARD}>
-                    <p className={LABEL}>Últimos 30 días</p>
-                    <p className={BIG}>{euros(sales.last_30_days.revenue_cents)}</p>
+                    <p className={LABEL}>Vendido · últimos 30 días</p>
+                    <p className={BIG}>{euros(vendidoDe(sales.last_30_days))}</p>
                     <p className="text-[12px] text-[#9CA3AF] font-semibold mt-1 tabular-nums">
-                      {sales.last_30_days.sales} ventas
+                      {sales.last_30_days.sales} {sales.last_30_days.sales === 1 ? 'venta' : 'ventas'} · cobrado{' '}
+                      {euros(cobradoDe(sales.last_30_days))}
                     </p>
                   </div>
                 </div>
@@ -545,7 +572,7 @@ export default function EstadisticasPage() {
                           <span className="text-[13.5px] tabular-nums text-gray-500">
                             {p.sales} ·{' '}
                             <span className="font-semibold text-gray-900">
-                              {euros(p.revenue_cents)}
+                              {euros(vendidoDe(p))}
                             </span>
                           </span>
                         </div>
@@ -691,9 +718,13 @@ function Resumen({ stats, contactos }: { stats: SchoolStats; contactos: Contacto
           href="/dash/estadisticas?tab=contactos&vista=matriculas"
         />
         <Cifra
-          label="Ventas · 30 días"
-          valor={ventas30 ? euros(ventas30.revenue_cents) : '—'}
-          nota={ventas30 ? `${ventas30.sales} ${ventas30.sales === 1 ? 'venta' : 'ventas'}` : ''}
+          label="Vendido · 30 días"
+          valor={ventas30 ? euros(vendidoDe(ventas30)) : '—'}
+          nota={
+            ventas30
+              ? `${ventas30.sales} ${ventas30.sales === 1 ? 'venta' : 'ventas'} · cobrado ${euros(cobradoDe(ventas30))}`
+              : ''
+          }
           href="/dash/estadisticas?tab=facturas"
         />
         <Cifra

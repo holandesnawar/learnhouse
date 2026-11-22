@@ -205,7 +205,9 @@ export default function KpisPanel() {
           valor={String(v.n)}
           sub={
             conDinero
-              ? `${euros(v.cobrado_cents || 0)} cobrados${v.ticket_medio_cents ? ` · ${euros(v.ticket_medio_cents)} de media` : ''}`
+              ? `${euros(v.vendido_cents ?? v.cobrado_cents ?? 0)} vendidos · ${euros(v.cobrado_cents || 0)} cobrados${
+                  v.ticket_medio_cents ? ` · ${euros(v.ticket_medio_cents)} de media` : ''
+                }`
               : `en estos ${datos.dias} días`
           }
         />
@@ -449,12 +451,15 @@ export default function KpisPanel() {
         </Seccion>
 
         {conDinero ? (
-        <Seccion titulo="Ventas cobradas en estos días">
+        <Seccion titulo="Ventas de estos días">
           <div className={`${TARJETA} divide-y divide-[#F3F4F6] text-[13.5px]`}>
             {(
               [
                 ['Ventas', String(v.n)],
+                ['Vendido', euros(v.vendido_cents ?? v.cobrado_cents ?? 0)],
                 ['Cobrado', euros(v.cobrado_cents || 0)],
+                ['Por cobrar', (v.por_cobrar_cents ?? 0) > 0 ? euros(v.por_cobrar_cents ?? 0) : '—'],
+                ['Ticket medio (sobre lo vendido)', v.ticket_medio_cents ? euros(v.ticket_medio_cents) : '—'],
                 ['Después de una llamada', String(v.con_llamada ?? 0)],
                 ['Pago único o Klarna', String(v.tipos?.unico ?? 0)],
                 ['A plazos', String(v.tipos?.plazos ?? 0)],
@@ -468,8 +473,8 @@ export default function KpisPanel() {
             ))}
           </div>
           <p className={META}>
-            En los plazos, «cobrado» es lo que ha entrado hasta hoy, no el total. Quien está fuera de los números (pruebas) no cuenta en
-            nada de esta página.{' '}
+            «Vendido» es el total de cada venta: una venta a plazos cuenta entera el día del primer pago. «Cobrado» es lo que ha
+            entrado hasta hoy. Quien está fuera de los números (pruebas) no cuenta en nada de esta página.{' '}
             <Link href="/dash/estadisticas?tab=plazos" className={ENLACE}>
               Ver pagos a plazos
             </Link>

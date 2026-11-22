@@ -35,7 +35,6 @@ from urllib.parse import unquote
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.db.enrollment import Enrollment
 from src.db.panel_negocio import AdCampaign
 
 PLATAFORMAS = {"meta": "Meta (Instagram y Facebook)", "google": "Google", "tiktok": "TikTok", "youtube": "YouTube", "otro": "Otra"}
@@ -150,12 +149,20 @@ async def guardar_nombre(org_id: int, meta: str, nombre: str, db_session: AsyncS
     return {"ok": True, "meta": limpio, "nombre": nombre}
 
 
-def metricas(campanas: list[dict], fichas: list[dict], ingresos_por_email: dict[str, int]) -> dict:
+def metricas(
+    campanas: list[dict],
+    fichas: list[dict],
+    ingresos_por_email: dict[str, int],
+    cobrado_por_email: Optional[dict[str, int]] = None,
+) -> dict:
     """Cruza las campañas apuntadas con las fichas de Contactos.
 
     campanas: {id, nombre, utm_campaign, gasto_cents, …}
     fichas: las de `fusionar_contactos` (con `eventos` y `etapa`).
-    ingresos_por_email: lo cobrado a cada persona, en céntimos.
+    ingresos_por_email: lo VENDIDO a cada persona, en céntimos (22/11/2026:
+        con plazos, el total del plan; ver `stats/ventas.py`). Los ingresos y
+        el retorno de cada campaña van sobre lo vendido: es lo que trajo.
+    cobrado_por_email: lo que ha entrado de cada una. Sin él, vale lo vendido.
     """
     por_utm: dict[str, list[dict]] = {}
     for f in fichas:
@@ -172,6 +179,11 @@ def metricas(campanas: list[dict], fichas: list[dict], ingresos_por_email: dict[
         matriculas = sum(1 for f in gente if f.get("etapa") in ("pidio", "en-pago", "alumno"))
         ventas = [f for f in gente if f.get("etapa") == "alumno"]
         ingresos = sum(ingresos_por_email.get(f["email"], 0) for f in ventas)
+        cobrado = (
+            ingresos
+            if cobrado_por_email is None
+            else sum(cobrado_por_email.get(f["email"], 0) for f in ventas)
+        )
         gasto = int(c.get("gasto_cents") or 0)
         filas.append(
             {
@@ -180,9 +192,12 @@ def metricas(campanas: list[dict], fichas: list[dict], ingresos_por_email: dict[
                 "matriculas": matriculas,
                 "ventas": len(ventas),
                 "ingresos_cents": ingresos,
+                "vendido_cents": ingresos,
+                "cobrado_cents": cobrado,
+                "por_cobrar_cents": max(0, ingresos - cobrado),
                 "coste_por_lead_cents": round(gasto / leads) if gasto and leads else None,
                 "coste_por_venta_cents": round(gasto / len(ventas)) if gasto and ventas else None,
-                # Por cada euro gastado, cuántos entraron.
+                # Por cada euro gastado, cuántos se vendieron.
                 "retorno": round(ingresos / gasto, 2) if gasto else None,
                 "personas": [
                     {"email": f["email"], "nombre": f.get("nombre", ""), "etapa": f.get("etapa", ""), "when": (f.get("primer_contacto") or {}).get("when", "")}
@@ -208,6 +223,9 @@ def metricas(campanas: list[dict], fichas: list[dict], ingresos_por_email: dict[
             "leads": sum(f["leads"] for f in filas),
             "ventas": sum(f["ventas"] for f in filas),
             "ingresos_cents": ingresos_total,
+            "vendido_cents": ingresos_total,
+            "cobrado_cents": sum(f["cobrado_cents"] for f in filas),
+            "por_cobrar_cents": sum(f["por_cobrar_cents"] for f in filas),
             "retorno": round(ingresos_total / gasto_total, 2) if gasto_total else None,
         },
     }
@@ -243,11 +261,17 @@ async def panel_ads(org_id: int, db_session: AsyncSession) -> dict:
         for f in fusionar_contactos(await _todos_los_eventos(db_session), await _emails_con_cuenta(db_session))
         if f["email"] not in fuera
     ]
-    ingresos: dict[str, int] = {}
-    for r in (await db_session.execute(select(Enrollment).where(Enrollment.status == "paid"))).scalars().all():
-        e = _clave(r.email)
-        ingresos[e] = ingresos.get(e, 0) + int(r.amount_cents or 0)
-    datos = metricas(await listar(org_id, db_session), fichas, ingresos)
+    # Lo vendido y lo cobrado a cada persona (`ventas.py`). Sin corte de
+    # fechas, como siempre aquí; los excluidos ya no están entre las fichas.
+    from src.services.stats.ventas import leer_ventas, por_email
+
+    dinero = por_email(await leer_ventas(db_session, con_corte=False, con_excluidos=True))
+    datos = metricas(
+        await listar(org_id, db_session),
+        fichas,
+        {e: d["vendido_cents"] for e, d in dinero.items()},
+        {e: d["cobrado_cents"] for e, d in dinero.items()},
+    )
     datos["plataformas"] = PLATAFORMAS
     datos["anuncios"] = anuncios_vistos(fichas, await leer_nombres(org_id, db_session))
     return datos

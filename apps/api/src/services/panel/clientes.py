@@ -84,7 +84,17 @@ async def listar_clientes(db_session: AsyncSession, org_id: Optional[int] = None
     from src.services.payments.plazos import planes_por_email
 
     planes = await planes_por_email(db_session)
+    # Vendido ≠ cobrado (22/11/2026, `stats/ventas.py`): `total_cents` es lo
+    # que ha entrado; con un plan de pagos, lo vendido es el total del plan.
+    # Sin corte de fechas, como el resto de esta lista.
+    from src.services.stats.ventas import leer_ventas, por_email
+
+    dinero = por_email(await leer_ventas(db_session, con_corte=False))
     for c in clientes:
+        d = dinero.get((c["email"] or "").strip().lower()) or {}
+        c["cobrado_cents"] = int(c["total_cents"] or 0)
+        c["vendido_cents"] = max(int(d.get("vendido_cents") or 0), c["cobrado_cents"])
+        c["por_cobrar_cents"] = c["vendido_cents"] - c["cobrado_cents"]
         p = planes.get((c["email"] or "").strip().lower())
         c["plazos"] = (
             {k: p[k] for k in ("estado", "estado_nombre", "cuotas", "cuotas_pagadas", "total_cents", "pendiente_cents", "proximo_cobro", "fallo")}
@@ -112,6 +122,9 @@ async def listar_clientes(db_session: AsyncSession, org_id: Optional[int] = None
     return {
         "clientes": clientes,
         "total_cents": sum(c["total_cents"] for c in clientes),
+        "vendido_cents": sum(c["vendido_cents"] for c in clientes),
+        "cobrado_cents": sum(c["cobrado_cents"] for c in clientes),
+        "por_cobrar_cents": sum(c["por_cobrar_cents"] for c in clientes),
         "n": len(clientes),
         "comisiones": comisiones,
         "porcentajes_comision": porcentajes,

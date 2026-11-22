@@ -371,9 +371,14 @@ def personas_de(
     fuera: set[str],
     modelo: str,
     ahora: datetime,
+    cobrados: Optional[dict[str, int]] = None,
 ) -> list[dict]:
     """Una línea por persona con cuándo entró, de dónde viene (según el
-    modelo) y hasta dónde llegó. Función pura."""
+    modelo) y hasta dónde llegó. Función pura.
+
+    `importes` es lo VENDIDO a cada persona (22/11/2026: con plazos, el total
+    del plan, ver `ventas.py`) y sale como `cents`; `cobrados`, lo que ha
+    entrado (`cobrado_cents`). Sin `cobrados`, vale lo vendido."""
     citas_por: dict[str, list[dict]] = {}
     for c in citas or []:
         email = (c.get("email") or "").strip().lower()
@@ -440,6 +445,7 @@ def personas_de(
                 "pago": pago_ok,
                 "pago_at": pago,
                 "cents": int(importes.get(email, 0)) if pago_ok else 0,
+                "cobrado_cents": int((importes if cobrados is None else cobrados).get(email, 0)) if pago_ok else 0,
                 "etapa": f.get("etapa") or "",
                 "bf": any(_es_bf(t) or campana_de(t.get("utm_campaign") or "") == BLACK_FRIDAY for t in toques),
             }
@@ -503,6 +509,7 @@ def _cifras(personas: list[dict], visitas: Optional[list[dict]]) -> dict:
     no_vinieron = sum(1 for p in personas if p["no_vino"])
     pagaron = sum(1 for p in personas if p["pago"])
     cents = sum(p["cents"] for p in personas)
+    cobrado = sum(int(p.get("cobrado_cents", p["cents"]) or 0) for p in personas)
     n_visitas = len(visitas) if visitas is not None else None
     return {
         "visitas": n_visitas,
@@ -511,7 +518,10 @@ def _cifras(personas: list[dict], visitas: Optional[list[dict]]) -> dict:
         "vinieron": vinieron,
         "no_vinieron": no_vinieron,
         "pagaron": pagaron,
+        # Lo vendido; al lado, lo que ya ha entrado y lo que falta.
         "cents": cents,
+        "cobrado_cents": cobrado,
+        "por_cobrar_cents": max(0, cents - cobrado),
         "pct_lead": _pct(leads, n_visitas) if n_visitas else None,
         "pct_reserva": _pct(reservaron, leads),
         "pct_vino": _pct(vinieron, reservaron),
@@ -674,6 +684,7 @@ def calcular(
             "anuncio": nombre_del_anuncio(p["anuncio"], nombres_anuncios) if p["anuncio"] else "",
             "primera_pagina": (nombres_paginas or {}).get(p["primera_pagina"], p["primera_pagina"]),
             "reservo": p["reservo"], "vino": p["vino"], "no_vino": p["no_vino"], "pago": p["pago"], "cents": p["cents"],
+            "cobrado_cents": p.get("cobrado_cents", p["cents"]),
         }
         for p in lista[:600]
     ]
@@ -706,7 +717,6 @@ def _fecha(texto: str, defecto: str) -> str:
 
 async def analitica(org_id: int, params: dict, db_session: AsyncSession) -> dict:
     from src.db.contact_seguimiento import CallOutcome
-    from src.db.enrollment import Enrollment
     from src.db.panel_negocio import AdCampaign
     from src.db.web_visita import WebVisita
     from src.services.contactos.agenda import agenda
@@ -718,7 +728,6 @@ async def analitica(org_id: int, params: dict, db_session: AsyncSession) -> dict
     )
     from src.services.contactos.metricas import emails_excluidos
     from src.services.panel.ads import leer_nombres
-    from src.services.payments.payments import _desde_cuando
     from src.services.payments.solicitudes import _NOMBRES
 
     hoy = datetime.now(ZONA).date()
@@ -753,15 +762,17 @@ async def analitica(org_id: int, params: dict, db_session: AsyncSession) -> dict
         {"cita_id": r.cita_id, "email": r.email, "resultado": r.resultado, "inicio": r.inicio}
         for r in (await db_session.execute(select(CallOutcome))).scalars().all()
     ]
-    corte = _desde_cuando()
-    importes: dict[str, int] = {}
-    for r in (await db_session.execute(select(Enrollment).where(Enrollment.status == "paid"))).scalars().all():
-        if corte and (r.paid_at or "")[:10] < corte:
-            continue
-        email = (r.email or "").strip().lower()
-        importes[email] = importes.get(email, 0) + int(r.amount_cents or 0)
+    # Lo vendido y lo cobrado a cada persona, con el corte de siempre
+    # (`ventas.py`). `personas_de` ya quita a quien está fuera de los números.
+    from src.services.stats.ventas import leer_ventas, por_email
 
-    personas = personas_de(fichas, citas, resultados, pagaron, importes, fuera, modelo, datetime.now(timezone.utc))
+    dinero = por_email(await leer_ventas(db_session, con_excluidos=True))
+    importes = {e: d["vendido_cents"] for e, d in dinero.items()}
+    cobrados = {e: d["cobrado_cents"] for e, d in dinero.items()}
+
+    personas = personas_de(
+        fichas, citas, resultados, pagaron, importes, fuera, modelo, datetime.now(timezone.utc), cobrados
+    )
     filas = (
         await db_session.execute(select(WebVisita).where(WebVisita.dia >= desde, WebVisita.dia <= hasta))
     ).scalars().all()

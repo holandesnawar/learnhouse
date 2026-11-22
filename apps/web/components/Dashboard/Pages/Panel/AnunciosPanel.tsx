@@ -206,7 +206,11 @@ function FilaCampana({
           ) : (
             <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
               <span className="text-[#6B7280]">
-                {c.ingresos_cents ? `Ingresos: ${euros(c.ingresos_cents)}` : 'Sin ventas todavía'}
+                {c.ingresos_cents
+                  ? `Vendido: ${euros(c.ingresos_cents)}${
+                      (c.por_cobrar_cents ?? 0) > 0 ? ` · cobrado ${euros(c.cobrado_cents ?? c.ingresos_cents)}` : ''
+                    }`
+                  : 'Sin ventas todavía'}
                 {c.coste_por_venta_cents !== null ? ` · ${euros(c.coste_por_venta_cents)} por venta` : ''}
               </span>
               <button onClick={() => setEditando(true)} className="ml-auto font-semibold text-[#025dc7] hover:underline">
@@ -350,8 +354,15 @@ export default function AnunciosPanel() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
         <Cifra label="Gastado en anuncios" valor={euros(t.gasto_cents)} />
         <Cifra label="Leads" valor={String(t.leads)} nota={t.gasto_cents && t.leads ? `${euros(Math.round(t.gasto_cents / t.leads))} por lead` : undefined} />
-        <Cifra label="Ventas" valor={String(t.ventas)} nota={t.ingresos_cents ? euros(t.ingresos_cents) : undefined} />
-        <Cifra label="Retorno" valor={t.retorno !== null ? `×${t.retorno.toLocaleString('es-ES')}` : '—'} nota="Lo que entró por cada euro gastado" />
+        <Cifra label="Ventas" valor={String(t.ventas)} nota={
+            t.ingresos_cents
+              ? `${euros(t.ingresos_cents)} vendidos${
+                  (t.por_cobrar_cents ?? 0) > 0 ? ` · ${euros(t.cobrado_cents ?? t.ingresos_cents)} cobrados` : ''
+                }`
+              : undefined
+          }
+        />
+        <Cifra label="Retorno" valor={t.retorno !== null ? `×${t.retorno.toLocaleString('es-ES')}` : '—'} nota="Lo vendido por cada euro gastado" />
       </div>
 
       <div className={CARD}>

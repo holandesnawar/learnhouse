@@ -77,7 +77,11 @@ export interface Kpis {
   /** Al closer solo le llega `n` (sin el dinero ni el reparto). */
   ventas: {
     n: number
+    /** Vendido ≠ cobrado (22/11/2026): con plazos, el total del plan. */
+    vendido_cents?: number
     cobrado_cents?: number
+    por_cobrar_cents?: number
+    /** Sobre lo vendido. */
     ticket_medio_cents?: number | null
     con_llamada?: number
     tipos?: { unico: number; plazos: number; otro: number }

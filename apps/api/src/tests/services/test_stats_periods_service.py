@@ -70,8 +70,8 @@ class TestGroupSales:
             ]
         )
         productos = rows[0]["by_product"]
-        assert productos["formacion-a0-a1"] == {"sales": 2, "revenue_cents": 79400}
-        assert productos["vip-a0-a1"] == {"sales": 1, "revenue_cents": 99700}
+        assert productos["formacion-a0-a1"] == {"sales": 2, "revenue_cents": 79400, "vendido_cents": 79400}
+        assert productos["vip-a0-a1"] == {"sales": 1, "revenue_cents": 99700, "vendido_cents": 99700}
 
     def test_sales_without_a_usable_date_are_left_out_and_counted(self):
         ventas = [sale("2026-09-01", 39700), sale("", 39700), sale("nunca", 100)]

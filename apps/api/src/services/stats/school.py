@@ -75,24 +75,35 @@ async def _sales_block(org_id: int, db_session: AsyncSession) -> dict:
         for r in rows
         if r.status == "paid" and (not desde or (r.paid_at or "") >= desde)
     ]
+    # Vendido ≠ cobrado (22/11/2026): una venta a plazos vale el total del
+    # plan, no lo que ha entrado hasta hoy. La cuenta vive en `ventas.py`, con
+    # el mismo corte y los mismos excluidos que arriba.
+    from src.services.stats.ventas import leer_ventas, totales
+
+    ventas = await leer_ventas(db_session)
     sales = [
         {
-            "date": _sale_date(r),
-            "amount_cents": int(r.amount_cents or 0),
-            "product": r.product or "formacion-a0-a1",
+            "date": v["fecha"],
+            "amount_cents": v["cobrado_cents"],
+            "vendido_cents": v["vendido_cents"],
+            "product": v["producto"],
         }
-        for r in paid
+        for v in ventas
     ]
 
     by_product: dict[str, dict] = {}
     for s in sales:
-        entry = by_product.setdefault(s["product"], {"product": s["product"], "sales": 0, "revenue_cents": 0})
+        entry = by_product.setdefault(
+            s["product"], {"product": s["product"], "sales": 0, "revenue_cents": 0, "vendido_cents": 0}
+        )
         entry["sales"] += 1
         entry["revenue_cents"] += s["amount_cents"]
+        entry["vendido_cents"] += s["vendido_cents"]
 
-    total_revenue = sum(s["amount_cents"] for s in sales)
+    todo = totales(ventas)
+    total_revenue = todo["cobrado_cents"]
     cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-    recent = [s for s in sales if s["date"] and s["date"] >= cutoff]
+    recientes = totales([v for v in ventas if v["fecha"] and v["fecha"] >= cutoff])
 
     # El embudo también empieza en la fecha de corte: si no, las pruebas
     # contarían como "gente que se matriculó y no pagó" e inflarían el abandono.
@@ -138,15 +149,26 @@ async def _sales_block(org_id: int, db_session: AsyncSession) -> dict:
 
     return {
         "total_sales": len(paid),
+        # Lo COBRADO (lo que ha entrado). Se queda con su nombre de siempre
+        # para lo que ya lo leía; la cifra principal es `vendido_cents`.
         "total_revenue_cents": total_revenue,
-        "avg_ticket_cents": round(total_revenue / len(paid)) if paid else 0,
+        "vendido_cents": todo["vendido_cents"],
+        "cobrado_cents": todo["cobrado_cents"],
+        "por_cobrar_cents": todo["por_cobrar_cents"],
+        "a_plazos": todo["a_plazos"],
+        "con_fallo": todo["con_fallo"],
+        # El ticket medio, sobre lo vendido: lo que vale cada venta.
+        "avg_ticket_cents": todo["ticket_medio_cents"],
         "by_month": group_sales(sales, "month"),
         "by_quarter": group_sales(sales, "quarter"),
-        "by_product": sorted(by_product.values(), key=lambda p: p["revenue_cents"], reverse=True),
+        "by_product": sorted(by_product.values(), key=lambda p: p["vendido_cents"], reverse=True),
         "undated": undated_sales(sales),
         "last_30_days": {
-            "sales": len(recent),
-            "revenue_cents": sum(s["amount_cents"] for s in recent),
+            "sales": recientes["ventas"],
+            "revenue_cents": recientes["cobrado_cents"],
+            "vendido_cents": recientes["vendido_cents"],
+            "cobrado_cents": recientes["cobrado_cents"],
+            "por_cobrar_cents": recientes["por_cobrar_cents"],
         },
         # Embudo del checkout: cada fila es alguien que rellenó el formulario.
         "funnel": {
