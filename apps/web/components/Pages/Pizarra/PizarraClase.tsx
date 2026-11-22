@@ -12,6 +12,7 @@ import {
   Broom,
   CaretDown,
   CloudCheck,
+  DownloadSimple,
   FilePlus,
   PaperPlaneTilt,
   SidebarSimple,
@@ -71,9 +72,11 @@ import {
   type TrazoLinea,
   type TrazoTexto,
 } from '@/lib/nawar/pizarra'
-import { bajarFuente, getPizarra, guardarNotas, publicarPizarra, quitarPublicada, urlPdfConNotas, type Pizarra } from '@services/pizarra/pizarra'
+import { bajarFuente, getPizarra, guardarNotas, listaDe, OtraPizarra, PIZARRA_EN_BLANCO, ponerEnPizarra, publicarPizarra, quitarPublicada, urlPdfConNotas, type ListaPresentaciones as Lista, type Pizarra } from '@services/pizarra/pizarra'
 import { subirArchivoProfe } from '@services/tareas/tareas'
 import { VisorPresentacionClase } from '@components/Pages/Clases/pasosSemana'
+import ListaPresentaciones from '@components/Pages/Presentaciones/ListaPresentaciones'
+import { cuandoFue } from '@/lib/nawar/presentaciones'
 import { cajaDeTexto, letrasDeLaEscuela, pintarEnBlanco, pintarTrazos, type Letras } from './dibujo'
 
 /**
@@ -84,11 +87,22 @@ import { cajaDeTexto, letrasDeLaEscuela, pintarEnBlanco, pintarTrazos, type Letr
  * en apps/api/src/services/tareas/pizarra.py.
  *
  * Ocupa toda la ventana (sin la barra de la escuela): es lo que se comparte.
+ *
+ * Cada presentación de la clase guarda SUS notas (22/11/2026): arriba, el
+ * botón con el nombre abre la lista (`ListaPresentaciones`); abrir otra NO
+ * pisa nada (se guarda lo último, se abre la otra con lo suyo y pasa a ser la
+ * de la pizarra). Lo que se guarda va siempre con la presentación a la que
+ * pertenece (`docDe`), nunca con «la que esté elegida». Sin ningún PDF, la
+ * pizarra abre en blanco. «Descargar con notas» baja el PDF sin publicarlo.
+ * `/pizarra/<semana>?fuente=<id>` abre una concreta; con `&descargar=1`, la
+ * baja con sus notas (también unas notas cuyo documento ya no está).
  */
 
 type Tam = { w: number; h: number }
 type Editando = { i: number | null; x: number; y: number; texto: string; estilo: EstiloTexto; tam: number; color: string }
-type Guardado = 'guardado' | 'sin-guardar' | 'guardando' | 'error'
+// 'choque': otra pizarra abierta guardó en esta presentación después; no se
+// guarda encima hasta que quien escribe elija (22/11/2026).
+type Guardado = 'guardado' | 'sin-guardar' | 'guardando' | 'error' | 'choque'
 
 const BLANCO = '#FFFFFF'
 const A4: Tam = { w: 595, h: 842 }
@@ -153,6 +167,21 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   const [info, setInfo] = useState<Pizarra | null>(null)
   const [fallo, setFallo] = useState('')
   const [fuente, setFuente] = useState('')
+  // Para volver a abrir la MISMA presentación (se cambió su archivo o sus notas desde la lista).
+  const [recarga, setRecarga] = useState(0)
+  const [panel, setPanel] = useState(false)
+  const [bajando, setBajando] = useState('')
+  const [abriendo, setAbriendo] = useState(false)
+  // De qué presentación es lo que hay en `docRef`: lo que se guarda va con ella.
+  const docDe = useRef('')
+  const ultimaGuardada = useRef(0)
+  const escribibleRef = useRef<boolean | null>(null)
+  // Lo pedido en la dirección: /pizarra/<semana>?fuente=<id>&descargar=1 (fuera de la sala).
+  const pedido = useRef<{ fuente: string; descargar: boolean } | null>(null)
+  if (pedido.current === null) {
+    const q = typeof window !== 'undefined' && !enSala ? new URLSearchParams(window.location.search) : null
+    pedido.current = { fuente: q?.get('fuente') || '', descargar: q?.get('descargar') === '1' }
+  }
   const [pdfListo, setPdfListo] = useState(0)
   const [tams, setTams] = useState<Tam[]>([])
   const [doc, setDoc] = useState<DocPizarra>({ v: 1, paginas: [] })
@@ -250,9 +279,24 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   const sucio = useRef(0)
   const reintentos = useRef(0)
   const guardandoRef = useRef(false)
+  // Para no pisar lo que otra pestaña guarda en la misma presentación: quién
+  // es esta pizarra abierta y con qué versión de las notas se abrió.
+  const sesionRef = useRef('')
+  if (!sesionRef.current) sesionRef.current = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+  const revisionRef = useRef('')
+  const [choque, setChoque] = useState<{ por: string; at: string } | null>(null)
+  const choqueRef = useRef(false)
+  choqueRef.current = !!choque
   const cerradoAt = useRef(0)
   const cuadro = useRef(0)
 
+  escribibleRef.current = info ? info.escribible !== false : null
+  // La lista de la clase, para el panel: solo cambia cuando cambia lo suyo.
+  const listaInfo = useMemo(
+    () => (info ? listaDe(info) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [info?.presentaciones, info?.sueltas, info?.en_pizarra, info?.publicada]
+  )
   const letras = () => (letrasRef.current ||= letrasDeLaEscuela())
   const tamDe = useCallback((pg?: PaginaPizarra | null): Tam => (pg?.origen ? tams[pg.origen - 1] : tams[0]) || A4, [tams])
 
@@ -260,10 +304,19 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   const cargar = useCallback(async () => {
     if (!token || !id) return
     try {
-      const datos = await getPizarra(id, token)
+      const pide = pedido.current
+      const datos = await getPizarra(id, token, pide?.fuente || undefined)
       setInfo(datos)
       setFuente((f) => f || datos.fuente)
       setGuardadaAt(datos.guardada_at)
+      revisionRef.current = datos.revision ?? datos.guardada_at ?? ''
+      // Abrir una concreta desde la ficha es ponerla en la pizarra (si solo
+      // se viene a descargarla, no).
+      if (pide?.fuente && !pide.descargar && datos.fuente === pide.fuente && datos.escribible && datos.en_pizarra !== datos.fuente) {
+        ponerEnPizarra(id, datos.fuente, token)
+          .then((l) => setInfo((i) => (i ? { ...i, presentaciones: l.presentaciones, sueltas: l.sueltas, en_pizarra: l.fuente } : i)))
+          .catch(() => undefined)
+      }
     } catch (e: any) {
       setFallo(e?.message || 'No se pudo abrir la pizarra')
     }
@@ -284,6 +337,28 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     setMiniaturas({})
     ;(async () => {
       try {
+        // Lo guardado vale para la presentación con la que se escribió.
+        const guardado = info.fuente === fuente ? info.anotaciones : null
+        const conPdf = info.fuentes.some((f) => f.id === fuente)
+        if (!conPdf) {
+          // La pizarra en blanco, o unas notas cuyo documento ya no está: no
+          // hay PDF que abrir. Las páginas que tenían algo escrito salen como
+          // páginas en blanco con sus trazos (`ajustarAlPdf` con 0 páginas).
+          let inicial = ajustarAlPdf(guardado, 0)
+          if (!inicial.paginas.length) inicial = { v: 1, paginas: [{ origen: null, trazos: [] }] }
+          if (!vivo) return
+          pdfRef.current = null
+          setTams([])
+          docRef.current = inicial
+          docDe.current = fuente
+          setDoc(inicial)
+          setIdx((i) => Math.min(i, Math.max(0, inicial.paginas.length - 1)))
+          atras.current = []
+          adelante.current = []
+          setHistoria({ atras: 0, adelante: 0 })
+          setPdfListo((n) => n + 1)
+          return
+        }
         const datos = await bajarFuente(id, fuente, token)
         const pdfjs: any = await import('pdfjs-dist/legacy/build/pdf.mjs')
         worker = new Worker(new URL('../../Objects/Activities/DocumentPdf/pdf.worker.ts', import.meta.url), { type: 'module' })
@@ -297,10 +372,9 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
         if (!vivo) return
         pdfRef.current = pdf
         setTams(medidas)
-        // Lo guardado vale para la presentación con la que se escribió.
-        const guardado = info.fuente === fuente ? info.anotaciones : null
         const inicial = ajustarAlPdf(guardado, pdf.numPages)
         docRef.current = inicial
+        docDe.current = fuente
         setDoc(inicial)
         setIdx((i) => Math.min(i, Math.max(0, inicial.paginas.length - 1)))
         atras.current = []
@@ -316,9 +390,10 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       pdfRef.current = null
       Promise.resolve(tarea?.destroy()).finally(() => worker?.terminate())
     }
-    // `info` solo importa la primera vez (lo guardado); recargarla no reabre el PDF.
+    // `info` solo importa al abrir (lo guardado); recargarla no reabre el PDF.
+    // `recarga` vuelve a abrir la misma (cambió su archivo o sus notas).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fuente, token, id, !!info])
+  }, [fuente, token, id, !!info, recarga])
 
   /** Una página (del PDF o en blanco) pintada en un lienzo nuevo de ese ancho. */
   const pintarPagina = useCallback(
@@ -607,19 +682,34 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   }, [repintar])
 
   // ── Guardar solo ────────────────────────────────────────────────────────
-  const guardar = useCallback(async (): Promise<boolean> => {
-    if (!token || !fuente) return false
+  const guardar = useCallback(async (forzar = false): Promise<boolean> => {
+    // Lo escrito se guarda SIEMPRE con la presentación a la que pertenece
+    // (`docDe`), no con la que esté elegida en ese instante: al cambiar de
+    // una a otra, lo de la primera no puede acabar en la segunda.
+    const de = docDe.current
+    if (!token || !de) return false
+    // Unas notas cuyo documento ya no está solo se miran y se descargan.
+    if (escribibleRef.current === false) return false
     if (guardandoRef.current) return false
     guardandoRef.current = true
     const marca = sucio.current
     setGuardado('guardando')
     try {
-      const r = await guardarNotas(id, fuente, docRef.current, token)
+      const r = await guardarNotas(id, de, docRef.current, token, { base: revisionRef.current, sesion: sesionRef.current, forzar })
+      ultimaGuardada.current = marca
       setGuardadaAt(r.guardada_at)
+      revisionRef.current = r.revision ?? r.guardada_at ?? revisionRef.current
+      setChoque(null)
       setGuardado(sucio.current === marca ? 'guardado' : 'sin-guardar')
       reintentos.current = 0
       return true
     } catch (e: any) {
+      if (e instanceof OtraPizarra) {
+        // No se guarda encima sin preguntar, ni se reintenta solo.
+        setChoque({ por: e.por, at: e.at })
+        setGuardado('choque')
+        return false
+      }
       setGuardado('error')
       // Solo el primer fallo avisa: los reintentos van solos (16/11/2026).
       if (reintentos.current === 0) toast.error(e?.message || 'No se pudo guardar lo escrito. Lo seguimos intentando.')
@@ -628,11 +718,14 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     } finally {
       guardandoRef.current = false
     }
-  }, [fuente, id, token])
+  }, [id, token])
 
   const ensuciar = useCallback(() => {
+    // Unas notas cuyo documento ya no está no se guardan: nada que avisar.
+    if (escribibleRef.current === false) return
     sucio.current += 1
-    setGuardado('sin-guardar')
+    // Con un choque a la vista no se vuelve a intentar solo: decide quien escribe.
+    setGuardado((g) => (g === 'choque' ? g : 'sin-guardar'))
   }, [])
 
   useEffect(() => {
@@ -653,7 +746,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
 
   useEffect(() => {
     const avisar = (e: BeforeUnloadEvent) => {
-      if (guardado === 'sin-guardar' || guardado === 'guardando' || guardado === 'error') {
+      if (guardado === 'sin-guardar' || guardado === 'guardando' || guardado === 'error' || guardado === 'choque') {
         e.preventDefault()
         e.returnValue = ''
       }
@@ -1178,6 +1271,101 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     else document.documentElement.requestFullscreen?.().catch(() => undefined)
   }
 
+  // ── Las presentaciones de la clase (22/11/2026) ─────────────────────────
+  /** Vuelve a leer la lista (qué tiene notas, cuál es la de la pizarra) sin reabrir el PDF. */
+  const releer = useCallback(async () => {
+    try {
+      const l = listaDe(await getPizarra(id, token, docDe.current || undefined))
+      setInfo((i) => (i ? { ...i, presentaciones: l.presentaciones, sueltas: l.sueltas, en_pizarra: l.fuente, publicada: l.publicada } : i))
+    } catch {
+      /* la lista se queda como estaba */
+    }
+  }, [id, token])
+
+  /** Guarda lo que quede por guardar (también el texto a medio escribir). Si
+   * no se puede, lanza: no se cambia de presentación con algo sin guardar. */
+  const guardarTodo = useCallback(async () => {
+    cerrarTexto()
+    for (let k = 0; k < 120 && guardandoRef.current; k++) await new Promise((r) => setTimeout(r, 50))
+    if (sucio.current !== ultimaGuardada.current && escribibleRef.current !== false) {
+      const ok = await guardar()
+      if (!ok && choqueRef.current) throw new Error('Antes decide qué hacer con lo que se ha escrito desde otra pizarra abierta (el aviso de arriba).')
+      if (!ok) throw new Error('No se ha podido guardar lo último que escribiste. Comprueba la conexión y vuelve a intentarlo.')
+    }
+  }, [cerrarTexto, guardar])
+
+  /** Abre otra presentación (o vuelve a abrir la misma) con SUS notas. Lo de
+   * la que estaba abierta se guarda antes: no se pierde ni se mezcla. */
+  const abrir = useCallback(
+    async (nueva: string, ponerla = true, sinGuardar = false) => {
+      // Mientras se abre no se puede escribir: lo escrito en ese instante se perdería.
+      setAbriendo(true)
+      try {
+        // `sinGuardar`: tras un choque, se elige ver lo de la otra pizarra y
+        // dejar lo de esta.
+        if (!sinGuardar) await guardarTodo()
+        else cerrarTexto()
+        const datos = await getPizarra(id, token, nueva)
+        const cambia = datos.fuente !== docDe.current
+        setInfo(datos)
+        setGuardadaAt(datos.guardada_at)
+        revisionRef.current = datos.revision ?? datos.guardada_at ?? ''
+        setChoque(null)
+        setGuardado('guardado')
+        ultimaGuardada.current = sucio.current
+        setSel(-1)
+        if (cambia) setIdx(0)
+        setFuente(datos.fuente)
+        setRecarga((n) => n + 1)
+        if (ponerla && datos.escribible && datos.en_pizarra !== datos.fuente) {
+          const l = await ponerEnPizarra(id, datos.fuente, token)
+          setInfo((i) => (i ? { ...i, presentaciones: l.presentaciones, sueltas: l.sueltas, en_pizarra: l.fuente } : i))
+          const nombre = l.presentaciones.find((x) => x.id === datos.fuente)?.nombre
+          if (nombre) toast.success(`La pizarra de esta clase abre ahora «${nombre}»`)
+        }
+      } catch (e: any) {
+        toast.error(e?.message || 'No se pudo abrir esa presentación')
+      } finally {
+        setAbriendo(false)
+      }
+    },
+    [guardarTodo, cerrarTexto, id, token]
+  )
+
+  /** Algo cambió desde la lista (se pasaron notas, se cambió un archivo, se
+   * quitó una): se vuelve a abrir la de ahora o, si ya no está, la de la pizarra. */
+  const trasCambioEnLaLista = useCallback(
+    (l: Lista) => {
+      const sigue = docDe.current === PIZARRA_EN_BLANCO || l.presentaciones.some((x) => x.id === docDe.current)
+      return abrir(sigue ? docDe.current : l.fuente || PIZARRA_EN_BLANCO, false)
+    },
+    [abrir]
+  )
+
+  /** El PDF con lo escrito encima: lo usan «Guardar para los alumnos» y «Descargar con notas». */
+  const montarPdf = async (paginas: PaginaPizarra[], progreso: (n: number) => void): Promise<Blob> => {
+    const { jsPDF } = await import('jspdf')
+    await (document as any).fonts?.ready
+    letrasRef.current = null
+    let pdf: any = null
+    for (let n = 0; n < paginas.length; n++) {
+      progreso(n + 1)
+      const pg = paginas[n]
+      const t = tamDe(pg)
+      const c = await pintarPagina(pg, t.w >= t.h ? 1920 : 1500)
+      pintarTrazos(c.getContext('2d')!, pg.trazos, c.width, c.height, letras())
+      const imagen = c.toDataURL('image/jpeg', 0.86)
+      c.width = 0
+      const giro = t.w > t.h ? 'l' : 'p'
+      if (!pdf) pdf = new jsPDF({ unit: 'pt', format: [t.w, t.h], orientation: giro, compress: true })
+      else pdf.addPage([t.w, t.h], giro)
+      pdf.addImage(imagen, 'JPEG', 0, 0, t.w, t.h, undefined, 'FAST')
+      // Que la pantalla respire entre página y página.
+      await new Promise((r) => setTimeout(r, 0))
+    }
+    return pdf.output('blob')
+  }
+
   // ── Guardar para los alumnos ────────────────────────────────────────────
   const publicar = async () => {
     if (publicando || !info) return
@@ -1199,28 +1387,11 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     try {
       setPublicando('Guardando lo escrito…')
       await guardar()
-      const { jsPDF } = await import('jspdf')
-      await (document as any).fonts?.ready
-      letrasRef.current = null
-      let pdf: any = null
-      for (let n = 0; n < paginas.length; n++) {
-        setPublicando(`Preparando la página ${n + 1} de ${paginas.length}…`)
-        const pg = paginas[n]
-        const t = tamDe(pg)
-        const c = await pintarPagina(pg, t.w >= t.h ? 1920 : 1500)
-        pintarTrazos(c.getContext('2d')!, pg.trazos, c.width, c.height, letras())
-        const imagen = c.toDataURL('image/jpeg', 0.86)
-        c.width = 0
-        const giro = t.w > t.h ? 'l' : 'p'
-        if (!pdf) pdf = new jsPDF({ unit: 'pt', format: [t.w, t.h], orientation: giro, compress: true })
-        else pdf.addPage([t.w, t.h], giro)
-        pdf.addImage(imagen, 'JPEG', 0, 0, t.w, t.h, undefined, 'FAST')
-        // Que la pantalla respire entre página y página.
-        await new Promise((r) => setTimeout(r, 0))
-      }
+      const pdf = await montarPdf(paginas, (n) => setPublicando(`Preparando la página ${n} de ${paginas.length}…`))
       setPublicando('Subiendo a la escuela…')
-      const pub = await publicarPizarra(id, pdf.output('blob'), paginas.length, token)
+      const pub = await publicarPizarra(id, pdf, paginas.length, token, docDe.current)
       setInfo((i) => (i ? { ...i, publicada: pub } : i))
+      releer()
       toast.success(`Guardada: los alumnos de ${grupo} ya ven esta versión`)
     } catch (e: any) {
       toast.error(e?.message || 'No se pudo guardar para los alumnos')
@@ -1228,6 +1399,57 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       setPublicando('')
     }
   }
+
+  /** «Descargar con notas»: el mismo PDF, pero se baja y NO se publica. Lleva
+   * todas las páginas, también las escondidas: es la copia del equipo. */
+  const descargarConNotas = async () => {
+    if (bajando || publicando || !info) return
+    cerrarTexto()
+    const paginas = docRef.current.paginas
+    if (!paginas.length) return
+    try {
+      setBajando('Preparando el PDF…')
+      const pdf = await montarPdf(paginas, (n) => setBajando(`Preparando la página ${n} de ${paginas.length}…`))
+      const de = info.presentaciones.find((x) => x.id === docDe.current)?.nombre || info.sueltas.find((x) => x.id === docDe.current)?.nombre || ''
+      const sinExt = de.replace(/\.pdf$/i, '')
+      const partes = [info.semana.tema, sinExt].filter(Boolean)
+      // «Mijn huis - Mijn huis» no: si la presentación se llama como el tema, una vez.
+      const base = partes.length === 2 && partes[0].trim().toLowerCase() === partes[1].trim().toLowerCase() ? partes[0] : partes.join(' - ')
+      const nombre = `${base || 'Pizarra'} - con notas.pdf`
+      const url = URL.createObjectURL(pdf)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = nombre.replace(/[\\/:*?"<>|]/g, ' ')
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      const escondidas = paginas.filter((x) => x.oculta).length
+      toast.success(
+        escondidas
+          ? `PDF con las notas descargado. Lleva también ${escondidas === 1 ? 'la página que tienes escondida' : `las ${escondidas} páginas que tienes escondidas`} a los alumnos.`
+          : 'PDF con las notas descargado'
+      )
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo preparar el PDF')
+    } finally {
+      setBajando('')
+    }
+  }
+
+  // /pizarra/<semana>?fuente=<id>&descargar=1: en cuanto se abre, se baja sola.
+  const descargarRef = useRef(descargarConNotas)
+  descargarRef.current = descargarConNotas
+  const descargaHecha = useRef(false)
+  useEffect(() => {
+    if (!pdfListo || falloPdf || !pedido.current?.descargar || descargaHecha.current) return
+    const t = setTimeout(() => {
+      if (descargaHecha.current) return
+      descargaHecha.current = true
+      descargarRef.current()
+    }, 500)
+    return () => clearTimeout(t)
+  }, [pdfListo, falloPdf])
 
   const quitar = async () => {
     if (!(await confirmar('¿Quitar la presentación con notas de la semana de los alumnos? Lo que has escrito aquí no se borra.', { boton: 'Quitar', peligro: false }))) return
@@ -1247,23 +1469,18 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     }
     setSubiendo(true)
     try {
+      await guardarTodo()
       const m = await subirArchivoProfe(id, archivo, token)
       const nuevo = [...(m?.archivos || [])].reverse().find((a) => a.tipo === 'archivo' && /\.pdf$/i.test(a.nombre))
-      await cargar()
-      if (nuevo) setFuente(`profe:${nuevo.id}`)
+      // La recién subida se abre y pasa a ser la de la pizarra. Lo escrito
+      // en la que estaba abierta se queda con ella.
+      if (nuevo) await abrir(`profe:${nuevo.id}`)
+      else await releer()
     } catch (e: any) {
       toast.error(e?.message || 'No se pudo subir')
     } finally {
       setSubiendo(false)
     }
-  }
-
-  const cambiarFuente = async (nueva: string) => {
-    if (nueva === fuente) return
-    const escrito = docRef.current.paginas.some((p) => p.trazos.length)
-    if (escrito && !(await confirmar('Lo que has escrito es de la otra presentación. Si cambias y escribes en esta, lo anterior se sustituye. ¿Cambiar?', { boton: 'Cambiar', peligro: false }))) return
-    setFuente(nueva)
-    setIdx(0)
   }
 
   // ── Pantalla ────────────────────────────────────────────────────────────
@@ -1288,7 +1505,11 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     )
   }
 
-  const sinPdf = info.fuentes.length === 0
+  // Sin PDF que abrir (la pizarra en blanco, o unas notas sueltas): páginas en blanco.
+  const sinPresentaciones = info.fuentes.length === 0
+  const abiertaAhora = info.presentaciones.find((x) => x.id === fuente)
+  const nombreAbierta = abiertaAhora?.nombre || info.sueltas.find((x) => x.id === fuente)?.nombre || (fuente === PIZARRA_EN_BLANCO ? 'Pizarra en blanco' : 'Presentación')
+  const soloLectura = info.escribible === false
   // Al lado de la llamada no caben las miniaturas: las páginas, con las flechas.
   const apretada = !!enSala
   const total = doc.paginas.length
@@ -1297,11 +1518,18 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
   const conMiniaturas = !apretada && verMiniaturas
   const conPropiedades = herramienta !== 'borrador' && herramienta !== 'mano' && (herramienta !== 'mover' || !!elegido)
   const paraQuien = info.semana.curso || 'esta clase'
+  // Al lado de la llamada la cabecera es estrecha (unos 700-800 px): los
+  // botones se quedan en su versión corta para que quepan todos y el nombre
+  // de la clase no desaparezca. Fuera de la sala manda el ancho de la ventana.
+  const anchoSala = enSala ? area.w || 760 : 0
+  const cabCorta = !!enSala && anchoSala < 1040
+  const cabMuyCorta = !!enSala && anchoSala < 700
+  const cabMinima = !!enSala && anchoSala < 480
 
   return (
     <Marco dentro={!!enSala}>
       {/* Arriba: de dónde vienes, qué clase es, si está guardado y qué tienen los alumnos */}
-      <header className="relative z-[5] flex h-14 shrink-0 items-center gap-2 border-b border-[#E6EAF2] bg-white px-2.5 sm:gap-3 sm:px-4">
+      <header className={`relative z-[5] flex h-14 shrink-0 items-center gap-2 border-b border-[#E6EAF2] bg-white px-2.5 ${enSala ? '' : 'sm:gap-3 sm:px-4'}`}>
         {enSala ? (
           <BotonCabecera onClick={() => enSala.cerrar()} titulo="Cerrar la pizarra (la llamada sigue)">
             <X size={18} />
@@ -1316,53 +1544,124 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
             <CaretLeft size={18} weight="bold" />
           </Link>
         )}
-        <span className="hidden h-6 w-px shrink-0 bg-[#E6EAF2] sm:block" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-[family-name:var(--font-poppins)] text-[15px] font-semibold leading-tight text-[#0B1033]">{info.semana.tema || 'Clase sin tema'}</p>
-          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate text-[12px] leading-tight text-[#6B7393]">
-            <span className="truncate">{info.semana.curso}</span>
-            {!sinPdf && (
-              <>
-                <span className="text-[#C3C9D8]">·</span>
-                <EstadoGuardado estado={guardado} at={guardadaAt} onReintentar={() => guardar()} />
-              </>
-            )}
+        {enSala ? null : <span className="hidden h-6 w-px shrink-0 bg-[#E6EAF2] sm:block" />}
+        <div className={`flex-1 ${enSala && !cabMuyCorta ? 'min-w-[100px]' : 'min-w-0'}`}>
+          {/* Muy estrecha (la sala en una pantalla pequeña): solo si está guardado; el tema ya está arriba. */}
+          {cabMuyCorta ? null : (
+            <p className="truncate font-[family-name:var(--font-poppins)] text-[15px] font-semibold leading-tight text-[#0B1033]">{info.semana.tema || 'Clase sin tema'}</p>
+          )}
+          <p className={`flex min-w-0 items-center gap-1.5 truncate text-[12px] leading-tight text-[#6B7393] ${cabMuyCorta ? '' : 'mt-0.5'}`}>
+            {/* En la sala el nombre de la clase ya está arriba: aquí, solo si se ha guardado. */}
+            {enSala ? null : <span className="truncate">{info.semana.curso}</span>}
+            {enSala ? null : <span className="text-[#C3C9D8]">·</span>}
+            {soloLectura ? <span>Solo para mirar y descargar</span> : <EstadoGuardado estado={guardado} at={guardadaAt} onReintentar={() => guardar()} corto={cabMuyCorta} />}
           </p>
         </div>
 
-        {info.fuentes.length > 1 && (
-          <label className="relative hidden h-9 max-w-[260px] shrink items-center gap-2 rounded-lg border border-[#E2E7F0] bg-white pl-2.5 pr-7 text-[13px] text-[#0B1033] transition-colors hover:border-[#C9D3E6] md:flex">
+        {/* Qué presentación está abierta: el botón abre la lista de la clase */}
+        <div className={`shrink-0 ${enSala ? '' : 'relative'}`}>
+          <button
+            data-presentaciones
+            onClick={() => {
+              // Al abrir, la lista al día (lo recién escrito cuenta como notas).
+              if (!panel) releer()
+              setPanel((v) => !v)
+            }}
+            aria-expanded={panel}
+            title={`Las presentaciones de esta clase. Abierta: ${nombreAbierta}`}
+            className={`flex h-9 items-center gap-2 rounded-lg border bg-white pl-2.5 pr-2.5 text-[13px] text-[#0B1033] transition-colors ${
+              enSala ? (cabMuyCorta ? 'max-w-[112px]' : cabCorta ? 'max-w-[176px]' : 'max-w-[260px]') : 'max-w-[42vw] md:max-w-[260px]'
+            } ${panel ? 'border-[#0b2da0]' : 'border-[#E2E7F0] hover:border-[#C9D3E6]'}`}
+          >
             <FilePdf size={16} className="shrink-0 text-[#B42323]" />
-            <select
-              value={fuente}
-              onChange={(e) => cambiarFuente(e.target.value)}
-              className="absolute inset-0 cursor-pointer opacity-0"
-              title="Sobre qué presentación escribes"
-              aria-label="Sobre qué presentación escribes"
-            >
-              {info.fuentes.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.de === 'profe' ? 'Completa (profe): ' : 'La de los alumnos: '}
-                  {f.nombre}
-                </option>
-              ))}
-            </select>
-            <span className="truncate">{info.fuentes.find((f) => f.id === fuente)?.nombre || 'Presentación'}</span>
-            <CaretDown size={12} weight="bold" className="pointer-events-none absolute right-2.5 text-[#6B7393]" />
-          </label>
-        )}
+            {cabMinima ? null : <span className={enSala ? 'truncate' : 'hidden truncate sm:inline'}>{nombreAbierta}</span>}
+            <CaretDown size={12} weight="bold" className="shrink-0 text-[#6B7393]" />
+          </button>
+          {panel && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setPanel(false)} />
+              <div
+                className={
+                  enSala
+                    ? // Al lado de la llamada: pegado a la izquierda de la pizarra y sin salirse de ella.
+                      'absolute left-2 top-[calc(100%+6px)] z-30 max-h-[min(62vh,580px)] w-[min(460px,calc(100%-16px))] overflow-y-auto rounded-xl border border-[#E3E7EF] bg-white p-4'
+                    : 'fixed inset-x-2 top-[60px] z-30 max-h-[calc(100dvh-76px)] overflow-y-auto rounded-xl border border-[#E3E7EF] bg-white p-4 sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+6px)] sm:w-[460px] sm:max-h-[min(70vh,640px)]'
+                }
+                style={{ boxShadow: '0 1px 2px rgba(16,24,64,0.05), 0 16px 40px -16px rgba(16,24,64,0.25)' }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-[family-name:var(--font-poppins)] text-[15px] font-semibold text-[#0B1033]">Presentaciones de esta clase</p>
+                    <p className="mt-0.5 text-[12.5px] leading-relaxed text-[#6B7393]">Cada una guarda sus notas. Abrir otra no borra lo escrito en esta.</p>
+                  </div>
+                  <BotonCabecera onClick={() => setPanel(false)} titulo="Cerrar" chico>
+                    <X size={16} />
+                  </BotonCabecera>
+                </div>
+                <div className="mt-2">
+                  <ListaPresentaciones
+                    semanaId={id}
+                    token={token}
+                    compacta
+                    abierta={fuente}
+                    inicial={listaInfo}
+                    antesDeCambiar={guardarTodo}
+                    onAbrir={async (x) => {
+                      setPanel(false)
+                      await abrir(x)
+                    }}
+                    onCambio={(l, que) => {
+                      if (que === 'cambio') trasCambioEnLaLista(l)
+                    }}
+                  />
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#EEF1F6] pt-3">
+                  <button
+                    onClick={() => {
+                      setPanel(false)
+                      descargarConNotas()
+                    }}
+                    disabled={!pdfListo || !!falloPdf || !!bajando}
+                    className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#0b2da0] hover:underline disabled:opacity-50"
+                  >
+                    <DownloadSimple size={15} weight="bold" /> Descargar esta con las notas
+                  </button>
+                  {fuente !== PIZARRA_EN_BLANCO && !soloLectura ? (
+                    <button
+                      onClick={async () => {
+                        setPanel(false)
+                        await abrir(PIZARRA_EN_BLANCO)
+                      }}
+                      className="text-[13px] font-semibold text-[#3B4262] hover:underline"
+                    >
+                      Abrir una pizarra en blanco
+                    </button>
+                  ) : null}
+                  <p className="w-full text-[12px] leading-snug text-[#8A91AD]">
+                    {doc.paginas.some((x) => x.oculta)
+                      ? `La descarga es tu copia: lleva todas las páginas, también ${doc.paginas.filter((x) => x.oculta).length === 1 ? 'la que tienes escondida' : `las ${doc.paginas.filter((x) => x.oculta).length} que tienes escondidas`} a los alumnos. No publica nada.`
+                      : 'La descarga es tu copia en PDF, con lo escrito encima. No publica nada a los alumnos.'}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
-        {!sinPdf && (
+        {!soloLectura && (
           <EstadoAlumnos
             publicada={info.publicada}
             despues={despues}
             paraQuien={paraQuien}
             onVer={() => setViendoPublicada(true)}
             onQuitar={quitar}
+            enSala={!!enSala}
+            corta={cabCorta}
+            soloPunto={cabMuyCorta}
           />
         )}
 
-        {enSala && !sinPdf ? (
+        {enSala ? (
           <button
             onClick={() => {
               cerrarTexto()
@@ -1375,7 +1674,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
             title={enSala.ensenando ? 'Los alumnos están viendo la pizarra' : 'Que los alumnos vean la pizarra en la llamada'}
           >
             {enSala.ensenando ? <span className="h-2 w-2 animate-pulse rounded-full bg-white" /> : <Broadcast size={16} weight="bold" />}
-            {enSala.ensenando ? 'Dejar de enseñar' : 'Enseñar a la clase'}
+            <span className="whitespace-nowrap">{enSala.ensenando ? (cabMuyCorta ? 'Parar' : 'Dejar de enseñar') : cabMuyCorta ? 'Enseñar' : 'Enseñar a la clase'}</span>
           </button>
         ) : null}
         {!enSala && (
@@ -1383,36 +1682,68 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
             {completa ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
           </BotonCabecera>
         )}
-        {!sinPdf && (
+        {!soloLectura && (
           <button
             onClick={publicar}
             disabled={!!publicando || !pdfListo || !!falloPdf}
-            title={`La versión que verán los alumnos de ${paraQuien} en lugar de la de antes de la clase`}
-            className="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[#0b2da0] px-3.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#0a2690] disabled:opacity-60"
+            title={`${info.publicada ? 'Guardar de nuevo para los alumnos' : 'Guardar para los alumnos'}: la versión que verán los alumnos de ${paraQuien} en lugar de la de antes de la clase`}
+            aria-label={info.publicada ? 'Guardar de nuevo para los alumnos' : 'Guardar para los alumnos'}
+            className={`flex h-9 shrink-0 items-center gap-2 rounded-lg bg-[#0b2da0] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#0a2690] disabled:opacity-60 ${cabMuyCorta ? 'px-2.5' : 'px-3.5'}`}
           >
             <PaperPlaneTilt size={16} weight="fill" />
-            <span className="hidden sm:inline">{info.publicada ? (despues ? 'Volver a guardar para los alumnos' : 'Guardar de nuevo') : 'Guardar para los alumnos'}</span>
-            <span className="sm:hidden">Guardar</span>
+            {cabMuyCorta ? null : cabCorta ? (
+              <span className="whitespace-nowrap">Guardar</span>
+            ) : (
+              <>
+                <span className="hidden whitespace-nowrap sm:inline">{info.publicada ? (despues ? 'Volver a guardar para los alumnos' : 'Guardar de nuevo') : 'Guardar para los alumnos'}</span>
+                <span className="sm:hidden">Guardar</span>
+              </>
+            )}
           </button>
         )}
       </header>
 
-      {sinPdf ? (
-        <div className="flex flex-1 items-center justify-center px-6" style={PUNTOS}>
-          <div className="w-full max-w-[460px] rounded-2xl border border-[#E6EAF2] bg-white px-7 py-8 text-center">
-            <FilePdf size={34} className="mx-auto text-[#0b2da0]" />
-            <p className="mt-3 font-[family-name:var(--font-poppins)] text-[18px] font-semibold text-[#0B1033]">Esta clase aún no tiene la presentación en PDF</p>
-            <p className="mt-2 text-[14px] leading-relaxed text-[#4A5272]">
-              Súbela y podrás abrirla en clase, escribir encima y guardarla para los alumnos. Desde PowerPoint, Keynote, Canva o Claude: «Exportar → PDF».
-            </p>
-            <label className="mt-6 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-[#0b2da0] px-4 text-[14px] font-semibold text-white hover:bg-[#0a2690]">
-              <UploadSimple size={16} weight="bold" />
-              {subiendo ? 'Subiendo…' : 'Subir la presentación'}
-              <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={subiendo} onChange={(e) => subir(e.target.files?.[0])} />
-            </label>
-          </div>
+      {choque ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-[#F0E3C4] bg-[#FFFBF2] px-4 py-2.5 text-[13px] leading-snug text-[#6B5320]">
+          <span className="min-w-0 flex-1 basis-[280px]">
+            <b className="font-semibold text-[#3F3110]">{choque.por || 'Alguien'} ha escrito en esta misma presentación desde otra pizarra abierta</b>
+            {cuandoFue(choque.at) ? ` (${cuandoFue(choque.at)})` : ''}. Lo tuyo de ahora aún no está guardado.
+          </span>
+          <button
+            onClick={() => abrir(docDe.current, false, true)}
+            className="inline-flex h-8 shrink-0 items-center rounded-lg border border-[#E2D3A8] bg-white px-3 text-[13px] font-semibold text-[#3F3110] hover:bg-[#FFF6DF]"
+            title="Se abre lo que hay guardado; lo que has escrito aquí desde entonces se pierde"
+          >
+            Ver lo suyo y dejar lo mío
+          </button>
+          <button
+            onClick={() => guardar(true)}
+            className="inline-flex h-8 shrink-0 items-center rounded-lg bg-[#0b2da0] px-3 text-[13px] font-semibold text-white hover:bg-[#0a2690]"
+            title="Lo que se ve en esta pizarra sustituye a lo guardado desde la otra"
+          >
+            Guardar lo mío encima
+          </button>
         </div>
-      ) : (
+      ) : null}
+      {soloLectura ? (
+        <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#F0E3C4] bg-[#FFFBF2] px-4 py-2 text-[13px] text-[#6B5320]">
+          <span>
+            Estas notas son de una presentación que ya no está en la clase{nombreAbierta && nombreAbierta !== 'Presentación' ? ` («${nombreAbierta}»)` : ''}: salen sobre páginas en blanco. Aquí no se escribe.
+          </span>
+          <button onClick={descargarConNotas} disabled={!pdfListo || !!bajando} className="font-semibold text-[#0b2da0] hover:underline disabled:opacity-50">
+            Descargarlas en PDF
+          </button>
+        </p>
+      ) : sinPresentaciones && fuente === PIZARRA_EN_BLANCO ? (
+        <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#E6EAF2] bg-[#FAFBFD] px-4 py-2 text-[13px] text-[#4A5272]">
+          <span>Esta clase aún no tiene presentación: estás en una pizarra en blanco. Lo que escribas se guarda igual.</span>
+          <label className="cursor-pointer font-semibold text-[#0b2da0] hover:underline">
+            {subiendo ? 'Subiendo…' : 'Subir la presentación (PDF)'}
+            <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={subiendo} onChange={(e) => subir(e.target.files?.[0])} />
+          </label>
+        </p>
+      ) : null}
+      {(
         <div className="flex min-h-0 flex-1">
           {/* Las páginas, como en Keynote o Google Slides */}
           {conMiniaturas && (
@@ -1447,7 +1778,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
                 <div className="m-auto w-full max-w-[440px] rounded-2xl border border-[#E6EAF2] bg-white px-7 py-7 text-center">
                   <p className="font-[family-name:var(--font-poppins)] text-[16px] font-semibold text-[#0B1033]">No se pudo abrir esta presentación</p>
                   <p className="mt-2 text-[14px] leading-relaxed text-[#4A5272]">{falloPdf}</p>
-                  {info.fuentes.length > 1 && <p className="mt-2 text-[13px] text-[#6B7393]">Arriba puedes elegir otra de las presentaciones de esta clase.</p>}
+                  {info.presentaciones.length > 1 && <p className="mt-2 text-[13px] text-[#6B7393]">Arriba, en el botón con el nombre, puedes abrir otra de las presentaciones de esta clase.</p>}
                   <label className="mt-5 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-[#0b2da0] px-4 text-[14px] font-semibold text-white">
                     <UploadSimple size={16} weight="bold" />
                     {subiendo ? 'Subiendo…' : 'Subir otro PDF'}
@@ -1472,6 +1803,8 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
                     }}
                   >
                     <canvas ref={fondoRef} className="absolute inset-0 h-full w-full" />
+                    {/* Solo para mirar (notas de un documento que ya no está): no se escribe encima. */}
+                    {soloLectura ? <div className="absolute inset-0 z-[3]" aria-hidden /> : null}
                     <canvas
                       ref={notasRef}
                       className="absolute inset-0 h-full w-full"
@@ -1723,6 +2056,16 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
         </div>
       )}
 
+      {abriendo && <div className="absolute inset-0 z-10 cursor-wait bg-white/50" aria-hidden />}
+      {bajando && !publicando && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/75 backdrop-blur-[2px]">
+          <div className="w-[320px] rounded-2xl border border-[#E6EAF2] bg-white px-6 py-6 text-center shadow-[0_16px_40px_-16px_rgba(16,24,64,0.25)]">
+            <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-[2.5px] border-[#DCE3F2] border-t-[#0b2da0]" />
+            <p className="mt-4 font-[family-name:var(--font-poppins)] text-[15.5px] font-semibold text-[#0B1033]">Preparando el PDF con las notas</p>
+            <p className="mt-1 text-[13px] text-[#6B7393]">{bajando}</p>
+          </div>
+        </div>
+      )}
       {publicando && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/75 backdrop-blur-[2px]">
           <div className="w-[320px] rounded-2xl border border-[#E6EAF2] bg-white px-6 py-6 text-center shadow-[0_16px_40px_-16px_rgba(16,24,64,0.25)]">
@@ -2022,12 +2365,20 @@ function EstadoAlumnos({
   paraQuien,
   onVer,
   onQuitar,
+  enSala,
+  corta,
+  soloPunto,
 }: {
   publicada: { at: string; paginas: number } | null | undefined
   despues: boolean
   paraQuien: string
   onVer: () => void
   onQuitar: () => void
+  /** Al lado de la llamada: se ve siempre, y en corto si no cabe. */
+  enSala?: boolean
+  corta?: boolean
+  /** Sin sitio ni para la palabra: el punto de color y la flecha. */
+  soloPunto?: boolean
 }) {
   const [abierto, setAbierto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -2040,19 +2391,26 @@ function EstadoAlumnos({
   const punto = !publicada ? '#B8C0D2' : despues ? '#D9A23B' : '#16A34A'
   const corto = !publicada ? 'Aún no la tienen' : despues ? 'Cambios sin guardar' : `La tienen · ${horaCorta(publicada.at)}`
   return (
-    <div ref={ref} className="relative hidden shrink-0 md:block">
+    <div ref={ref} className={`shrink-0 ${enSala ? '' : 'relative hidden md:block'}`}>
       <button
         onClick={() => setAbierto((v) => !v)}
-        className="flex h-9 items-center gap-2 rounded-lg border border-[#E2E7F0] bg-white px-3 text-[13px] font-medium text-[#0B1033] transition-colors hover:border-[#C9D3E6] hover:bg-[#F7F9FD]"
+        title={`Alumnos: ${corto}`}
+        aria-label={`Alumnos: ${corto}`}
+        className={`flex h-9 items-center gap-2 whitespace-nowrap rounded-lg border border-[#E2E7F0] bg-white text-[13px] font-medium text-[#0B1033] transition-colors hover:border-[#C9D3E6] hover:bg-[#F7F9FD] ${soloPunto ? 'px-2.5' : 'px-3'}`}
         aria-expanded={abierto}
       >
-        <span className="h-2 w-2 rounded-full" style={{ background: punto }} />
-        <span className="text-[#6B7393]">Alumnos:</span> {corto}
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: punto }} />
+        {soloPunto ? null : corta ? <span className="text-[#3B4262]">Alumnos</span> : <><span className="text-[#6B7393]">Alumnos:</span> {corto}</>}
         <CaretDown size={12} weight="bold" className="text-[#6B7393]" />
       </button>
       {abierto && (
         <div
-          className="absolute right-0 top-[calc(100%+6px)] z-20 w-[320px] rounded-xl border border-[#E3E7EF] bg-white p-1.5"
+          className={
+            enSala
+              ? // Al lado de la llamada: pegado a la izquierda de la pizarra, sin salirse de ella.
+                'absolute left-2 top-[calc(100%+6px)] z-20 w-[min(320px,calc(100%-16px))] rounded-xl border border-[#E3E7EF] bg-white p-1.5'
+              : 'absolute right-0 top-[calc(100%+6px)] z-20 w-[320px] rounded-xl border border-[#E3E7EF] bg-white p-1.5'
+          }
           style={{ boxShadow: '0 1px 2px rgba(16,24,64,0.05), 0 16px 40px -16px rgba(16,24,64,0.25)' }}
         >
           <div className="px-3 pb-2.5 pt-2">
@@ -2093,7 +2451,7 @@ function EstadoAlumnos({
   )
 }
 
-function EstadoGuardado({ estado, at, onReintentar }: { estado: Guardado; at: string; onReintentar?: () => void }) {
+function EstadoGuardado({ estado, at, onReintentar, corto }: { estado: Guardado; at: string; onReintentar?: () => void; corto?: boolean }) {
   if (estado === 'guardando')
     return (
       <span className="flex shrink-0 items-center gap-1">
@@ -2101,6 +2459,12 @@ function EstadoGuardado({ estado, at, onReintentar }: { estado: Guardado; at: st
       </span>
     )
   if (estado === 'sin-guardar') return <span className="shrink-0">Sin guardar</span>
+  if (estado === 'choque')
+    return (
+      <span className="flex shrink-0 items-center gap-1 text-[#8A6A2A]">
+        <WarningCircle size={13} weight="fill" /> Sin guardar: mira el aviso
+      </span>
+    )
   if (estado === 'error')
     return (
       <span className="flex shrink-0 items-center gap-1 text-[#B42323]">
@@ -2113,7 +2477,7 @@ function EstadoGuardado({ estado, at, onReintentar }: { estado: Guardado; at: st
   return (
     <span className="flex shrink-0 items-center gap-1">
       {at ? <CloudCheck size={14} className="text-[#16A34A]" /> : null}
-      {at ? `Guardado ${horaCorta(at)}` : 'Aún no has escrito nada'}
+      {at ? (corto ? horaCorta(at) : `Guardado ${horaCorta(at)}`) : corto ? 'Sin notas' : 'Aún no has escrito nada'}
     </span>
   )
 }

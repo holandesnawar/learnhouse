@@ -795,9 +795,21 @@ async def semanas_para_alumno(
         # El material del profe (09/11/2026): solo al equipo.
         from src.services.tareas import material_profe as MP
 
+        from src.services.tareas import pizarra as PZ
+
         for s in semanas:
             f = por_id.get(s["id"])
-            s["material_profe"] = MP.para_la_pantalla(MP.leer(getattr(f, "material_profe", "") if f is not None else ""))
+            material = MP.leer(getattr(f, "material_profe", "") if f is not None else "")
+            s["material_profe"] = MP.para_la_pantalla(material)
+            # Las presentaciones de la semana (22/11/2026, pizarra.py): cuál
+            # abre la pizarra, cuáles tienen notas y qué ven los alumnos. Sin
+            # rutas del disco. Para la lista general de la sala de profes.
+            try:
+                resumen = s["material_profe"].get("pizarra") or {"guardada_at": "", "publicada_at": "", "paginas": 0}
+                # Las clases como salen de la base de datos (con cuándo se subió cada una).
+                s["material_profe"]["pizarra"] = {**resumen, **PZ.lista(material, clases.get(s.get("chapter_uuid") or "", []))}
+            except Exception:  # noqa: BLE001
+                logger.exception("No se pudo leer las presentaciones de la semana %s", s.get("id"))
         # El número del capítulo (12/11/2026): la ficha de la clase sube ahí
         # la presentación de los alumnos sin pasar por la página del curso.
         uuids = [s["chapter_uuid"] for s in semanas if s.get("chapter_uuid")]

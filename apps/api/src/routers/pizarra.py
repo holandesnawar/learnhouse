@@ -3,7 +3,9 @@ La pizarra de clase (10/11/2026). La explicación, en
 `src/services/tareas/pizarra.py`.
 
 - Abrir la pizarra, escribir, guardar y publicar: el equipo (administradores,
-  moderadores y profes).
+  moderadores y profes; el monitor, solo en sus clases: `_semana_equipo`).
+- Cada presentación guarda sus notas (22/11/2026): la lista, cuál es la de la
+  pizarra, pasar las notas de una a otra y borrarlas.
 - El PDF de después de clase: el equipo siempre; un alumno, si puede ver esa
   clase (la misma comprobación que la página del curso) y desde el día de la
   clase.
@@ -12,7 +14,7 @@ La pizarra de clase (10/11/2026). La explicación, en
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -34,6 +36,26 @@ _SIN_CACHE = {"Cache-Control": "private, no-store"}
 class NotasIn(BaseModel):
     fuente: str = ""
     doc: Any = None
+    # Para no pisar en silencio lo que otra pestaña ha guardado (22/11/2026):
+    # la revisión que esta pizarra tenía de esa presentación, quién es esta
+    # pizarra abierta y si, avisado, quiere guardar encima igualmente.
+    base: Optional[str] = None
+    sesion: str = ""
+    forzar: bool = False
+
+
+class NombreIn(BaseModel):
+    fuente: str = ""
+    nombre: str = ""
+
+
+class FuenteIn(BaseModel):
+    fuente: str = ""
+
+
+class PasarIn(BaseModel):
+    de: str = ""
+    a: str = ""
 
 
 async def _clases_de(s, db_session: AsyncSession) -> list[dict]:
@@ -44,24 +66,71 @@ async def _guardar(s, material: dict, p: dict, db_session: AsyncSession) -> None
     await MP.guardar(s, {**material, "pizarra": p}, db_session)
 
 
-@router.get("/semana/{semana_id}", summary="La pizarra de una semana: sobre qué PDF se escribe y lo ya escrito (equipo).")
+def _con_paginas(lista: dict, p: dict) -> dict:
+    """Las notas de antes del 22/11/2026 no llevan apuntado en cuántas páginas
+    hay algo escrito: aquí (una sola semana) se cuenta leyendo el archivo."""
+
+    def contar(fuente: str, n: Optional[dict]) -> Optional[dict]:
+        if not n or n.get("paginas") is not None:
+            return n
+        doc = PZ.leer_anotaciones(p, fuente)
+        if doc is None:
+            return n
+        try:
+            escritas, _algo = PZ.contar(PZ.limpiar_anotaciones(doc))
+        except T.TareaError:
+            return n
+        return {**n, "paginas": escritas}
+
+    return {
+        **lista,
+        "presentaciones": [{**x, "notas": contar(x["id"], x["notas"])} for x in lista["presentaciones"]],
+        "sueltas": [contar(x["id"], x) for x in lista["sueltas"]],
+    }
+
+
+def _estado(s, material: dict, clases: list[dict]) -> dict:
+    """La lista de presentaciones de la semana, para devolverla tras cada cambio."""
+    return _con_paginas(PZ.lista(material, clases), PZ.leer(material))
+
+
+@router.get("/semana/{semana_id}", summary="La pizarra de una semana: sus presentaciones, cuál es la de la pizarra y lo ya escrito (equipo).")
 async def api_pizarra(
     semana_id: int,
+    fuente: Optional[str] = None,
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
     s, admin = await _semana_equipo(semana_id, current_user, db_session)
     material = MP.leer(s.material_profe)
     p = PZ.leer(material)
-    disponibles = PZ.fuentes(material, await _clases_de(s, db_session))
+    clases = await _clases_de(s, db_session)
+    disponibles = PZ.fuentes(material, clases)
+    estado = _estado(s, material, clases)
+    # La que se abre: la pedida si se puede escribir en ella (o tiene notas
+    # guardadas: unas notas sueltas se pueden abrir para bajarlas); si no, la
+    # de la pizarra; y sin ningún PDF, la pizarra en blanco.
+    pedida = (fuente or "").strip()
+    if pedida and (PZ.existe(pedida, disponibles) or pedida in p["notas"]):
+        abierta = pedida
+    else:
+        abierta = estado["fuente"] or PZ.BLANCO
+    notas = p["notas"].get(abierta) or {}
     curso = await T.curso_de(s.course_uuid, db_session)
     return {
         "semana": {"id": s.id, "tema": s.tema, "fecha": s.fecha, "course_uuid": s.course_uuid, "curso": getattr(curso, "name", "") or ""},
-        "fuentes": disponibles,
-        "fuente": PZ.fuente_valida(p["fuente"], disponibles),
-        "anotaciones": PZ.leer_anotaciones(p) if p["fuente"] else None,
-        "guardada_at": p["guardada_at"],
-        "guardada_por": p["guardada_por"],
+        "fuentes": [{"id": f["id"], "de": f["de"], "nombre": f["nombre"]} for f in disponibles],
+        "fuente": abierta,
+        # Si en la abierta se puede escribir (unas notas sueltas, no).
+        "escribible": PZ.existe(abierta, disponibles),
+        "en_pizarra": estado["fuente"],
+        "presentaciones": estado["presentaciones"],
+        "sueltas": estado["sueltas"],
+        "anotaciones": PZ.leer_anotaciones(p, abierta),
+        "guardada_at": str(notas.get("at") or ""),
+        "guardada_por": str(notas.get("por") or ""),
+        # Con qué versión de las notas se abre: se manda de vuelta al guardar.
+        "revision": str(notas.get("cambio") or notas.get("at") or ""),
         "publicada": PZ.publicada_para_la_pantalla(p),
         "admin": admin,
     }
@@ -71,6 +140,7 @@ async def api_pizarra(
 async def api_fuente(
     semana_id: int,
     fuente_id: str,
+    descargar: Optional[int] = None,
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
@@ -86,8 +156,16 @@ async def api_fuente(
         if any(c.get("activity_uuid") == ident and c.get("tipo") == "presentacion" for c in await _clases_de(s, db_session)):
             ruta = await _pdf_de_la_clase(ident, db_session)
     if ruta is None or not ruta.is_file() or ruta.suffix.lower() != ".pdf":
-        raise HTTPException(status_code=404, detail="Esa presentación ya no está. Súbela otra vez en «Editar».")
-    return FileResponse(ruta, media_type="application/pdf", headers=_SIN_CACHE)
+        raise HTTPException(status_code=404, detail="Esa presentación ya no está. Súbela otra vez en la ficha de la clase.")
+    cabeceras = dict(_SIN_CACHE)
+    if descargar:
+        from urllib.parse import quote
+
+        nombre = PZ.nombre_de(fuente_id, PZ.fuentes(material, await _clases_de(s, db_session))) or "Presentación"
+        if not nombre.lower().endswith(".pdf"):
+            nombre += ".pdf"
+        cabeceras["Content-Disposition"] = f"attachment; filename*=UTF-8''{quote(nombre)}"
+    return FileResponse(ruta, media_type="application/pdf", headers=cabeceras)
 
 
 async def _pdf_de_la_clase(activity_uuid: str, db_session: AsyncSession):
@@ -109,7 +187,7 @@ async def _pdf_de_la_clase(activity_uuid: str, db_session: AsyncSession):
     return T.CONTENT_DIR / "orgs" / org.org_uuid / "courses" / curso.course_uuid / "activities" / a.activity_uuid / "documentpdf" / nombre
 
 
-@router.put("/semana/{semana_id}/notas", summary="Guarda lo escrito en la pizarra (equipo).")
+@router.put("/semana/{semana_id}/notas", summary="Guarda lo escrito en UNA presentación (equipo). Las notas de las demás no se tocan.")
 async def api_guardar_notas(
     semana_id: int,
     data: NotasIn,
@@ -119,15 +197,117 @@ async def api_guardar_notas(
     s, _admin = await _semana_equipo(semana_id, current_user, db_session)
     material = MP.leer(s.material_profe)
     disponibles = PZ.fuentes(material, await _clases_de(s, db_session))
-    fuente = PZ.fuente_valida(data.fuente, disponibles)
-    if not fuente:
-        raise HTTPException(status_code=409, detail="Esta semana no tiene ninguna presentación en PDF")
+    p = PZ.leer(material)
+    # Sin decir cuál (la pantalla de antes del 22/11), la de la pizarra.
+    fuente = (data.fuente or "").strip() or PZ.fuente_valida(p["fuente"], disponibles) or PZ.BLANCO
+    if not PZ.existe(fuente, disponibles):
+        # Nunca se guarda «en la primera que haya»: sería escribir en otra.
+        raise HTTPException(status_code=409, detail="Esa presentación ya no está en esta clase. Recarga la pizarra: lo escrito no se ha guardado en otra.")
+    if not data.forzar:
+        otra = PZ.choque(p, fuente, data.base, (data.sesion or "").strip())
+        if otra:
+            # Otra pizarra abierta ha guardado aquí después: no se pisa sin avisar.
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "Alguien ha escrito en esta presentación desde otra pizarra abierta.", "codigo": "otra_pizarra", "por": otra["por"], "at": otra["at"]},
+            )
     try:
-        p = PZ.guardar_anotaciones(s.org_id, PZ.leer(material), fuente, data.doc, _nombre(current_user), MP._ahora())
+        # Si la de la pizarra guardada ya no existe, pasa a serlo esta.
+        if not PZ.existe(p["fuente"], disponibles):
+            p = {**p, "fuente": ""}
+        p = PZ.guardar_anotaciones(
+            s.org_id, p, fuente, data.doc, _nombre(current_user), MP._ahora(), PZ.nombre_de(fuente, disponibles), (data.sesion or "").strip()
+        )
     except T.TareaError as exc:
         raise _error(exc)
     await _guardar(s, material, p, db_session)
-    return {"guardada_at": p["guardada_at"], "guardada_por": p["guardada_por"]}
+    n = p["notas"][fuente]
+    return {"guardada_at": n["at"], "guardada_por": n["por"], "paginas": n["paginas"], "revision": n.get("cambio") or n["at"]}
+
+
+@router.put("/semana/{semana_id}/nombre", summary="El nombre con el que el equipo ve la presentación de los alumnos (equipo). No cambia lo que ve el alumno.")
+async def api_nombre(
+    semana_id: int,
+    data: NombreIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    s, _admin = await _semana_equipo(semana_id, current_user, db_session)
+    material = MP.leer(s.material_profe)
+    clases = await _clases_de(s, db_session)
+    fuente = (data.fuente or "").strip()
+    # Las del equipo se renombran en su archivo (`…/profe/{archivo}/nombre`).
+    if not fuente.startswith("clase:") or not PZ.existe(fuente, PZ.fuentes(material, clases)):
+        raise HTTPException(status_code=404, detail="Esa presentación ya no está en esta clase")
+    p = PZ.con_nombre(PZ.leer(material), fuente, data.nombre)
+    await _guardar(s, material, p, db_session)
+    return _estado(s, {**material, "pizarra": p}, clases)
+
+
+@router.put("/semana/{semana_id}/en-pizarra", summary="Marca cuál es la presentación de la pizarra: la que se abre al pulsar «Pizarra» (equipo).")
+async def api_en_pizarra(
+    semana_id: int,
+    data: FuenteIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    s, _admin = await _semana_equipo(semana_id, current_user, db_session)
+    material = MP.leer(s.material_profe)
+    clases = await _clases_de(s, db_session)
+    disponibles = PZ.fuentes(material, clases)
+    fuente = (data.fuente or "").strip()
+    if not PZ.existe(fuente, disponibles):
+        raise HTTPException(status_code=404, detail="Esa presentación ya no está en esta clase")
+    p = PZ.con_fuente(PZ.leer(material), fuente)
+    await _guardar(s, material, p, db_session)
+    return _estado(s, {**material, "pizarra": p}, clases)
+
+
+@router.post("/semana/{semana_id}/notas/pasar", summary="Pasa las notas de una presentación a otra; si la otra ya tiene, se juntan (equipo).")
+async def api_pasar_notas(
+    semana_id: int,
+    data: PasarIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    s, _admin = await _semana_equipo(semana_id, current_user, db_session)
+    material = MP.leer(s.material_profe)
+    clases = await _clases_de(s, db_session)
+    disponibles = PZ.fuentes(material, clases)
+    de, a = (data.de or "").strip(), (data.a or "").strip()
+    if not PZ.existe(a, disponibles):
+        raise HTTPException(status_code=404, detail="La presentación de destino ya no está en esta clase")
+    try:
+        p, paso = PZ.pasar(
+            s.org_id,
+            PZ.leer(material),
+            de,
+            a,
+            _nombre(current_user),
+            MP._ahora(),
+            PZ.nombre_de(a, disponibles),
+        )
+    except T.TareaError as exc:
+        raise _error(exc)
+    await _guardar(s, material, p, db_session)
+    return {**_estado(s, {**material, "pizarra": p}, clases), "pasadas": paso}
+
+
+@router.delete("/semana/{semana_id}/notas", summary="Borra las notas de una presentación (equipo).")
+async def api_borrar_notas(
+    semana_id: int,
+    fuente: str = "",
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    s, _admin = await _semana_equipo(semana_id, current_user, db_session)
+    material = MP.leer(s.material_profe)
+    try:
+        p = PZ.borrar_notas(PZ.leer(material), fuente)
+    except T.TareaError as exc:
+        raise _error(exc)
+    await _guardar(s, material, p, db_session)
+    return _estado(s, {**material, "pizarra": p}, await _clases_de(s, db_session))
 
 
 @router.post("/semana/{semana_id}/publicar", summary="Guarda la presentación con las notas para los alumnos (equipo).")
@@ -135,14 +315,18 @@ async def api_publicar(
     semana_id: int,
     pdf: UploadFile = File(...),
     paginas: int = Form(0),
+    fuente: str = Form(""),
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
     s, _admin = await _semana_equipo(semana_id, current_user, db_session)
     datos = await pdf.read(PZ.MAX_PDF + 1)
     material = MP.leer(s.material_profe)
+    disponibles = PZ.fuentes(material, await _clases_de(s, db_session))
+    p = PZ.leer(material)
+    de = (fuente or "").strip() or PZ.fuente_valida(p["fuente"], disponibles)
     try:
-        p = PZ.publicar(s.org_id, PZ.leer(material), datos, paginas, _nombre(current_user), MP._ahora())
+        p = PZ.publicar(s.org_id, p, datos, paginas, _nombre(current_user), MP._ahora(), de, PZ.nombre_de(de, disponibles))
     except T.TareaError as exc:
         raise _error(exc)
     await _guardar(s, material, p, db_session)

@@ -62,7 +62,9 @@ def test_guardar_escribir_publicar_y_quitar(tmp_path, monkeypatch):
     p3 = PZ.publicar(7, p2, pdf, 3, "Paul", "2026-11-10T19:00:00+00:00")
     primero = PZ.pdf_publicado(p3)
     assert primero is not None and primero.read_bytes() == pdf
-    assert PZ.publicada_para_la_pantalla(p3) == {"at": "2026-11-10T19:00:00+00:00", "por": "Paul", "paginas": 3, "tam": len(pdf)}
+    assert PZ.publicada_para_la_pantalla(p3) == {
+        "at": "2026-11-10T19:00:00+00:00", "por": "Paul", "paginas": 3, "tam": len(pdf), "fuente": "profe:a1", "nombre": "",
+    }
     # Volver a publicar sustituye: el archivo viejo se borra.
     p4 = PZ.publicar(7, p3, pdf + b"\n%%EOF", 4, "Paul", "2026-11-10T19:30:00+00:00")
     assert not primero.exists() and PZ.pdf_publicado(p4) is not None

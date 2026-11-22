@@ -17,9 +17,13 @@
  *   hoy): asistencia, la grabación de la sala, la pizarra con lo que se
  *   escribió, las tareas por corregir y «Cómo fue» (dos líneas del profe).
  * - **La clase**: tema, día y, el administrador, quién la da y un mensaje.
- * - **El documento de la clase**: se arrastra aquí. El PDF es lo que se abre
- *   al pulsar «Pizarra» en la sala.
- * - **Para los alumnos**: la presentación que miran antes (se sube aquí mismo).
+ * - **Presentaciones** (22/11/2026): UNA lista con todos los PDF de la clase
+ *   (`ListaPresentaciones`): quién ve cada uno (solo el equipo, o también los
+ *   alumnos antes de la clase), cuál abre la pizarra, cuál tiene notas y cuál
+ *   ven los alumnos después. Antes eran dos secciones («Documento para dar la
+ *   clase» y «Presentación para los alumnos») y nadie sabía cuál era cuál.
+ * - **Otros archivos y enlaces**: lo que no es PDF (PowerPoint, audio, un
+ *   enlace a Canva…), solo para el equipo.
  * - **Notas para el profe**.
  *
  * Los archivos se guardan al subirlos; lo demás, con «Guardar». Si la clase
@@ -30,7 +34,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { CalendarDays, Check, Clock3, FileText, Link2, Trash2, UploadCloud, User, X } from 'lucide-react'
-import PresentacionAlumnos from '@components/Pages/Courses/PresentacionAlumnos'
+import ListaPresentaciones from '@components/Pages/Presentaciones/ListaPresentaciones'
+import type { ListaPresentaciones as Lista } from '@services/pizarra/pizarra'
 import {
   abrirArchivoProfe,
   borrarSemana,
@@ -72,10 +77,13 @@ const PUNTO: Record<string, string> = {
   dada: '#9AA1B9',
 }
 
+/** Un PDF subido es una presentación: va en la lista de arriba, no en «Otros archivos». */
+const esPresentacion = (a: ArchivoProfe) => a.tipo === 'archivo' && /\.pdf$/i.test(a.nombre || '')
+
 /** Una parte de la ficha: título, para qué sirve y lo de dentro. */
-function Seccion({ titulo, ayuda, children, derecha }: { titulo: string; ayuda?: string; children: React.ReactNode; derecha?: React.ReactNode }) {
+function Seccion({ titulo, ayuda, children, derecha, ancla }: { titulo: string; ayuda?: string; children: React.ReactNode; derecha?: React.ReactNode; ancla?: string }) {
   return (
-    <section className="px-5 py-6 sm:px-7 border-b border-[#EEF1F6] last:border-b-0">
+    <section data-seccion={ancla} className="px-5 py-6 sm:px-7 border-b border-[#EEF1F6] last:border-b-0">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="text-[15px] font-semibold text-[#0B1033]" style={POPPINS}>
@@ -115,6 +123,7 @@ function FichaDentro({
   token,
   onCerrar,
   onCambio,
+  irA,
 }: {
   semana: SemanaEquipo
   clase: ClaseEquipo | undefined
@@ -126,6 +135,8 @@ function FichaDentro({
   onCerrar: () => void
   /** Algo ha cambiado: que quien abre la ficha vuelva a leer las clases. */
   onCambio: () => void
+  /** Abrirla ya en una parte (desde el listado de presentaciones). */
+  irA?: 'presentaciones'
 }) {
   const [tema, setTema] = useState(semana.tema)
   const [fecha, setFecha] = useState(semana.fecha)
@@ -134,7 +145,9 @@ function FichaDentro({
   const [notas, setNotas] = useState(semana.material?.notas || '')
   const [despues, setDespues] = useState(semana.material?.despues?.texto || '')
   const [material, setMaterial] = useState<MaterialProfe>(semana.material || { notas: '', archivos: [] })
-  const [presentaciones, setPresentaciones] = useState(semana.presentaciones.length)
+  // Las presentaciones de la clase, como las da la lista (22/11/2026).
+  const [pres, setPres] = useState<Lista | null>(null)
+  const [versionPres, setVersionPres] = useState(0)
   const [nombreEnlace, setNombreEnlace] = useState('')
   const [url, setUrl] = useState('')
   const [conEnlace, setConEnlace] = useState(false)
@@ -174,8 +187,9 @@ function FichaDentro({
     ...semana,
     tema,
     fecha,
-    material: { ...material, profe },
-    presentaciones: presentaciones ? semana.presentaciones.concat(semana.presentaciones.length ? [] : [{ activity_uuid: 'nueva', nombre: 'Presentación' }]) : [],
+    material: { ...material, profe, archivos: pres ? material.archivos.filter((a) => !esPresentacion(a)) : material.archivos },
+    // Con la lista leída, manda ella: sabe lo recién subido o quitado.
+    presentaciones: pres ? (pres.presentaciones.some((x) => x.de !== 'blanco') ? [{ activity_uuid: 'hay', nombre: 'Presentación' }] : []) : semana.presentaciones,
   }
   const estado = estadoDeClase(ahora, hoy, profeClase)
   const yaFue = !!semana.fecha && semana.fecha <= hoy
@@ -183,6 +197,11 @@ function FichaDentro({
   const da = quienDa(ahora, profeClase)
   const pizarra = material.pizarra
   const hayPdf = tieneDocumento(ahora)
+  // Lo de la pizarra, dicho con la lista (qué presentación tiene notas y cuál ven los alumnos).
+  const conNotas = (pres?.presentaciones || []).filter((x) => x.notas)
+  const publicadaAt = pres ? pres.publicada?.at || '' : pizarra?.publicada_at || ''
+  const hayNotas = pres ? conNotas.length > 0 || pres.sueltas.length > 0 : !!pizarra?.guardada_at
+  const otros = material.archivos.filter((a) => !esPresentacion(a))
 
   const igualar = async () => {
     if (!gemela || !tambien) return
@@ -202,6 +221,8 @@ function FichaDentro({
       for (const f of archivos) m = await subirArchivoProfe(semana.semanaId, f, token)
       setMaterial(m)
       setArchivosTocados(true)
+      // Un PDF es una presentación: que la lista de arriba lo enseñe.
+      if (archivos.some((f) => /\.pdf$/i.test(f.name))) setVersionPres((v) => v + 1)
       toast.success(archivos.length === 1 ? 'Subido' : `${archivos.length} archivos subidos`)
     } catch (e: any) {
       toast.error(e?.message || 'No se ha podido subir')
@@ -290,8 +311,15 @@ function FichaDentro({
 
   // La ficha tiene dos caras: preparar la clase y lo de después. Ya dada,
   // se abre en «Después» (lo que queda es ver qué pasó).
-  const [cara, setCara] = useState<'preparar' | 'despues'>(yaFue && !esHoy ? 'despues' : 'preparar')
-  const pendientesDespues = (semana.porCorregir || 0) + (pizarra?.guardada_at && !pizarra?.publicada_at ? 1 : 0)
+  const [cara, setCara] = useState<'preparar' | 'despues'>(irA === 'presentaciones' ? 'preparar' : yaFue && !esHoy ? 'despues' : 'preparar')
+  // Desde el listado de presentaciones: la ficha se abre ya en esa parte.
+  const cuerpoRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (irA !== 'presentaciones') return
+    const t = setTimeout(() => cuerpoRef.current?.querySelector('[data-seccion="presentaciones"]')?.scrollIntoView({ block: 'start' }), 80)
+    return () => clearTimeout(t)
+  }, [irA])
+  const pendientesDespues = (semana.porCorregir || 0) + (hayNotas && !publicadaAt ? 1 : 0)
 
   const despuesDeLaClase = yaFue ? (
     <>
@@ -312,17 +340,23 @@ function FichaDentro({
             }
           />
           <Linea
-            hecho={!!pizarra?.publicada_at}
+            hecho={!!publicadaAt}
             titulo={
-              pizarra?.publicada_at
+              publicadaAt
                 ? `Pizarra: los alumnos de este grupo ya ven la versión de la clase`
-                : pizarra?.guardada_at
-                  ? 'Pizarra: hay cosas escritas, sin guardar para los alumnos'
+                : hayNotas
+                  ? conNotas.length
+                    ? `Pizarra: hay notas en «${conNotas[0].nombre}»${conNotas.length > 1 ? ` y en ${conNotas.length - 1} más` : ''}, sin guardar para los alumnos`
+                    : 'Pizarra: hay cosas escritas, sin guardar para los alumnos'
                   : 'Pizarra: no se escribió nada'
             }
-            detalle={pizarra?.publicada_at ? `${pizarra.paginas || 0} páginas, en lugar de la presentación de antes` : undefined}
+            detalle={
+              publicadaAt
+                ? `${pres?.publicada?.nombre ? `De «${pres.publicada.nombre}» · ` : ''}${pres?.publicada?.paginas || pizarra?.paginas || 0} páginas, en lugar de la presentación de antes`
+                : undefined
+            }
             accion={
-              hayPdf || pizarra?.guardada_at ? (
+              hayPdf || hayNotas ? (
                 <a href={`/pizarra/${semana.semanaId}`} className={BOTON}>
                   Abrir
                 </a>
@@ -411,10 +445,26 @@ function FichaDentro({
         ) : null}
       </Seccion>
 
-      <Seccion titulo="Documento para dar la clase" ayuda="Solo lo ve el equipo. Si es un PDF, es lo que se abre al pulsar «Pizarra» en la sala, listo para escribir encima.">
-        {material.archivos.length ? (
+      <Seccion ancla="presentaciones" titulo="Presentaciones" ayuda="Todos los PDF de esta clase, en un solo sitio. Cada uno guarda sus propias notas de la pizarra: cambiar de uno a otro no borra nada.">
+        <ListaPresentaciones
+          semanaId={semana.semanaId}
+          chapterId={semana.chapterId}
+          token={token}
+          version={versionPres}
+          onCambio={(l, que) => {
+            setPres(l)
+            if (que === 'cambio') {
+              setArchivosTocados(true)
+              onCambio()
+            }
+          }}
+        />
+      </Seccion>
+
+      <Seccion titulo="Otros archivos y enlaces" ayuda="Lo que no es un PDF: el PowerPoint original, un audio, un enlace a Canva… Solo lo ve el equipo.">
+        {otros.length ? (
           <ul className="mb-2.5 divide-y divide-[#EEF1F6] rounded-xl border border-[#E6EAF2]">
-            {material.archivos.map((a) => (
+            {otros.map((a) => (
               <li key={a.id} className="flex items-center gap-3 px-3.5 py-2.5">
                 {a.tipo === 'enlace' ? <Link2 size={17} className="shrink-0 text-[#6B7393]" /> : <FileText size={17} className="shrink-0 text-[#6B7393]" />}
                 <span className="min-w-0 flex-1">
@@ -435,7 +485,7 @@ function FichaDentro({
           ref={entrada}
           type="file"
           multiple
-          accept=".pdf,.pptx,.ppt,.key,.odp,.docx,.doc,.png,.jpg,.jpeg,.webp,.mp3,.m4a,.mp4"
+          accept=".pptx,.ppt,.key,.odp,.docx,.doc,.png,.jpg,.jpeg,.webp,.mp3,.m4a,.mp4"
           className="hidden"
           onChange={(e) => subir(e.target.files)}
         />
@@ -453,14 +503,14 @@ function FichaDentro({
             subir(e.dataTransfer.files)
           }}
           disabled={!!ocupado}
-          className={`flex w-full items-center gap-3.5 rounded-xl border border-dashed px-4 py-4 text-left transition-colors ${
+          className={`flex w-full items-center gap-3.5 rounded-xl border border-dashed px-4 py-3 text-left transition-colors ${
             encima ? 'border-[#0b2da0] bg-[#F5F8FF]' : 'border-[#CDD5E5] bg-[#FAFBFD] hover:border-[#0b2da0] hover:bg-[#F7F9FF]'
           }`}
         >
           <UploadCloud size={22} strokeWidth={1.6} className="shrink-0 text-[#0b2da0]" />
           <span className="min-w-0">
-            <span className="block text-[14px] font-semibold text-[#0B1033]">{ocupado === 'subir' ? 'Subiendo…' : 'Arrastra aquí el documento o pulsa para elegirlo'}</span>
-            <span className="block text-[12.5px] text-[#6B7393]">PDF para la pizarra. También PowerPoint, Keynote, Word, audio… hasta 80 MB.</span>
+            <span className="block text-[14px] font-semibold text-[#0B1033]">{ocupado === 'subir' ? 'Subiendo…' : 'Añadir un archivo'}</span>
+            <span className="block text-[12.5px] text-[#6B7393]">PowerPoint, Keynote, Word, imagen, audio o vídeo, hasta 80 MB. Los PDF van arriba, en Presentaciones.</span>
           </span>
         </button>
         {conEnlace ? (
@@ -478,25 +528,6 @@ function FichaDentro({
         )}
       </Seccion>
 
-      <Seccion titulo="Presentación para los alumnos" ayuda={`Lo que ven los alumnos de ${semana.curso} en su semana. Solo este grupo: el otro tiene la suya.`}>
-        <PresentacionAlumnos
-          semanaId={semana.semanaId}
-          chapterId={semana.chapterId}
-          courseUuid={semana.courseUuid}
-          fecha={semana.fecha}
-          hoy={hoy}
-          presentaciones={semana.presentaciones}
-          publicadaAt={pizarra?.publicada_at || ''}
-          paginas={pizarra?.paginas || 0}
-          token={token}
-          ruta={ruta}
-          onCambio={() => {
-            setPresentaciones((n) => Math.max(n, 1))
-            onCambio()
-          }}
-        />
-      </Seccion>
-
       <Seccion titulo="Notas para quien la da" ayuda="Cómo dar la clase, qué repasar, qué hacer si sobra tiempo. Solo las ve el equipo.">
         <textarea value={notas} onChange={(e) => setNotas(e.target.value)} rows={4} placeholder="Escribe aquí…" className={`${CAMPO} resize-y`} />
         {gemela ? (
@@ -507,7 +538,7 @@ function FichaDentro({
                 Guardar también en {gemela.curso} ({diaLegible(gemela.fecha)})
               </span>
               {gemela.mismo_tema === false ? <>Ojo: allí el tema es «{gemela.tema || 'sin tema'}». Márcalo solo si es la misma clase. </> : null}
-              El tema, la tarea, las notas y el documento del profe (lo vacío aquí no se borra allí). Cada grupo conserva su día, quién la da, su presentación de alumnos, su pizarra y su grabación.
+              El tema, la tarea, las notas y las presentaciones y archivos del equipo (lo vacío aquí no se borra allí). Cada grupo conserva su día, quién la da, la presentación de sus alumnos, sus notas de la pizarra y su grabación.
             </span>
           </label>
         ) : null}
@@ -575,11 +606,9 @@ function FichaDentro({
                 Entrar a la sala
               </Link>
             ) : null}
-            {hayPdf ? (
-              <a href={`/pizarra/${semana.semanaId}`} className={esHoy ? BOTON : BOTON_AZUL}>
-                Abrir la pizarra
-              </a>
-            ) : null}
+            <a href={`/pizarra/${semana.semanaId}`} className={esHoy || !hayPdf ? BOTON : BOTON_AZUL} title={hayPdf ? undefined : 'Sin presentación, se abre en blanco'}>
+              Abrir la pizarra
+            </a>
             <Link href={ruta(`/course/${uuid}`)} className={BOTON}>
               Página de la clase
             </Link>
@@ -615,7 +644,7 @@ function FichaDentro({
           )}
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div ref={cuerpoRef} className="min-h-0 flex-1 overflow-y-auto">
           {/* El mensaje del administrador, tal como lo ve el profe */}
           {!admin && semana.material?.mensaje?.texto ? (
             <div className="px-5 pt-5 sm:px-7">

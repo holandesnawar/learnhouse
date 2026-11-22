@@ -80,7 +80,25 @@ export function ajustarAlPdf(doc: DocPizarra | null | undefined, paginasPdf: num
       paginas.push({ origen: null, titulo: pg.titulo, oculta: pg.oculta, trazos })
     }
   }
-  for (let n = 1; n <= paginasPdf; n++) if (!vistas.has(n)) paginas.push({ origen: n, trazos: [] })
+  // Las páginas del PDF que faltan van EN SU SITIO, por número (22/11/2026):
+  // delante de la primera página del PDF con un número mayor y, si no hay,
+  // detrás de la última página del PDF (las páginas en blanco del final se
+  // quedan al final). Antes iban todas al final: al pasar las notas de una
+  // presentación a otra, la página en blanco de notas quedaba en medio.
+  for (let n = 1; n <= paginasPdf; n++) {
+    if (vistas.has(n)) continue
+    const nueva: PaginaPizarra = { origen: n, trazos: [] }
+    let donde = paginas.findIndex((p) => p.origen != null && p.origen > n)
+    if (donde < 0) {
+      let ultima = -1
+      paginas.forEach((p, k) => {
+        if (p.origen != null) ultima = k
+      })
+      // Sin ninguna página del PDF todavía (venían de la pizarra en blanco): el PDF, delante.
+      donde = ultima >= 0 ? ultima + 1 : 0
+    }
+    paginas.splice(donde, 0, nueva)
+  }
   return { v: 1, paginas }
 }
 

@@ -32,8 +32,23 @@ describe('la pizarra de clase', () => {
       ],
     }
     const d = ajustarAlPdf(viejo, 2)
-    expect(d.paginas.map((p) => p.origen)).toEqual([1, null, 2])
-    expect(d.paginas[1].trazos).toHaveLength(1)
+    // Las páginas del PDF, en su orden; la de notas (ya sin página), detrás.
+    expect(d.paginas.map((p) => p.origen)).toEqual([1, 2, null])
+    expect(d.paginas[2].trazos).toHaveLength(1)
+  })
+
+  test('las notas pasadas de otra presentación: las páginas que faltan van en su sitio y la de notas, al final', () => {
+    // Lo que deja el servidor al pasar notas: solo las páginas con algo escrito.
+    const trazo: Trazo = { t: 'lapiz', color: '#000', grosor: 0.004, p: [0.1, 0.1, 0.2, 0.2] }
+    const pasadas: DocPizarra = { v: 1, paginas: [{ origen: 1, trazos: [trazo] }, { origen: 4, trazos: [trazo] }, { origen: null, titulo: 'Notas', trazos: [trazo] }] }
+    const d = ajustarAlPdf(pasadas, 6)
+    expect(d.paginas.map((p) => p.origen)).toEqual([1, 2, 3, 4, 5, 6, null])
+    expect(d.paginas[3].trazos).toHaveLength(1)
+    // Una página en blanco que el profe puso EN MEDIO se queda donde estaba.
+    const enMedio: DocPizarra = { v: 1, paginas: [{ origen: 1, trazos: [] }, { origen: null, trazos: [trazo] }, { origen: 2, trazos: [] }, { origen: 3, trazos: [] }] }
+    expect(ajustarAlPdf(enMedio, 3).paginas.map((p) => p.origen)).toEqual([1, null, 2, 3])
+    // Notas de la pizarra en blanco pasadas a un PDF: el PDF delante, las notas detrás.
+    expect(ajustarAlPdf({ v: 1, paginas: [{ origen: null, trazos: [trazo] }] }, 2).paginas.map((p) => p.origen)).toEqual([1, 2, null])
   })
 
   test('un trazo roto no rompe la pizarra', () => {

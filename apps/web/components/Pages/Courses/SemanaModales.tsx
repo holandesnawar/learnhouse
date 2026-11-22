@@ -505,6 +505,13 @@ export function EditarSemana({
               ruta={ruta}
               onCambio={onCambio}
             />
+            {/* Lo demás (los PDF del equipo, cuál abre la pizarra, las notas) está en la ficha de la clase. */}
+            <a
+              href={(ruta || ((x: string) => x))(`/equipo?vista=presentaciones&ficha=${semana.id}`)}
+              className="mt-2 inline-block text-[13px] font-semibold text-[#0b2da0] hover:underline"
+            >
+              Todas las presentaciones y la pizarra de esta clase
+            </a>
           </div>
         ) : null}
         <p className="text-[12px] text-[#6B7280]">La grabación y los ejercicios se cambian en el editor del curso («Añadir clases»).</p>

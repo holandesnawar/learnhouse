@@ -46,7 +46,7 @@ export type SemanaEquipo = {
     profe?: string
     mensaje?: { texto: string; por: string; at: string; leido_por: string; leido_at: string } | null
     /** La pizarra de clase (10/11/2026). */
-    pizarra?: { guardada_at: string; publicada_at: string; paginas: number } | null
+    pizarra?: import('@services/tareas/tareas').MaterialProfe['pizarra']
     /** «Cómo fue la clase» (12/11/2026). */
     despues?: { texto: string; por: string; at: string } | null
   }

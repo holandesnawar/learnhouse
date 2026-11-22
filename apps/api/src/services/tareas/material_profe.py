@@ -110,12 +110,16 @@ def para_la_pantalla(m: dict) -> dict:
 
 
 def _pizarra_resumen(m: dict) -> Optional[dict]:
-    p = m.get("pizarra")
-    if not isinstance(p, dict):
+    """`guardada_at` = la última vez que se escribió en CUALQUIER presentación
+    de la semana (22/11/2026: cada una guarda sus notas, pizarra.py)."""
+    if not isinstance(m.get("pizarra"), dict):
         return None
-    pub = p.get("publicada") if isinstance(p.get("publicada"), dict) else None
+    from src.services.tareas import pizarra as PZ
+
+    p = PZ.leer(m)
+    pub = p.get("publicada")
     return {
-        "guardada_at": str(p.get("guardada_at") or ""),
+        "guardada_at": PZ.ultima_escritura(p),
         "publicada_at": str((pub or {}).get("at") or ""),
         "paginas": int((pub or {}).get("paginas") or 0),
     }
@@ -218,6 +222,38 @@ def sin(m: dict, archivo_id: str, por: str, admin: bool) -> tuple[dict, Optional
     if not admin and (a.get("por") or "") != (por or ""):
         raise TareaError("Solo lo puede quitar quien lo subió o un administrador", 403)
     return {**m, "archivos": [x for x in m["archivos"] if x.get("id") != archivo_id]}, a.get("ruta")
+
+
+def con_nombre(m: dict, archivo_id: str, nombre: str) -> dict:
+    """Cambia el nombre con el que se ve un archivo o un enlace (22/11/2026)."""
+    n = " ".join((nombre or "").split())[:150]
+    if not n:
+        raise TareaError("Escribe un nombre")
+    a = next((x for x in m["archivos"] if x.get("id") == archivo_id), None)
+    if a is None:
+        raise TareaError("Ese archivo ya no está", 404)
+    # La extensión se conserva: por ella se sabe en las listas si es un PDF.
+    ext = Path(str(a.get("nombre") or "")).suffix if a.get("tipo") == "archivo" else ""
+    if ext and ext.lower() in EXTENSIONES and not n.lower().endswith(ext.lower()):
+        n += ext
+    return {**m, "archivos": [{**x, "nombre": n} if x.get("id") == archivo_id else x for x in m["archivos"]]}
+
+
+def con_archivo_cambiado(m: dict, archivo_id: str, relativa: str, tam: int, por: str) -> tuple[dict, Optional[str]]:
+    """Cambia el ARCHIVO de uno ya subido conservando su id (22/11/2026): así
+    una presentación corregida conserva lo escrito sobre ella en la pizarra
+    (las notas van por id, pizarra.py). El nombre que se ve no cambia. Devuelve
+    también la ruta del archivo de antes, para borrarlo si nadie más lo usa.
+
+    Tiene que ser del mismo tipo (un PDF por un PDF): si no, dejaría de ser
+    una presentación y sus notas se quedarían sueltas."""
+    a = next((x for x in m["archivos"] if x.get("id") == archivo_id and x.get("tipo") == "archivo"), None)
+    if a is None:
+        raise TareaError("Ese archivo ya no está", 404)
+    if Path(str(a.get("ruta") or "")).suffix.lower() != Path(relativa).suffix.lower():
+        raise TareaError("Tiene que ser del mismo tipo que el de antes (un PDF por un PDF)")
+    cambiado = {**a, "ruta": relativa, "tam": int(tam), "cambiado_por": (por or "")[:120], "cambiado_at": _ahora()}
+    return {**m, "archivos": [cambiado if x.get("id") == archivo_id else x for x in m["archivos"]]}, a.get("ruta")
 
 
 def archivo(m: dict, archivo_id: str) -> Optional[tuple[Path, str, str]]:

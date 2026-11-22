@@ -11,6 +11,9 @@
  *   siguientes y lo pendiente de las anteriores.
  * - **Calendario** (`CalendarioEquipo`): todas las clases de las próximas
  *   semanas, con quién da cada una.
+ * - **Presentaciones** (22/11/2026, `PresentacionesEquipo`): qué presentación
+ *   tiene cada clase, cuál abre la pizarra, si tiene notas y qué ven los
+ *   alumnos; arriba, lo que hay que revisar.
  * - **Clases dadas** (antes «Archivo»): todas las clases dadas, mes a mes,
  *   con quién la dio; cada una abre su ficha (12/11/2026).
  * - **Manual**: los SOP (no al monitor).
@@ -34,10 +37,11 @@ import useClasesEquipo from './useClasesEquipo'
 import InicioSala from './InicioSala'
 import CalendarioEquipo from './CalendarioEquipo'
 import ArchivoClases from './ArchivoClases'
+import PresentacionesEquipo from './PresentacionesEquipo'
 import ManualEquipo from './ManualEquipo'
 import { POPPINS } from './estilo'
 
-type Vista = 'clases' | 'calendario' | 'archivo' | 'manual'
+type Vista = 'clases' | 'calendario' | 'presentaciones' | 'archivo' | 'manual'
 
 export default function SalaProfes() {
   const org = useOrg() as any
@@ -62,6 +66,8 @@ export default function SalaProfes() {
   const vistas: { id: Vista; titulo: string }[] = [
     { id: 'clases', titulo: 'Inicio' },
     { id: 'calendario', titulo: 'Calendario' },
+    // Qué presentación tiene cada clase y cuál abre la pizarra (22/11/2026). También el monitor.
+    { id: 'presentaciones', titulo: 'Presentaciones' },
     { id: 'archivo', titulo: 'Clases dadas' },
     ...(monitor ? [] : [{ id: 'manual' as Vista, titulo: 'Manual' }]),
   ]
@@ -160,6 +166,19 @@ export default function SalaProfes() {
           />
         ) : vista === 'calendario' ? (
           <CalendarioEquipo
+            clases={clases}
+            semanas={cargado ? semanas : null}
+            hoy={hoy}
+            ruta={ruta}
+            miNombre={nombre}
+            admin={yo.admin}
+            monitor={monitor}
+            token={token}
+            recargar={recargar}
+            nombres={nombres}
+          />
+        ) : vista === 'presentaciones' ? (
+          <PresentacionesEquipo
             clases={clases}
             semanas={cargado ? semanas : null}
             hoy={hoy}

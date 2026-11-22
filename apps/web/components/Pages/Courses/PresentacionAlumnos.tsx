@@ -21,6 +21,11 @@
  * (no se borra: un profe no puede borrar clases y así se puede deshacer en el
  * editor del curso). Con la casilla, lo mismo en la clase del otro grupo de
  * esa semana; nace marcada si allí aún no ha habido clase.
+ *
+ * El PDF nuevo es OTRA clase del curso (otro id). Lo que el profe hubiera
+ * escrito en la pizarra sobre el de antes pasa al nuevo (22/11/2026,
+ * `llevarNotas`): si no, la pizarra dejaba de encontrarlo. En la ficha de la
+ * clase esto mismo se hace desde la lista «Presentaciones».
  */
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -28,6 +33,7 @@ import toast from 'react-hot-toast'
 import { Check, FileText, Loader2, UploadCloud } from 'lucide-react'
 import { createFileActivity, updateActivity } from '@services/courses/activities'
 import { diaCorto, getGemela, type Gemela } from '@services/tareas/tareas'
+import { nombrarPresentacion, pasarNotas } from '@services/pizarra/pizarra'
 import { VisorPresentacionClase } from '@components/Pages/Clases/pasosSemana'
 
 type Pres = { activity_uuid: string; nombre: string }
@@ -58,6 +64,18 @@ export async function ponerPresentacion(f: File, chapterId: number, viejas: Pres
     if (v.activity_uuid && v.activity_uuid !== act.activity_uuid) await updateActivity({ published: false }, v.activity_uuid, token)
   }
   return act.activity_uuid as string
+}
+
+/** Lo escrito en la pizarra sobre los PDF de antes pasa al nuevo (y si alguno
+ * era el de la pizarra, el nuevo pasa a serlo). En blando: sin notas, nada. */
+export async function llevarNotas(semanaId: number, viejas: Pres[], nueva: string, token: string, nombre = '') {
+  for (const v of viejas) {
+    if (!v.activity_uuid || v.activity_uuid === nueva) continue
+    await pasarNotas(semanaId, `clase:${v.activity_uuid}`, `clase:${nueva}`, token).catch(() => undefined)
+  }
+  // El equipo la ve con el nombre del archivo que se subió (22/11/2026); la
+  // clase del curso se llama siempre «Presentación», que no dice cuál es.
+  if (nombre.trim()) await nombrarPresentacion(semanaId, `clase:${nueva}`, nombre.trim(), token).catch(() => undefined)
 }
 
 export default function PresentacionAlumnos(p: PropsPresentacion) {
@@ -105,10 +123,12 @@ export default function PresentacionAlumnos(p: PropsPresentacion) {
     setSubiendo(true)
     try {
       const nueva = await ponerPresentacion(archivo, p.chapterId, pres, p.token)
+      await llevarNotas(p.semanaId, pres, nueva, p.token, archivo.name)
       setPres([{ activity_uuid: nueva, nombre: 'Presentación' }])
       if (tambien && gemela?.chapter_id) {
         try {
-          await ponerPresentacion(archivo, gemela.chapter_id, gemela.presentaciones || [], p.token)
+          const alli = await ponerPresentacion(archivo, gemela.chapter_id, gemela.presentaciones || [], p.token)
+          await llevarNotas(gemela.id, gemela.presentaciones || [], alli, p.token, archivo.name)
         } catch (e: any) {
           toast.error(`Cambiada aquí, pero no en ${gemela.curso}: ${e?.message || 'vuelve a intentarlo'}`)
         }
