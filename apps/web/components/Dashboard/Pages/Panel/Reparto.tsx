@@ -16,7 +16,6 @@ import { createPortal } from 'react-dom'
 import { Check, ChevronDown, Plus } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { asignarCloser, getReparto, guardarCorreosCalendly, type MiembroEquipo, type UltimaReserva } from '@services/panel/panel'
 import { colorCloser } from '@lib/nawar/colorCloser'
 import toast from 'react-hot-toast'
@@ -171,7 +170,8 @@ export function PildoraCloser({ nombre, color, title }: { nombre: string; color:
 
 /**
  * En cada tarjeta del tablero (31/10): quién la lleva, sin abrirla. Con closer,
- * su etiqueta; tocándola (si es tuya o eres administrador) se cambia. Sin
+ * su etiqueta; tocándola se cambia (desde el 22/11/2026, cualquier closer o
+ * administrador: antes solo la suya o un administrador). Sin
  * closer, «Asignarme» (un toque) y la flecha para pasársela a otro.
  * No abre la tarjeta: el clic se queda aquí.
  */
@@ -196,7 +196,6 @@ export function EtiquetaCloser({
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
-  const { isAdmin } = useAdminStatus()
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const [enviando, setEnviando] = useState(false)
   const caja = useRef<HTMLDivElement | null>(null)
@@ -225,7 +224,9 @@ export function EtiquetaCloser({
   if (!reparto.yo) return null
   const color = closerId ? colorCloser(closerId, reparto.equipo, closer) : ''
   const nombreActual = reparto.equipo.find((m) => m.id === closerId)?.nombre || closer
-  const puedeCambiar = !closerId || isAdmin || closerId === reparto.yo
+  // Cualquiera del equipo del panel (closer o administrador) cambia de quién
+  // es un lead (22/11/2026). El servidor sigue mirando que lo pueda ver.
+  const puedeCambiar = true
 
   async function dar(id: number) {
     setMenu(null)

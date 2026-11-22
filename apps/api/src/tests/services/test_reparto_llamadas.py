@@ -219,3 +219,24 @@ def test_dos_llamadas_del_mismo_closer_a_la_vez():
     # cuando acaba Ana, pero Eva (sin fin, 45 min) le pisa; las canceladas y
     # las que no tienen closer no cuentan.
     assert choques(citas) == {"a": "Eva", "b": "Ana", "d": "Eva"}
+
+
+def test_texto_del_cambio_de_closer():
+    t = pipeline.texto_cambio_closer
+    assert t({"autor": "Belén", "antes": "Diego", "despues": "Belén"}) == "Belén pasó su closer de Diego a Belén"
+    assert t({"autor": "Diego", "despues": "Belén"}) == "Diego le puso de closer a Belén"
+    assert t({"autor": "Rida", "antes": "Diego"}) == "Rida le quitó el closer (Diego)"
+
+
+async def test_el_cambio_de_closer_queda_en_su_ficha_sin_ser_lo_ultimo_que_hizo(db):
+    # 22/11/2026: cualquier closer cambia de quién es un lead; queda el rastro.
+    db.add(EnrollmentRequest(email="ana@x.com", name="Ana", source="web", created_at=_hace(5)))
+    await db.commit()
+    await pipeline.asignar("ana@x.com", 7, "Diego", "Diego", db)
+    await pipeline.asignar("ana@x.com", 8, "Belén", "Belén", db)
+    await pipeline.apuntar_cambio_closer("ana@x.com", "Diego", "Belén", "Belén", db)
+    ficha = next(f for f in fusionar_contactos(await _todos_los_eventos(db), set()) if f["email"] == "ana@x.com")
+    textos = [p.get("que", "") for p in ficha.get("pasos") or ficha.get("eventos") or []]
+    assert any("pasó su closer de Diego a Belén" in x for x in textos), textos
+    assert "closer" not in (ficha.get("ultimo_contacto") or {}).get("que", "")
+    assert (await _tablero(db))["ana@x.com"]["closer_id"] == 8

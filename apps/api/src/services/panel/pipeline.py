@@ -292,7 +292,7 @@ _MEDIOS = {
 #: Medios que no añaden nada.
 _MEDIOS_VACIOS = {"organic", "organico", "orgánico", "social", "referral", "none", "(none)", "web", "link"}
 #: Lo que hace el equipo o la escuela, no la persona: no dice por dónde llegó.
-_NO_DICEN_DE_DONDE = {"datos-editados", "enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada", "whatsapp-llamada", "llamada-cambiada", "llamada-cancelada", "check-in", "correo-bf", "baja-bf", "intento-contacto"}
+_NO_DICEN_DE_DONDE = {"closer-cambiado", "datos-editados", "enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada", "whatsapp-llamada", "llamada-cambiada", "llamada-cancelada", "check-in", "correo-bf", "baja-bf", "intento-contacto"}
 #: Al buscar de qué web llegó, por el nombre de la dirección.
 _WEBS = (
     ("instagram", "Instagram"), ("facebook", "Facebook"), ("fb.", "Facebook"), ("tiktok", "TikTok"),
@@ -846,6 +846,43 @@ async def asignar(
     db_session.add(fila)
     await db_session.commit()
     return {"ok": True, "closer_id": closer_id, "closer": fila.closer, "cambia": closer_id != antes}
+
+
+#: El cambio de closer hecho a mano (22/11/2026): un evento en su ficha para
+#: que se vea quién lo cambió y de quién a quién. No es algo que hizo la
+#: persona: no cuenta como origen ni como «lo último que hizo».
+KIND_CLOSER = "closer-cambiado"
+
+
+def texto_cambio_closer(extra: dict) -> str:
+    quien = (extra or {}).get("autor") or "El equipo"
+    antes = ((extra or {}).get("antes") or "").strip()
+    despues = ((extra or {}).get("despues") or "").strip()
+    if antes and despues:
+        return f"{quien} pasó su closer de {antes} a {despues}"
+    if despues:
+        return f"{quien} le puso de closer a {despues}"
+    if antes:
+        return f"{quien} le quitó el closer ({antes})"
+    return f"{quien} cambió su closer"
+
+
+async def apuntar_cambio_closer(email: str, antes: str, despues: str, autor: str, db_session: AsyncSession) -> None:
+    import json
+
+    from src.db.contact_event import ContactEvent
+
+    clave = (email or "").strip().lower()
+    if not clave or "@" not in clave:
+        return
+    fila = ContactEvent(email=clave, kind=KIND_CLOSER)
+    fila.source = "equipo"
+    fila.extra = json.dumps(
+        {"antes": (antes or "")[:120], "despues": (despues or "")[:120], "autor": (autor or "")[:120]}, ensure_ascii=False
+    )
+    fila.created_at = _ahora()
+    db_session.add(fila)
+    await db_session.commit()
 
 
 async def ocultar(email: str, oculto: bool, autor: str, db_session: AsyncSession) -> dict:

@@ -213,19 +213,25 @@ async def api_asignar(
         closer = next((m for m in eq if m["id"] == data.closer_id), None)
         if closer is None:
             raise HTTPException(status_code=400, detail="Esa persona no está en el equipo del panel")
-    # Con dos closers (28/10): uno no le quita al otro una llamada que ya lleva.
-    # Si los dos pulsan «Para mí» a la vez, gana el primero. Un administrador
-    # sí puede cambiarla.
+    # Desde el 22/11/2026 cualquier closer cambia de quién es un lead (antes,
+    # 28/10, solo un administrador podía quitársela a otro closer: daba 409).
+    # Sigue la puerta de siempre: solo sobre lo que esa persona ve
+    # (`_solo_si_la_ve`), y cada cambio queda en la línea de tiempo de la ficha.
     filas = await pipeline.filas_de(data.email, db_session)
     ya = int(getattr(pipeline._la_asignada(filas), "closer_id", 0) or 0) if filas else 0
-    if ya and ya != data.closer_id and ya != current_user.id and not await _es_admin(current_user, org_id, db_session):
-        quien = next((m.get("nombre") for m in eq if m["id"] == ya), "") or "otra persona"
-        raise HTTPException(status_code=409, detail=f"Ya la lleva {quien}. Si hay que cambiarla, que lo haga un administrador.")
     r = await pipeline.asignar(
         data.email, data.closer_id, (closer or {}).get("nombre", ""), _nombre(current_user), db_session
     )
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo"))
+    if r.get("cambia"):
+        antes = next((m.get("nombre") for m in eq if m["id"] == ya), "") if ya else ""
+        try:
+            await pipeline.apuntar_cambio_closer(
+                data.email, antes, (closer or {}).get("nombre", ""), _nombre(current_user), db_session
+            )
+        except Exception:  # noqa: BLE001 — el rastro no puede tumbar el cambio
+            await db_session.rollback()
     # Al closer que la recibe, un correo, salvo que se la quede quien reparte.
     if closer and r.get("cambia") and closer["id"] != current_user.id:
         from src.services.panel.reparto import avisar_asignada
@@ -398,10 +404,16 @@ async def api_tareas(
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     es_admin = await _es_admin(current_user, org_id, db_session)
+    from datetime import datetime, timezone
+
+    lista = await tareas.listar(db_session, current_user.id, es_admin, email=email, solo_pendientes=pendientes)
+    # El medidor flotar/mover de la semana es siempre de quien mira (las suyas).
+    mias = lista if not (es_admin or email or pendientes) else await tareas.listar(db_session, current_user.id, False)
     return {
-        "tareas": await tareas.listar(db_session, current_user.id, es_admin, email=email, solo_pendientes=pendientes),
+        "tareas": lista,
         "yo": current_user.id,
         "es_admin": es_admin,
+        "balance": tareas.balance_semana(mias, current_user.id, datetime.now(timezone.utc)),
     }
 
 
@@ -413,6 +425,8 @@ class TareaIn(BaseModel):
     asignado_id: Optional[int] = None
     email: Optional[str] = None
     estado: Optional[str] = None
+    # «flotar», «mover» o "" (22/11/2026).
+    tipo: Optional[str] = None
 
 
 @router.post("/org/{org_id}/tareas", summary="Crea una tarea (para ti o para otro del equipo).")

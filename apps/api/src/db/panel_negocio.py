@@ -63,6 +63,10 @@ class PanelTask(SQLModel, table=True):
     email: str = Field(default="", index=True, max_length=255)
     created_at: str = ""
     done_at: str = ""
+    # «flotar» (mantener a flote: operaciones, fuegos, soporte, cobros),
+    # «mover» (hacer avanzar: contenido, campañas, producto, ventas nuevas) o
+    # "" sin decir (22/11/2026). En _ADDED_COLUMNS.
+    tipo: str = Field(default="", max_length=10)
 
 
 class EmailLog(SQLModel, table=True):

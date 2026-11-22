@@ -9,13 +9,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { getTareas, type Tarea } from '@services/panel/panel'
+import { getTareas, type BalanceTareas, type Tarea } from '@services/panel/panel'
 import { hoyISO } from '@services/stats/contactos'
 import FichaCliente from './FichaCliente'
-import { FilaTarea, TareaForm, useEquipo } from './Tareas'
+import { COLOR_TIPO, FilaTarea, MedidorSemana, TareaForm, useEquipo } from './Tareas'
 import { Loader2 } from 'lucide-react'
 
 type Vista = 'mias' | 'equipo' | 'hechas'
+type FiltroTipo = 'todas' | 'flotar' | 'mover' | 'sin'
 
 function Grupo({ titulo, tareas, children, tono }: { titulo: string; tareas: Tarea[]; children: React.ReactNode; tono?: 'rojo' }) {
   if (!tareas.length) return null
@@ -40,6 +41,8 @@ export default function TareasPanel() {
   const [vista, setVista] = useState<Vista>('mias')
   const [persona, setPersona] = useState<number>(0)
   const [abierta, setAbierta] = useState<string | null>(null)
+  const [balance, setBalance] = useState<BalanceTareas | null>(null)
+  const [tipo, setTipo] = useState<FiltroTipo>('todas')
 
   const cargar = useCallback(async () => {
     if (!org?.id || !accessToken) return
@@ -48,6 +51,7 @@ export default function TareasPanel() {
       setTareas(r.datos.tareas)
       setEsAdmin(r.datos.es_admin)
       setYo(r.datos.yo)
+      setBalance(r.datos.balance ?? null)
     }
   }, [org?.id, accessToken])
 
@@ -56,12 +60,14 @@ export default function TareasPanel() {
   }, [cargar])
 
   const visibles = useMemo(() => {
-    const todas = tareas ?? []
+    const todas = (tareas ?? []).filter((t) =>
+      tipo === 'todas' ? true : tipo === 'sin' ? !t.tipo : t.tipo === tipo
+    )
     if (vista === 'hechas') return todas.filter((t) => t.estado === 'hecha')
     const pend = todas.filter((t) => t.estado !== 'hecha')
     if (vista === 'mias') return pend.filter((t) => t.asignado_id === yo)
     return persona ? pend.filter((t) => t.asignado_id === persona) : pend
-  }, [tareas, vista, yo, persona])
+  }, [tareas, vista, yo, persona, tipo])
 
   const hoy = hoyISO()
   const vencidas = visibles.filter((t) => t.estado !== 'hecha' && t.fecha && t.fecha < hoy)
@@ -74,6 +80,8 @@ export default function TareasPanel() {
       const lista = ts ?? []
       return lista.some((x) => x.id === t.id) ? lista.map((x) => (x.id === t.id ? t : x)) : [t, ...lista]
     })
+    // El medidor de la semana lo cuenta el servidor: se relee.
+    cargar()
   }
   const fila = (t: Tarea) => (
     <FilaTarea
@@ -89,6 +97,8 @@ export default function TareasPanel() {
 
   return (
     <div className="space-y-4 max-w-4xl">
+      <MedidorSemana balance={balance} />
+
       <TareaForm onCreada={cambio} />
 
       <div className="flex flex-wrap items-center gap-1.5">
@@ -107,6 +117,30 @@ export default function TareasPanel() {
             {label}
           </button>
         ))}
+        <span className="mx-1 h-5 w-px bg-[#E5E7EB]" aria-hidden />
+        {(
+          [
+            ['todas', 'Todas'],
+            ['flotar', 'Flotar'],
+            ['mover', 'Mover'],
+            ['sin', 'Sin tipo'],
+          ] as const
+        ).map(([id, label]) => {
+          const activo = tipo === id
+          const color = id === 'flotar' || id === 'mover' ? COLOR_TIPO[id] : null
+          return (
+            <button
+              key={id}
+              onClick={() => setTipo(id)}
+              className={`px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold ${
+                activo && !color ? 'bg-gray-900 text-white' : activo ? '' : 'bg-white border border-[#E5E7EB] text-[#6B7280]'
+              }`}
+              style={activo && color ? { background: color.fondo, color: color.texto } : undefined}
+            >
+              {label}
+            </button>
+          )
+        })}
         {vista === 'equipo' && esAdmin ? (
           <select
             value={persona}

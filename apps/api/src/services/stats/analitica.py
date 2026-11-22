@@ -206,10 +206,10 @@ _WEBS = (
 _NO_DICEN = {
     "datos-editados", "enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva",
     "llamada-confirmada", "whatsapp-llamada", "llamada-cambiada", "llamada-cancelada", "check-in", "correo-bf",
-    "baja-bf", "intento-contacto",
+    "baja-bf", "intento-contacto", "closer-cambiado",
 }
 #: Lo que manda la escuela: no es que la persona llegara ese día.
-_DE_LA_ESCUELA = {"correo-bf", "whatsapp-llamada", "datos-editados", "intento-contacto", "llamada-confirmada", "check-in", "baja-bf"}
+_DE_LA_ESCUELA = {"correo-bf", "whatsapp-llamada", "datos-editados", "intento-contacto", "closer-cambiado", "llamada-confirmada", "check-in", "baja-bf"}
 _TIPOS_BF = {"bf-lista", "ebook", "ebook-empezado"}
 _RESERVA = {"reunion", "llamada-equipo", "correo-reserva"}
 #: Se presentó a la llamada (los resultados de «¿Qué pasó?» menos «No vino»).
