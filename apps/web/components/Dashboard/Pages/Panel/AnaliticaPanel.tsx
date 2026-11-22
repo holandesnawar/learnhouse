@@ -150,7 +150,7 @@ function Tabla({
                 <th className="font-medium py-2 pr-3 text-right">Reservaron</th>
                 <th className="font-medium py-2 pr-3 text-right">Vinieron</th>
                 <th className="font-medium py-2 pr-3 text-right">Pagaron</th>
-                <th className="font-medium py-2 pr-3 text-right">Ingresos</th>
+                <th className="font-medium py-2 pr-3 text-right" title="El total de cada venta; una venta a plazos cuenta entera">Vendido</th>
                 {algunGasto ? (
                   <>
                     <th className="font-medium py-2 pr-3 text-right">Gasto</th>
@@ -177,7 +177,12 @@ function Tabla({
                   <td className="py-2 pr-3 text-right tabular-nums">{f.reservaron}</td>
                   <td className="py-2 pr-3 text-right tabular-nums">{f.vinieron}</td>
                   <td className="py-2 pr-3 text-right tabular-nums font-semibold text-gray-900">{f.pagaron}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{f.cents ? euros(f.cents) : '—'}</td>
+                  <td
+                    className="py-2 pr-3 text-right tabular-nums"
+                    title={f.cents && (f.por_cobrar_cents ?? 0) > 0 ? `Cobrado ${euros(f.cobrado_cents ?? f.cents)} · por cobrar ${euros(f.por_cobrar_cents ?? 0)}` : undefined}
+                  >
+                    {f.cents ? euros(f.cents) : '—'}
+                  </td>
                   {algunGasto ? (
                     <>
                       <td className="py-2 pr-3 text-right tabular-nums">{f.gasto_cents ? euros(f.gasto_cents) : '—'}</td>
@@ -368,7 +373,17 @@ export default function AnaliticaPanel() {
             <Cifra titulo="Reservaron llamada" valor={String(r.reservaron)} sub={`${pct(r.pct_reserva)} de los leads`} />
             <Cifra titulo="Vinieron" valor={String(r.vinieron)} sub={r.reservaron ? `${pct(r.pct_vino)} de las reservas · ${r.no_vinieron} no vinieron` : ''} />
             <Cifra titulo="Pagaron" valor={String(r.pagaron)} sub={`${pct(r.pct_pago)} de los leads`} />
-            <Cifra titulo="Ingresos" valor={euros(r.cents)} sub={r.pagaron ? `${euros(Math.round(r.cents / r.pagaron))} de media` : ''} />
+            <Cifra
+              titulo="Vendido"
+              valor={euros(r.cents)}
+              sub={
+                r.pagaron
+                  ? `cobrado ${euros(r.cobrado_cents ?? r.cents)}${
+                      (r.por_cobrar_cents ?? 0) > 0 ? ` · por cobrar ${euros(r.por_cobrar_cents ?? 0)}` : ''
+                    } · ${euros(Math.round(r.cents / r.pagaron))} de media`
+                  : ''
+              }
+            />
           </div>
           <p className={`${META} -mt-3 leading-relaxed`}>
             Leads = quien dejó sus datos del {fecha(datos.desde + 'T12:00')} al {fecha(datos.hasta + 'T12:00')}. Reservaron, vinieron y pagaron cuenta
@@ -441,7 +456,7 @@ export default function AnaliticaPanel() {
           />
           {datos.por_campana.some((c) => c.gasto_cents) ? (
             <p className={`${META} -mt-4`}>
-              El gasto es el apuntado en Panel → Anuncios, repartido por días entre estas fechas. Retorno = ingresos ÷ gasto.
+              El gasto es el apuntado en Panel → Anuncios, repartido por días entre estas fechas. Retorno = vendido ÷ gasto.
             </p>
           ) : null}
           <Tabla
@@ -539,7 +554,11 @@ export default function AnaliticaPanel() {
                       <span className={META}>Lead {fecha(p.entro)}</span>
                       {p.reservo ? <Estado tono="azul">Reservó {fecha(p.reservo)}</Estado> : null}
                       {p.vino ? <Estado tono="azul">Vino</Estado> : p.no_vino ? <Estado tono="rojo">No vino</Estado> : null}
-                      {p.pago ? <Estado tono="verde">Pagó{p.cents ? ` ${euros(p.cents)}` : ''}</Estado> : null}
+                      {p.pago ? <Estado tono="verde">
+                          {p.cents && (p.cobrado_cents ?? p.cents) < p.cents
+                            ? `Compró ${euros(p.cents)} · cobrado ${euros(p.cobrado_cents ?? 0)}`
+                            : `Pagó${p.cents ? ` ${euros(p.cents)}` : ''}`}
+                        </Estado> : null}
                     </div>
                   </button>
                 ))

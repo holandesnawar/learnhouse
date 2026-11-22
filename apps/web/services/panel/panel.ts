@@ -383,7 +383,12 @@ export interface Cliente {
   email: string
   nombre: string
   telefono: string
+  /** Lo COBRADO hasta hoy (lo que ha entrado). */
   total_cents: number
+  /** Vendido ≠ cobrado (22/11/2026): con plazos, lo vendido es el total del plan. */
+  vendido_cents?: number
+  cobrado_cents?: number
+  por_cobrar_cents?: number
   pagos: number
   ultimo_pago: string
   primer_pago: string
@@ -440,7 +445,7 @@ export interface AvanceAlumno {
 }
 
 export const getClientes = (orgId: number, t: string) =>
-  pedir<{ clientes: Cliente[]; total_cents: number; n: number; comisiones?: ComisionesCloser[]; porcentajes_comision?: number[] }>(
+  pedir<{ clientes: Cliente[]; total_cents: number; vendido_cents?: number; cobrado_cents?: number; por_cobrar_cents?: number; n: number; comisiones?: ComisionesCloser[]; porcentajes_comision?: number[] }>(
     `panel/org/${orgId}/clientes`,
     'GET',
     null,
@@ -684,7 +689,11 @@ export interface Campana {
   leads: number
   matriculas: number
   ventas: number
+  /** Lo VENDIDO (22/11/2026): con plazos, el total del plan. */
   ingresos_cents: number
+  vendido_cents?: number
+  cobrado_cents?: number
+  por_cobrar_cents?: number
   coste_por_lead_cents: number | null
   coste_por_venta_cents: number | null
   retorno: number | null
@@ -706,7 +715,7 @@ export interface PanelAds {
   campanas: Campana[]
   anuncios: AnuncioVisto[]
   sin_apuntar: { utm_campaign: string; leads: number; ventas: number }[]
-  total: { gasto_cents: number; leads: number; ventas: number; ingresos_cents: number; retorno: number | null }
+  total: { gasto_cents: number; leads: number; ventas: number; ingresos_cents: number; vendido_cents?: number; cobrado_cents?: number; por_cobrar_cents?: number; retorno: number | null }
   plataformas: Record<string, string>
 }
 

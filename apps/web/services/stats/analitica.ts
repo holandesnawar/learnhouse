@@ -25,7 +25,11 @@ export interface Cifras {
   vinieron: number
   no_vinieron: number
   pagaron: number
+  /** Lo VENDIDO (22/11/2026): con plazos, el total del plan. */
   cents: number
+  /** Lo que ya ha entrado y lo que falta. */
+  cobrado_cents?: number
+  por_cobrar_cents?: number
   pct_lead: number | null
   pct_reserva: number | null
   pct_vino: number | null
@@ -57,7 +61,9 @@ export interface PersonaAnalitica {
   vino: boolean
   no_vino: boolean
   pago: boolean
+  /** Lo vendido a esa persona; `cobrado_cents`, lo que ha entrado. */
   cents: number
+  cobrado_cents?: number
 }
 
 export interface Analitica {

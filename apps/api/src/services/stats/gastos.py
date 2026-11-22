@@ -15,7 +15,6 @@ from typing import Optional
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.db.enrollment import Enrollment
 from src.db.school_expense import SchoolExpense, SchoolRecurringExpense
 from src.db.user_organizations import UserOrganization
 from src.security.rbac.constants import STUDENT_ROLE_ID
@@ -35,12 +34,17 @@ def _pct(a: int, b: int) -> Optional[int]:
 
 
 def resumen_gastos(
-    ventas: list[tuple[str, int]],
+    ventas: list[tuple],
     gastos: list[tuple[str, str, int]],
     alumnos: int,
 ) -> dict:
     """
-    ventas: (fecha ISO, céntimos) de cada venta cobrada.
+    ventas: (fecha ISO, céntimos cobrados) de cada venta, o (fecha, cobrado,
+            vendido) si la venta va a plazos y aún no ha entrado todo
+            (22/11/2026, ver `ventas.py`). Sin el tercero, vendido = cobrado.
+            `ingresos_cents` y el margen van sobre lo COBRADO: es caja, lo que
+            hay para pagar los gastos. Lo vendido sale al lado
+            (`vendido_cents`, `por_cobrar_cents`).
     gastos: (fecha AAAA-MM-DD, categoría, céntimos).
     alumnos: cuántos alumnos hay ahora (para el coste por alumno al mes).
 
@@ -54,14 +58,25 @@ def resumen_gastos(
     def mes(clave: str) -> dict:
         return meses.setdefault(
             clave,
-            {"ventas": 0, "ingresos_cents": 0, "gastos_cents": 0, "por_categoria": {c: 0 for c in CATEGORIAS}},
+            {
+                "ventas": 0,
+                "ingresos_cents": 0,
+                "vendido_cents": 0,
+                "por_cobrar_cents": 0,
+                "gastos_cents": 0,
+                "por_categoria": {c: 0 for c in CATEGORIAS},
+            },
         )
 
-    for fecha, cents in ventas:
+    for venta in ventas:
+        fecha, cents = venta[0], int(venta[1] or 0)
+        vendido = max(cents, int(venta[2] or 0)) if len(venta) > 2 else cents
         if len(fecha) >= 7:
             m = mes(fecha[:7])
             m["ventas"] += 1
-            m["ingresos_cents"] += int(cents or 0)
+            m["ingresos_cents"] += cents
+            m["vendido_cents"] += vendido
+            m["por_cobrar_cents"] += vendido - cents
     for fecha, cat, cents in gastos:
         if len(fecha) >= 7:
             m = mes(fecha[:7])
@@ -93,6 +108,8 @@ def resumen_gastos(
         "total": {
             "ventas": total_ventas,
             "ingresos_cents": ingresos,
+            "vendido_cents": sum(f["vendido_cents"] for f in filas),
+            "por_cobrar_cents": sum(f["por_cobrar_cents"] for f in filas),
             "gastos_cents": total_gastos,
             "margen_cents": ingresos - total_gastos,
             "margen_pct": _pct(ingresos - total_gastos, ingresos),
@@ -139,21 +156,11 @@ async def panel_gastos(org_id: int, db_session: AsyncSession) -> dict:
     from src.services.payments.payments import _desde_cuando
 
     desde = _desde_cuando()
-    pagadas = (
-        await db_session.execute(select(Enrollment).where(Enrollment.status == "paid"))
-    ).scalars().all()
-    from src.services.contactos.metricas import emails_excluidos, ids_excluidos
+    from src.services.contactos.metricas import ids_excluidos
+    from src.services.stats.ventas import leer_ventas
 
-    fuera = await emails_excluidos(db_session)
-    ventas = []
-    for r in pagadas:
-        if (r.email or "").strip().lower() in fuera:
-            continue
-        fecha = r.paid_at or r.updated_at or r.created_at or ""
-        # Misma fecha de corte que las ventas y las plazas: las pruebas no cuentan.
-        if desde and (r.paid_at or "") < desde:
-            continue
-        ventas.append((fecha, int(r.amount_cents or 0)))
+    # Mismo corte y mismos excluidos que las ventas y las plazas (`ventas.py`).
+    ventas = [(v["fecha"], v["cobrado_cents"], v["vendido_cents"]) for v in await leer_ventas(db_session)]
 
     filas = (
         await db_session.execute(

@@ -4,30 +4,55 @@ import { RequestBodyWithAuthHeader } from '@services/utils/ts/requests'
 
 /** Números de la escuela. Todo sale de nuestra base de datos. */
 
-export interface SalesRow {
+/**
+ * Vendido ≠ cobrado (22/11/2026). Una venta a plazos vale el total del plan
+ * (`vendido_cents`) aunque hasta hoy solo haya entrado una parte
+ * (`cobrado_cents`). `revenue_cents` es lo cobrado, con su nombre de siempre.
+ * El ticket medio va sobre lo vendido.
+ */
+export interface Dinero {
+  vendido_cents?: number
+  cobrado_cents?: number
+  por_cobrar_cents?: number
+}
+
+export interface SalesRow extends Dinero {
   key: string
   label: string
   sales: number
   revenue_cents: number
   avg_ticket_cents: number
-  by_product: Record<string, { sales: number; revenue_cents: number }>
+  by_product: Record<string, { sales: number; revenue_cents: number; vendido_cents?: number }>
 }
 
 export interface ProductRow {
   product: string
   sales: number
   revenue_cents: number
+  vendido_cents?: number
 }
 
-export interface SalesBlock {
+/** Lo vendido de una fila; si el servidor aún no lo manda, lo cobrado. */
+export const vendidoDe = (x?: { vendido_cents?: number; revenue_cents?: number } | null): number =>
+  x?.vendido_cents ?? x?.revenue_cents ?? 0
+/** Lo cobrado de una fila. */
+export const cobradoDe = (x?: { cobrado_cents?: number; revenue_cents?: number } | null): number =>
+  x?.cobrado_cents ?? x?.revenue_cents ?? 0
+/** Lo que falta por entrar: nunca negativo. */
+export const porCobrarDe = (x?: { vendido_cents?: number; cobrado_cents?: number; revenue_cents?: number; por_cobrar_cents?: number } | null): number =>
+  x?.por_cobrar_cents ?? Math.max(0, vendidoDe(x) - cobradoDe(x))
+
+export interface SalesBlock extends Dinero {
   total_sales: number
   total_revenue_cents: number
   avg_ticket_cents: number
+  a_plazos?: number
+  con_fallo?: number
   by_month: SalesRow[]
   by_quarter: SalesRow[]
   by_product: ProductRow[]
   undated: number
-  last_30_days: { sales: number; revenue_cents: number }
+  last_30_days: { sales: number; revenue_cents: number } & Dinero
   funnel: {
     started: number
     paid: number
@@ -367,7 +392,11 @@ export interface MesGastos {
   mes: string
   label: string
   ventas: number
+  /** Lo COBRADO ese mes (caja): sobre esto va el margen. */
   ingresos_cents: number
+  /** Lo vendido (22/11/2026: con plazos, el total del plan) y lo que falta. */
+  vendido_cents?: number
+  por_cobrar_cents?: number
   gastos_cents: number
   por_categoria: Record<string, number>
   margen_cents: number
@@ -401,6 +430,8 @@ export interface PanelGastos {
   total: {
     ventas: number
     ingresos_cents: number
+    vendido_cents?: number
+    por_cobrar_cents?: number
     gastos_cents: number
     margen_cents: number
     margen_pct: number | null

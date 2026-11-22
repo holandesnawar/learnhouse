@@ -355,11 +355,17 @@ def calcular(
             tipos["otro"] += 1
         else:
             tipos["unico"] += 1
+    # Vendido ≠ cobrado (22/11/2026, `ventas.py`): `amount_cents` es lo que ha
+    # entrado; `vendido_cents`, el total de la venta (con plazos, el del plan).
     ingresos = sum(int(v.get("amount_cents") or 0) for v in propias)
+    vendido = sum(max(int(v.get("vendido_cents") or 0), int(v.get("amount_cents") or 0)) for v in propias)
     ventas_bloque = {
         "n": len(propias),
+        "vendido_cents": vendido,
         "cobrado_cents": ingresos,
-        "ticket_medio_cents": round(ingresos / len(propias)) if propias else None,
+        "por_cobrar_cents": vendido - ingresos,
+        # Sobre lo vendido: lo que vale cada venta, no lo que ha entrado.
+        "ticket_medio_cents": round(vendido / len(propias)) if propias else None,
         "con_llamada": sum(1 for v in propias if v["email"] in con_llamada_emails),
         "tipos": tipos,
     }
@@ -428,7 +434,6 @@ async def kpis(dias: int, db_session) -> dict:
     from sqlmodel import select
 
     from src.db.contact_seguimiento import CallOutcome
-    from src.db.enrollment import Enrollment
     from src.db.plan_pagos import PlanPagos
     from src.services.contactos.agenda import agenda
     from src.services.contactos.contactos import (
@@ -439,7 +444,6 @@ async def kpis(dias: int, db_session) -> dict:
     )
     from src.services.contactos.embudo_visitas import filas_entre
     from src.services.contactos.metricas import emails_excluidos
-    from src.services.payments.payments import _desde_cuando
 
     dias = max(1, min(366, int(dias or 30)))
     hoy = datetime.now(ZONA).date()
@@ -461,12 +465,18 @@ async def kpis(dias: int, db_session) -> dict:
         {"cita_id": r.cita_id, "email": r.email, "resultado": r.resultado, "inicio": r.inicio}
         for r in (await db_session.execute(select(CallOutcome))).scalars().all()
     ]
-    corte = _desde_cuando()
+    # Con los excluidos dentro: `calcular` ya los quita con `fuera`.
+    from src.services.stats.ventas import leer_ventas
+
     ventas = [
-        {"email": (r.email or "").strip().lower(), "paid_at": r.paid_at or "", "amount_cents": r.amount_cents,
-         "recorrido": getattr(r, "recorrido", "") or ""}
-        for r in (await db_session.execute(select(Enrollment).where(Enrollment.status == "paid"))).scalars().all()
-        if not corte or (r.paid_at or "")[:10] >= corte
+        {
+            "email": v["email"],
+            "paid_at": v["paid_at"],
+            "amount_cents": v["cobrado_cents"],
+            "vendido_cents": v["vendido_cents"],
+            "recorrido": v["recorrido"],
+        }
+        for v in await leer_ventas(db_session, con_excluidos=True)
     ]
     plazos_emails = {
         (p.email or "").strip().lower() for p in (await db_session.execute(select(PlanPagos))).scalars().all()

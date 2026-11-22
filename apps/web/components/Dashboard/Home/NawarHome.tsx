@@ -25,7 +25,7 @@ import Link from 'next/link'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
-import { euros, getSchoolStats, type SchoolStats } from '@services/stats/school'
+import { cobradoDe, euros, getSchoolStats, vendidoDe, type SchoolStats } from '@services/stats/school'
 import { getContactos, type Contacto } from '@services/stats/contactos'
 import { ETAPA_TEXTO } from '@services/stats/contactos'
 import { ArrowRight, CheckCircle, Kanban, ListChecks, PhoneCall, Tag, Sparkle } from '@phosphor-icons/react'
@@ -156,7 +156,11 @@ export default function NawarHome() {
   const agendadas = cuenta(['agendado'])
 
   const s = stats && stats !== 'error' ? stats : null
-  const mesActual = s?.sales?.by_month?.[s.sales.by_month.length - 1]
+  // El mes en curso, por su clave («2026-11»). Antes se cogía la última fila
+  // de la lista, que va del mes más nuevo al más viejo: salía el mes más
+  // ANTIGUO con ventas como «este mes».
+  const claveMes = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Amsterdam', year: 'numeric', month: '2-digit' }).format(new Date())
+  const mesActual = s?.sales?.by_month?.find((m) => m.key === claveMes)
   const porAtender = (s?.requests ?? []).filter((r: any) => !r.contacted_at).length + (s?.sales?.funnel?.pending ?? []).filter((p) => !p.ya_alumno).length
   const ultimos = (contactos ?? []).slice(0, 6)
   const nombre = session?.data?.user?.first_name || session?.data?.user?.username || ''
@@ -260,11 +264,11 @@ export default function NawarHome() {
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mt-5">
               <Cifra etiqueta="Por atender" valor={s ? String(porAtender) : '…'} nota="Pidieron plaza o dejaron el pago" href="/dash/estadisticas?tab=matriculas" />
-              <Cifra etiqueta="Ventas este mes" valor={s ? String(mesActual?.sales ?? 0) : '…'} nota={s && mesActual ? euros(mesActual.revenue_cents) : undefined} href="/dash/estadisticas" />
+              <Cifra etiqueta="Ventas este mes" valor={s ? String(mesActual?.sales ?? 0) : '…'} nota={s && mesActual ? `${euros(vendidoDe(mesActual))} vendidos · ${euros(cobradoDe(mesActual))} cobrados` : undefined} href="/dash/estadisticas" />
               <Cifra
-                etiqueta="Últimos 30 días"
-                valor={s ? euros(s.sales?.last_30_days?.revenue_cents ?? 0) : '…'}
-                nota={s ? `${s.sales?.last_30_days?.sales ?? 0} ventas` : undefined}
+                etiqueta="Vendido · 30 días"
+                valor={s ? euros(vendidoDe(s.sales?.last_30_days)) : '…'}
+                nota={s ? `${s.sales?.last_30_days?.sales ?? 0} ventas · cobrado ${euros(cobradoDe(s.sales?.last_30_days))}` : undefined}
                 href="/dash/estadisticas"
               />
               <Cifra

@@ -70,6 +70,13 @@ def group_sales(
     Cada venta es {'date': iso, 'amount_cents': int, 'product': str}.
     Las que no traen fecha utilizable se quedan fuera y se cuentan aparte
     (mejor eso que inventarles un mes y descuadrar la tabla).
+
+    Vendido y cobrado (22/11/2026, ver `ventas.py`): `amount_cents` es lo
+    COBRADO (lo que ha entrado). Si la venta trae además `vendido_cents` (el
+    total de un plan de pagos), cada fila da `vendido_cents`, `cobrado_cents`
+    y `por_cobrar_cents`, y el ticket medio va sobre lo VENDIDO. Sin
+    `vendido_cents`, lo vendido es lo cobrado y todo sale como antes.
+    `revenue_cents` sigue siendo lo cobrado (lo usa el margen por mes).
     """
     keyer = quarter_key if granularity == "quarter" else month_key
     labeler = quarter_label if granularity == "quarter" else month_label
@@ -81,19 +88,33 @@ def group_sales(
             continue
         bucket = buckets.setdefault(
             key,
-            {"key": key, "label": labeler(key), "sales": 0, "revenue_cents": 0, "by_product": {}},
+            {
+                "key": key,
+                "label": labeler(key),
+                "sales": 0,
+                "revenue_cents": 0,
+                "vendido_cents": 0,
+                "cobrado_cents": 0,
+                "por_cobrar_cents": 0,
+                "by_product": {},
+            },
         )
         amount = int(sale.get("amount_cents") or 0)
+        vendido = max(amount, int(sale.get("vendido_cents") or 0))
         product = sale.get("product") or "sin-producto"
         bucket["sales"] += 1
         bucket["revenue_cents"] += amount
-        entry = bucket["by_product"].setdefault(product, {"sales": 0, "revenue_cents": 0})
+        bucket["vendido_cents"] += vendido
+        bucket["cobrado_cents"] += amount
+        bucket["por_cobrar_cents"] += vendido - amount
+        entry = bucket["by_product"].setdefault(product, {"sales": 0, "revenue_cents": 0, "vendido_cents": 0})
         entry["sales"] += 1
         entry["revenue_cents"] += amount
+        entry["vendido_cents"] += vendido
 
     rows = sorted(buckets.values(), key=lambda b: b["key"], reverse=True)
     for row in rows:
-        row["avg_ticket_cents"] = round(row["revenue_cents"] / row["sales"]) if row["sales"] else 0
+        row["avg_ticket_cents"] = round(row["vendido_cents"] / row["sales"]) if row["sales"] else 0
     return rows
 
 

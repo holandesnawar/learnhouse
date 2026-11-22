@@ -150,7 +150,7 @@ function GastosFijos({ datos, orgId, accessToken, onCambio }: { datos: PanelGast
   )
 }
 
-/** Ingresos contra gastos, mes a mes: dos barras por mes, la escala la marca el mayor. */
+/** Lo cobrado contra los gastos, mes a mes: dos barras por mes, la escala la marca el mayor. */
 function IngresosVsGastos({ datos }: { datos: PanelGastos }) {
   const meses = [...datos.meses].slice(0, 12).reverse()
   if (!meses.length) return null
@@ -158,10 +158,10 @@ function IngresosVsGastos({ datos }: { datos: PanelGastos }) {
   return (
     <div className={CARD}>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <p className="text-[14px] font-bold text-gray-900">Ingresos y gastos por mes</p>
+        <p className="text-[14px] font-bold text-gray-900">Cobrado y gastos por mes</p>
         <div className="flex items-center gap-3 text-[11.5px] text-[#5A6480]">
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-3 h-2 rounded-sm bg-[#0E9F6E]" /> Ingresos
+            <span className="w-3 h-2 rounded-sm bg-[#0E9F6E]" /> Cobrado
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="w-3 h-2 rounded-sm bg-[#E5484D]" /> Gastos
@@ -258,19 +258,27 @@ export default function GastosPanel() {
   return (
     <div className="space-y-5">
       <p className="text-[13px] text-[#5A6480] leading-relaxed max-w-3xl">
-        Apunta aquí lo que gastas (profes, publicidad, herramientas) para ver cómo va el negocio. Los ingresos salen solos
+        Apunta aquí lo que gastas (profes, publicidad, herramientas) para ver cómo va el negocio. Lo cobrado sale solo
         de lo que han pagado los alumnos. <strong className="text-gray-800">No es la contabilidad</strong>: las facturas
         siguen yendo al programa de tu gestor.
       </p>
 
       {/* Las cuatro cifras que deciden algo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-        <Cifra label="Ingresos" valor={euros(t.ingresos_cents)} nota={`${t.ventas} ${t.ventas === 1 ? 'venta' : 'ventas'}`} />
+        {/* El margen va sobre lo COBRADO (caja). Lo vendido sale al lado: una
+            venta a plazos vale más de lo que ha entrado hasta hoy. */}
+        <Cifra
+          label="Cobrado"
+          valor={euros(t.ingresos_cents)}
+          nota={`${t.ventas} ${t.ventas === 1 ? 'venta' : 'ventas'} · vendido ${euros(t.vendido_cents ?? t.ingresos_cents)}${
+            (t.por_cobrar_cents ?? 0) > 0 ? ` · por cobrar ${euros(t.por_cobrar_cents ?? 0)}` : ''
+          }`}
+        />
         <Cifra label="Gastos" valor={euros(t.gastos_cents)} nota="Todo lo apuntado" />
         <Cifra
           label="Margen"
           valor={euros(t.margen_cents)}
-          nota={t.margen_pct !== null ? `${t.margen_pct}% de lo ingresado` : 'Sin ingresos todavía'}
+          nota={t.margen_pct !== null ? `${t.margen_pct}% de lo cobrado` : 'Sin cobros todavía'}
           color={t.margen_cents < 0 ? 'text-red-600' : 'text-[#0E9F6E]'}
         />
         <Cifra
@@ -334,12 +342,13 @@ export default function GastosPanel() {
           <p className="text-[13px] text-gray-500">Aún no hay ventas ni gastos apuntados.</p>
         ) : (
           <div className="overflow-x-auto -mx-1">
-            <table className="w-full text-[13px] min-w-[640px]">
+            <table className="w-full text-[13px] min-w-[720px]">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-[0.06em] text-[#8A96AB]">
                   <th className="py-2 px-1 font-semibold">Mes</th>
                   <th className="py-2 px-1 font-semibold text-right">Ventas</th>
-                  <th className="py-2 px-1 font-semibold text-right">Ingresos</th>
+                  <th className="py-2 px-1 font-semibold text-right">Vendido</th>
+                  <th className="py-2 px-1 font-semibold text-right">Cobrado</th>
                   <th className="py-2 px-1 font-semibold text-right">Gastos</th>
                   <th className="py-2 px-1 font-semibold text-right">Margen</th>
                   <th className="py-2 px-1 font-semibold text-right">Coste/matrícula</th>
@@ -351,6 +360,7 @@ export default function GastosPanel() {
                   <tr key={m.mes}>
                     <td className="py-2.5 px-1 font-semibold text-gray-900 capitalize">{m.label}</td>
                     <td className="py-2.5 px-1 text-right tabular-nums">{m.ventas}</td>
+                    <td className="py-2.5 px-1 text-right tabular-nums">{euros(m.vendido_cents ?? m.ingresos_cents)}</td>
                     <td className="py-2.5 px-1 text-right tabular-nums">{euros(m.ingresos_cents)}</td>
                     <td className="py-2.5 px-1 text-right tabular-nums" title={Object.entries(m.por_categoria).filter(([, v]) => v).map(([k, v]) => `${cat[k] || k}: ${euros(v)}`).join(' · ')}>
                       {euros(m.gastos_cents)}
