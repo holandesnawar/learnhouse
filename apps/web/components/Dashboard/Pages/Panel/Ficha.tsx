@@ -63,6 +63,7 @@ function FichaNueva({ email: emailInicial, userId, nombre, onClose, onCambio, on
   const [ficha, setFicha] = useState<DatosFicha | null>(null)
   // 'sin' = no hay rastro de venta con ese correo (una cuenta de alumno dada a mano).
   const [estado, setEstado] = useState<'cargando' | 'ok' | 'sin' | 'error'>('cargando')
+  const [aviso, setAviso] = useState('')
   const [error, setError] = useState('')
   const [alumnos, setAlumnos] = useState<AlumnoProgreso[] | null>(null)
   const [camino, setCamino] = useState<AlumnoCamino[] | null | undefined>(undefined)
@@ -120,7 +121,8 @@ function FichaNueva({ email: emailInicial, userId, nombre, onClose, onCambio, on
     const a = alumnos.find((x) => x.user_id === userId)
     if (a) setEmail(a.email.trim().toLowerCase())
     else {
-      setError(
+      // No es un fallo: es alguien que no es alumno. Se dice en gris.
+      setAviso(
         'No sale en el progreso de los alumnos: no tiene el rol de alumno, está en el grupo Testers o está fuera de los números. Por eso no se le puede abrir la ficha de alumno.'
       )
       setEstado('error')
@@ -150,6 +152,7 @@ function FichaNueva({ email: emailInicial, userId, nombre, onClose, onCambio, on
         onClose={onClose}
         cargando={estado !== 'error'}
         error={estado === 'error' ? error : ''}
+        aviso={estado === 'error' ? aviso : ''}
       />
     )
   }

@@ -47,5 +47,15 @@ class WebVisita(SQLModel, table=True):
     utm_term: str = Field(default="", max_length=120)
     # movil · ordenador (por el ancho de la pantalla).
     dispositivo: str = Field(default="", max_length=10)
+    # Desde el 22/11/2026. La zona horaria del navegador (Europe/Amsterdam…):
+    # de ahí sale el país, sin IP. Vacía = visita de antes del cambio.
+    zona: str = Field(default="", max_length=40)
+    # Ese navegador ya había venido otro día (una marca suya, sin identificar
+    # a nadie). Solo vale si `zona` trae algo.
+    vuelve: bool = False
+    # En esta visita se mandó algún formulario con los datos de una persona
+    # (no se guarda de quién): sirve para saber qué página de entrada, qué
+    # país y qué hora convierten.
+    dejo_datos: bool = False
     created_at: str = ""
     updated_at: str = ""

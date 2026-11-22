@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * Web → Analítica (17/11/2026). Pedido del usuario: "ver las analíticas más
- * importantes de las webs dentro del panel… filtrar y ver de dónde viene x
+ * Web → Analítica (17/11/2026; por pestañas y con comparación desde el
+ * 22/11/2026: «lo sigo viendo pobre»). Pedido del usuario: "ver las analíticas
+ * más importantes de las webs dentro del panel… filtrar y ver de dónde viene x
  * tráfico, cuántos leads se convirtieron por paid vs orgánico, quién agendó
  * llamada gracias a qué utm… que esté bien hecho". Y la campaña de Black
  * Friday como filtro.
@@ -10,31 +11,46 @@
  * Todo lo calcula el servidor (apps/api/src/services/stats/analitica.py): las
  * VISITAS (sesiones anónimas de toda la web, desde el 17/11) y las PERSONAS
  * (quien dejó sus datos en las fechas, y si reservó, vino y pagó aunque fuera
- * después). Cada fila de las tablas se toca para filtrar por ella. Solo
- * administradores: lleva lo cobrado.
+ * después). Cada cifra se compara con el periodo de antes (mismo largo).
+ *
+ * Seis vistas, en `?vista=`: Resumen · De dónde vienen · Páginas · Embudo ·
+ * Quién visita · Personas. Cada fila de las tablas de origen se toca para
+ * filtrar por ella. Solo administradores: lleva lo vendido.
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { getAnalitica, type Analitica, type FilaCifras, type FiltrosAnalitica, type Modelo } from '@services/stats/analitica'
+import { getAnalitica, type Analitica, type Cifras, type FiltrosAnalitica, type Modelo, type PaginaVista } from '@services/stats/analitica'
 import { euros } from '@services/stats/school'
 import { Loader2, X } from 'lucide-react'
 import FichaCliente from './Ficha'
-import { ENLACE, Estado, META, Seccion, TARJETA, filtro } from './ui'
+import {
+  Antes,
+  BarraParte,
+  BotonCSV,
+  COLOR_ORGANICO,
+  COLOR_PAGO,
+  DiaADia,
+  EmbudoDibujado,
+  MEDIDAS,
+  MapaCalor,
+  Pagina,
+  TablaCifras,
+  coma,
+  descargarCSV,
+  diaTexto,
+  duracion,
+  fecha,
+  franjaTexto,
+  nombreDePagina,
+  num,
+  pct,
+  type Medida,
+} from './AnaliticaPiezas'
+import { Cifra, ENLACE, Estado, META, SUB, Seccion, Segmentado, TABLA, TD, TD_NUM, TH, TH_NUM, Tira, filtro } from './ui'
 
-const pct = (v: number | null | undefined) => (v === null || v === undefined ? '—' : `${String(v).replace('.', ',')} %`)
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-const diaCorto = (s: string) => {
-  const [, m, d] = s.split('-')
-  return `${Number(d)}/${Number(m)}`
-}
-const fecha = (s: string) => {
-  if (!s) return ''
-  const d = new Date(s)
-  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'Europe/Amsterdam' })
-}
 
 type Periodo = '7' | '30' | '90' | 'mes' | 'mes-pasado' | 'a-mano'
 
@@ -56,154 +72,177 @@ const PERIODOS: { id: Periodo; label: string }[] = [
   { id: '90', label: '90 días' },
   { id: 'mes', label: 'Este mes' },
   { id: 'mes-pasado', label: 'Mes pasado' },
-  { id: 'a-mano', label: 'Elegir fechas' },
+  { id: 'a-mano', label: 'Fechas…' },
 ]
 
-const SERIES = [
-  { id: 'visitas', label: 'Visitas' },
-  { id: 'leads', label: 'Leads' },
-  { id: 'reservas', label: 'Reservas de llamada' },
-  { id: 'ventas', label: 'Ventas' },
+const VISTAS = [
+  { id: 'resumen', label: 'Resumen' },
+  { id: 'origen', label: 'De dónde vienen' },
+  { id: 'paginas', label: 'Páginas' },
+  { id: 'embudo', label: 'Embudo' },
+  { id: 'quien', label: 'Quién visita' },
+  { id: 'personas', label: 'Personas' },
 ] as const
+type Vista = (typeof VISTAS)[number]['id']
+const esVista = (v: string | null): v is Vista => VISTAS.some((x) => x.id === v)
 
 const SELECT =
-  'h-8 rounded-lg border border-[#E2E8F4] bg-white px-2 text-[13px] text-[#1F2A44] outline-none focus:border-[#4da3ff] max-w-full'
+  'h-8 rounded-lg border border-[#E6E8EE] bg-white px-2 text-[13px] text-[#0B1020] outline-none focus:border-[#0B1020] max-w-full'
 
-function Cifra({ titulo, valor, sub }: { titulo: string; valor: string; sub?: string }) {
+const euroFino = (cents: number | null | undefined) =>
+  cents === null || cents === undefined ? '—' : `${(cents / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+
+/** La tira de seis cifras, cada una con su cambio respecto a antes. */
+function TiraResumen({ r, a }: { r: Cifras; a: Cifras | null }) {
   return (
-    <div className={`${TARJETA} px-4 py-3.5 min-w-0`}>
-      <p className="text-[12px] font-medium text-[#6B7280]">{titulo}</p>
-      <p className="mt-1 text-[24px] sm:text-[26px] font-semibold text-gray-900 leading-none tabular-nums">{valor}</p>
-      {sub ? <p className={`${META} mt-1.5 leading-snug`}>{sub}</p> : null}
-    </div>
+    <Tira>
+      <Cifra
+        rotulo="Visitas"
+        valor={num(r.visitas)}
+        nota={
+          a && a.visitas !== null ? (
+            <Antes ahora={r.visitas} antes={a.visitas} />
+          ) : (
+            'sesiones en la web'
+          )
+        }
+      />
+      <Cifra
+        rotulo="Leads"
+        valor={num(r.leads)}
+        nota={
+          <>
+            {a ? <Antes ahora={r.leads} antes={a.leads} corto /> : null}
+            {a ? ' · ' : ''}
+            {r.visitas ? `${pct(r.pct_lead)} de las visitas` : 'dejaron sus datos'}
+          </>
+        }
+      />
+      <Cifra
+        rotulo="Reservaron"
+        valor={num(r.reservaron)}
+        nota={
+          <>
+            {a ? <Antes ahora={r.reservaron} antes={a.reservaron} corto /> : null}
+            {a ? ' · ' : ''}
+            {pct(r.pct_reserva)} de los leads
+          </>
+        }
+      />
+      <Cifra
+        rotulo="Vinieron"
+        valor={num(r.vinieron)}
+        nota={
+          r.reservaron ? (
+            <>
+              {pct(r.pct_vino)}
+              {r.no_vinieron ? (
+                <>
+                  {' · '}
+                  <span className="font-medium text-[#C8322B]">{r.no_vinieron} no</span>
+                </>
+              ) : null}
+            </>
+          ) : (
+            'a la llamada'
+          )
+        }
+      />
+      <Cifra
+        rotulo="Compraron"
+        valor={num(r.pagaron)}
+        nota={
+          <>
+            {a ? <Antes ahora={r.pagaron} antes={a.pagaron} corto /> : null}
+            {a ? ' · ' : ''}
+            {r.vinieron ? `${pct(r.pct_pago_llamada)} de los que vinieron` : `${pct(r.pct_pago)} de los leads`}
+          </>
+        }
+      />
+      <Cifra
+        rotulo="Vendido"
+        valor={euros(r.cents)}
+        nota={
+          <>
+            {a ? <Antes ahora={r.cents} antes={a.cents} corto /> : null}
+            {a ? ' · ' : ''}
+            {(r.por_cobrar_cents ?? 0) > 0 ? `cobrado ${euros(r.cobrado_cents ?? r.cents)}` : r.cents_por_visita ? `${euroFino(r.cents_por_visita)} por visita` : 'en ventas'}
+          </>
+        }
+      />
+    </Tira>
   )
 }
 
-/** Las cifras de un canal (pago u orgánico), una debajo de otra. */
-function Canal({ fila, color, onElegir, elegido }: { fila: FilaCifras; color: string; onElegir: () => void; elegido: boolean }) {
-  const pasos: [string, string, string][] = [
-    ['Visitas a la web', fila.visitas === null ? '—' : String(fila.visitas), ''],
-    ['Dejaron sus datos', String(fila.leads), fila.visitas ? `${pct(fila.pct_lead)} de las visitas` : ''],
-    ['Reservaron llamada', String(fila.reservaron), `${pct(fila.pct_reserva)} de los leads`],
-    ['Vinieron a la llamada', String(fila.vinieron), fila.reservaron ? `${pct(fila.pct_vino)} de las reservas` : ''],
-    ['Pagaron', String(fila.pagaron), `${pct(fila.pct_pago)} de los leads`],
-  ]
-  return (
-    <button onClick={onElegir} className={`${TARJETA} text-left w-full p-4 hover:border-[#B9CBEA] transition-colors ${elegido ? 'ring-2 ring-[#1D0084]/20 border-[#1D0084]/40' : ''}`}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-2 text-[14px] font-semibold text-gray-900">
-          <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-          {fila.nombre}
-        </span>
-        <span className="text-[15px] font-semibold text-gray-900 tabular-nums">{euros(fila.cents)}</span>
-      </div>
-      <div className="mt-3 space-y-2">
-        {pasos.map(([t, v, s]) => (
-          <div key={t} className="flex items-baseline justify-between gap-3">
-            <span className="text-[13px] text-[#374151]">{t}</span>
-            <span className="text-right">
-              <span className="text-[14px] font-semibold text-gray-900 tabular-nums">{v}</span>
-              {s ? <span className={`${META} ml-2`}>{s}</span> : null}
-            </span>
-          </div>
-        ))}
-      </div>
-    </button>
-  )
-}
-
-/** Una tabla de cifras (por fuente, campaña o anuncio). Tocar una fila filtra. */
-function Tabla({
-  filas,
-  titulo,
-  primera,
-  conVisitas = true,
-  conGasto = false,
-  elegido,
-  onElegir,
-  vacio,
-}: {
-  filas: FilaCifras[]
-  titulo: string
-  primera: string
-  conVisitas?: boolean
-  conGasto?: boolean
-  elegido: string
-  onElegir: (v: string) => void
-  vacio: string
-}) {
+/** Una tabla de páginas (más vistas, de salida, blog). */
+function TablaPaginas({ filas, columnas, csv, vacio, tope = 12 }: { filas: PaginaVista[]; columnas: ('sesiones' | 'entradas' | 'salidas' | 'datos')[]; csv: string; vacio: string; tope?: number }) {
   const [todas, setTodas] = useState(false)
-  const vistas = todas ? filas : filas.slice(0, 10)
-  const algunGasto = conGasto && filas.some((f) => f.gasto_cents)
+  if (!filas.length) return <p className={`${META} py-3`}>{vacio}</p>
+  const vistas = todas ? filas : filas.slice(0, tope)
+  const titulo = { sesiones: 'Visitas', entradas: 'Entraron por aquí', salidas: 'Se fueron desde aquí', datos: 'Dejaron sus datos' }
   return (
-    <Seccion titulo={titulo}>
-      <div className={`${TARJETA} overflow-x-auto`}>
-        {filas.length === 0 ? (
-          <p className={`${META} px-4 py-4`}>{vacio}</p>
-        ) : (
-          <table className="w-full text-[13px] min-w-[620px]">
-            <thead>
-              <tr className="text-left text-[#6B7280] border-b border-[#F3F4F6]">
-                <th className="font-medium py-2 pl-4 pr-3">{primera}</th>
-                {conVisitas ? <th className="font-medium py-2 pr-3 text-right">Visitas</th> : null}
-                <th className="font-medium py-2 pr-3 text-right">Leads</th>
-                <th className="font-medium py-2 pr-3 text-right">Reservaron</th>
-                <th className="font-medium py-2 pr-3 text-right">Vinieron</th>
-                <th className="font-medium py-2 pr-3 text-right">Pagaron</th>
-                <th className="font-medium py-2 pr-3 text-right" title="El total de cada venta; una venta a plazos cuenta entera">Vendido</th>
-                {algunGasto ? (
-                  <>
-                    <th className="font-medium py-2 pr-3 text-right">Gasto</th>
-                    <th className="font-medium py-2 pr-3 text-right">€ / lead</th>
-                    <th className="font-medium py-2 pr-4 text-right">Retorno</th>
-                  </>
-                ) : null}
-              </tr>
-            </thead>
-            <tbody>
-              {vistas.map((f) => (
-                <tr
-                  key={f.valor || '-'}
-                  onClick={() => onElegir(f.valor === elegido ? '' : f.valor || '-')}
-                  className={`border-t border-[#F3F4F6] cursor-pointer hover:bg-[#F7F9FE] ${f.valor === elegido ? 'bg-[#F0F5FF]' : ''}`}
-                  title={f.meta && f.meta !== f.nombre ? `En Meta: ${f.meta}` : undefined}
-                >
-                  <td className="py-2 pl-4 pr-3 text-gray-900 font-medium max-w-[260px] truncate">{f.nombre}</td>
-                  {conVisitas ? <td className="py-2 pr-3 text-right tabular-nums">{f.visitas ?? '—'}</td> : null}
-                  <td className="py-2 pr-3 text-right tabular-nums">
-                    {f.leads}
-                    {conVisitas && f.visitas ? <span className="text-[#9CA3AF] ml-1">({pct(f.pct_lead)})</span> : null}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{f.reservaron}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{f.vinieron}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums font-semibold text-gray-900">{f.pagaron}</td>
-                  <td
-                    className="py-2 pr-3 text-right tabular-nums"
-                    title={f.cents && (f.por_cobrar_cents ?? 0) > 0 ? `Cobrado ${euros(f.cobrado_cents ?? f.cents)} · por cobrar ${euros(f.por_cobrar_cents ?? 0)}` : undefined}
-                  >
-                    {f.cents ? euros(f.cents) : '—'}
-                  </td>
-                  {algunGasto ? (
-                    <>
-                      <td className="py-2 pr-3 text-right tabular-nums">{f.gasto_cents ? euros(f.gasto_cents) : '—'}</td>
-                      <td className="py-2 pr-3 text-right tabular-nums">{f.coste_lead_cents ? euros(f.coste_lead_cents) : '—'}</td>
-                      <td className="py-2 pr-4 text-right tabular-nums">
-                        {f.retorno === null || f.retorno === undefined ? '—' : `${String(f.retorno).replace('.', ',')}×`}
-                      </td>
-                    </>
-                  ) : null}
-                </tr>
+    <div>
+      <div className="overflow-x-auto">
+        <table className={`${TABLA} min-w-[420px]`}>
+          <thead>
+            <tr>
+              <th className={TH}>Página</th>
+              {columnas.map((c) => (
+                <th key={c} className={TH_NUM}>
+                  {titulo[c]}
+                </th>
               ))}
-            </tbody>
-          </table>
-        )}
-        {filas.length > 10 ? (
-          <button onClick={() => setTodas(!todas)} className={`${ENLACE} px-4 py-2.5 block`}>
+            </tr>
+          </thead>
+          <tbody>
+            {vistas.map((p) => (
+              <tr key={p.pagina}>
+                <td className={`${TD} max-w-[280px]`}>
+                  <Pagina ruta={p.pagina} />
+                </td>
+                {columnas.map((c) => (
+                  <td key={c} className={TD_NUM}>
+                    {c === 'salidas' ? (
+                      <>
+                        {num(p.salidas)} <span className="text-[12.5px] text-[#8A93A3]">({pct(p.pct_salida)})</span>
+                      </>
+                    ) : c === 'datos' ? (
+                      p.medidas ? (
+                        <>
+                          {num(p.datos)} <span className="text-[12.5px] text-[#8A93A3]">({pct(p.pct_datos)})</span>
+                        </>
+                      ) : (
+                        '—'
+                      )
+                    ) : (
+                      num(p[c])
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center justify-between gap-3 mt-1.5">
+        {filas.length > tope ? (
+          <button type="button" onClick={() => setTodas(!todas)} className={ENLACE}>
             {todas ? 'Ver menos' : `Ver las ${filas.length}`}
           </button>
-        ) : null}
+        ) : (
+          <span />
+        )}
+        <BotonCSV
+          onClick={() =>
+            descargarCSV(
+              csv,
+              ['Página', 'Dirección', 'Visitas', 'Entraron por aquí', 'Se fueron desde aquí', 'Dejaron sus datos'],
+              filas.map((p) => [nombreDePagina(p.pagina), p.pagina, p.sesiones, p.entradas, p.salidas, p.medidas ? p.datos : '']),
+            )
+          }
+        />
       </div>
-    </Seccion>
+    </div>
   )
 }
 
@@ -212,6 +251,7 @@ export default function AnaliticaPanel() {
   const session = useLHSession() as any
   const token = session?.data?.tokens?.access_token
   const [periodo, setPeriodo] = useState<Periodo>('30')
+  const [vista, setVista] = useState<Vista>('resumen')
   const [f, setF] = useState<FiltrosAnalitica>(() => ({
     ...rango('30'),
     modelo: 'ficha',
@@ -220,14 +260,34 @@ export default function AnaliticaPanel() {
     campana: '',
     anuncio: '',
     bf_todo: false,
+    pais: '',
+    comparar: true,
   }))
   const [datos, setDatos] = useState<Analitica | null>(null)
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
-  const [serie, setSerie] = useState<(typeof SERIES)[number]['id']>('leads')
+  const [medida, setMedida] = useState<Medida>('visitas')
   const [quien, setQuien] = useState<'todas' | 'reservaron' | 'pagaron'>('reservaron')
   const [abierta, setAbierta] = useState<string | null>(null)
   const ultima = useRef(0)
+
+  // La vista va en la dirección (?vista=) para poder mandar el enlace.
+  useEffect(() => {
+    const v = new URLSearchParams(window.location.search).get('vista')
+    if (esVista(v)) setVista(v)
+  }, [])
+  const irA = (v: Vista) => {
+    setVista(v)
+    try {
+      const q = new URLSearchParams(window.location.search)
+      if (v === 'resumen') q.delete('vista')
+      else q.set('vista', v)
+      const texto = q.toString()
+      window.history.replaceState(null, '', texto ? `?${texto}` : window.location.pathname)
+    } catch {
+      /* sin historial: la vista cambia igual */
+    }
+  }
 
   useEffect(() => {
     if (!org?.id || !token) return
@@ -248,12 +308,8 @@ export default function AnaliticaPanel() {
     setPeriodo(p)
     if (p !== 'a-mano') poner(rango(p))
   }
-  const hayFiltros = !!(f.canal || f.fuente || f.campana || f.anuncio)
+  const hayFiltros = !!(f.canal || f.fuente || f.campana || f.anuncio || f.pais)
 
-  const filasSerie = useMemo(
-    () => (datos?.serie || []).map((d) => ({ dia: diaCorto(d.dia), valor: (d as any)[serie] as number })),
-    [datos, serie],
-  )
   const personas = useMemo(() => {
     const lista = datos?.personas || []
     if (quien === 'reservaron') return lista.filter((p) => p.reservo)
@@ -263,49 +319,68 @@ export default function AnaliticaPanel() {
 
   if (!datos && !error) {
     return (
-      <div className="flex items-center gap-2 text-[14px] text-[#6B7280] py-10">
+      <div className="flex items-center gap-2 text-[14px] text-[#4B5565] py-10">
         <Loader2 size={16} className="animate-spin" /> Leyendo la analítica…
       </div>
     )
   }
 
   const r = datos?.resumen
-  const nombreCampana = (v: string) => datos?.opciones.campanas.find((c) => c.valor === v)?.nombre || (v === '-' ? 'Sin campaña' : v)
-  const nombreAnuncio = (v: string) => datos?.opciones.anuncios.find((c) => c.valor === v)?.nombre || v
+  const ant = datos?.anterior || null
+  const a = ant?.resumen || null
+  const q = datos?.quien
+  const pag = datos?.paginas_detalle
+  const dias = datos ? Math.round((new Date(datos.hasta).getTime() - new Date(datos.desde).getTime()) / 86400000) + 1 : 0
+  const medido = datos?.medido_desde ? fecha(datos.medido_desde) : ''
+  const sinMedir = q && q.sesiones > 0 && q.medidas === 0
+  const notaMedido = medido ? `Se cuenta desde el ${medido}; las visitas de antes no traen ese dato.` : ''
 
   return (
     <div className="space-y-6">
-      {/* ── filtros ── */}
-      <div className={`${TARJETA} p-3.5 sm:p-4 space-y-3`}>
-        <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-0.5">
-          {PERIODOS.map((p) => (
-            <button key={p.id} className={filtro(periodo === p.id)} onClick={() => elegirPeriodo(p.id)}>
-              {p.label}
-            </button>
-          ))}
+      {/* ── vistas y «ahora» ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-full overflow-x-auto -mx-1 px-1">
+          <Segmentado opciones={VISTAS.map((v) => ({ id: v.id, label: v.label }))} valor={vista} onChange={irA} />
         </div>
-        {periodo === 'a-mano' ? (
-          <div className="flex flex-wrap items-center gap-2 text-[13px] text-[#374151]">
-            Del
-            <input type="date" className={SELECT} value={f.desde} max={f.hasta} onChange={(e) => e.target.value && poner({ desde: e.target.value })} />
-            al
-            <input type="date" className={SELECT} value={f.hasta} min={f.desde} onChange={(e) => e.target.value && poner({ hasta: e.target.value })} />
-          </div>
+        {datos?.ahora !== null && datos?.ahora !== undefined ? (
+          <span className="inline-flex items-center gap-2 text-[13px] text-[#4B5565]" title="Sesiones que han abierto una página en los últimos 5 minutos. Se actualiza al recargar.">
+            <i className="inline-block w-2 h-2 rounded-full" style={{ background: datos.ahora ? '#0E8A4F' : '#C5CAD6' }} />
+            <b className="font-semibold text-[#0B1020] tabular-nums">{datos.ahora}</b>
+            {datos.ahora === 1 ? 'persona en la web ahora' : 'personas en la web ahora'}
+          </span>
         ) : null}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex gap-1.5">
-            {(
-              [
-                ['', 'Todo'],
-                ['ads', 'Pago'],
-                ['organico', 'Orgánico'],
-              ] as const
-            ).map(([v, l]) => (
-              <button key={v} className={filtro(f.canal === v)} onClick={() => poner({ canal: v })}>
-                {l}
+      </div>
+
+      {/* ── fechas y filtros ── */}
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 max-w-full">
+            {PERIODOS.map((p) => (
+              <button key={p.id} className={filtro(periodo === p.id)} onClick={() => elegirPeriodo(p.id)}>
+                {p.label}
               </button>
             ))}
           </div>
+          {periodo === 'a-mano' ? (
+            <span className="flex flex-wrap items-center gap-2 text-[13px] text-[#4B5565]">
+              Del
+              <input type="date" className={SELECT} value={f.desde} max={f.hasta} onChange={(e) => e.target.value && poner({ desde: e.target.value })} />
+              al
+              <input type="date" className={SELECT} value={f.hasta} min={f.desde} onChange={(e) => e.target.value && poner({ hasta: e.target.value })} />
+            </span>
+          ) : null}
+          {cargando ? <Loader2 size={15} className="animate-spin text-[#8A93A3]" /> : null}
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center [&>select]:w-full sm:[&>select]:w-auto [&>select:first-child]:col-span-2">
+          <select className={SELECT} value={f.comparar ? '1' : '0'} onChange={(e) => poner({ comparar: e.target.value === '1' })} aria-label="Comparar">
+            <option value="1">Comparar con los {dias || ''} días de antes</option>
+            <option value="0">Sin comparar</option>
+          </select>
+          <select className={SELECT} value={f.canal} onChange={(e) => poner({ canal: e.target.value as FiltrosAnalitica['canal'] })} aria-label="Pago u orgánico">
+            <option value="">Todo el tráfico</option>
+            <option value="ads">Solo anuncios de pago</option>
+            <option value="organico">Solo orgánico</option>
+          </select>
           <select className={SELECT} value={f.fuente} onChange={(e) => poner({ fuente: e.target.value })} aria-label="Fuente">
             <option value="">Todas las fuentes</option>
             {datos?.opciones.fuentes.map((x) => (
@@ -327,22 +402,30 @@ export default function AnaliticaPanel() {
           {datos?.opciones.anuncios.length ? (
             <select className={SELECT} value={f.anuncio} onChange={(e) => poner({ anuncio: e.target.value })} aria-label="Anuncio">
               <option value="">Todos los anuncios</option>
-              {datos.opciones.anuncios.map((a) => (
-                <option key={a.valor} value={a.valor}>
-                  {a.nombre}
+              {datos.opciones.anuncios.map((x) => (
+                <option key={x.valor} value={x.valor}>
+                  {x.nombre}
                 </option>
               ))}
             </select>
           ) : null}
+          <select className={SELECT} value={f.pais} onChange={(e) => poner({ pais: e.target.value })} aria-label="País">
+            <option value="">Todos los países</option>
+            {(datos?.opciones.paises || []).map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+            {f.pais && !(datos?.opciones.paises || []).includes(f.pais) ? <option value={f.pais}>{f.pais}</option> : null}
+          </select>
           {hayFiltros ? (
-            <button className={`${ENLACE} inline-flex items-center gap-1`} onClick={() => poner({ canal: '', fuente: '', campana: '', anuncio: '', bf_todo: false })}>
+            <button className={`${ENLACE} inline-flex items-center gap-1`} onClick={() => poner({ canal: '', fuente: '', campana: '', anuncio: '', pais: '', bf_todo: false })}>
               <X size={13} /> Quitar filtros
             </button>
           ) : null}
-          {cargando ? <Loader2 size={15} className="animate-spin text-[#6B7280]" /> : null}
         </div>
         {f.campana === 'black-friday' ? (
-          <label className="flex items-start gap-2 text-[13px] text-[#374151]">
+          <label className="flex items-start gap-2 text-[13px] text-[#4B5565]">
             <input type="checkbox" className="mt-0.5" checked={f.bf_todo} onChange={(e) => poner({ bf_todo: e.target.checked })} />
             <span>
               Contar también a quien pasó por Black Friday aunque hubiera llegado antes por otro sitio (por ejemplo, una guía en
@@ -350,234 +433,560 @@ export default function AnaliticaPanel() {
             </span>
           </label>
         ) : null}
-        <div className="flex flex-wrap items-center gap-2 text-[13px] text-[#374151]">
-          <span>A quién se le da el mérito:</span>
-          <select className={SELECT} value={f.modelo} onChange={(e) => poner({ modelo: e.target.value as Modelo })}>
-            {(Object.keys(datos?.modelos || { ficha: '', primera: '', ultima: '' }) as Modelo[]).map((m) => (
-              <option key={m} value={m}>
-                {datos?.modelos[m] || m}
-              </option>
-            ))}
-          </select>
-        </div>
+        {f.pais ? (
+          <p className={META}>
+            El país de una visita sale de la zona horaria de su navegador (desde el {medido}); el de una persona, del prefijo de su teléfono.
+          </p>
+        ) : null}
       </div>
 
-      {error ? <p className="text-[13.5px] text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</p> : null}
+      {error ? <p className="text-[13.5px] text-[#C8322B] border border-[#F1C9C6] rounded-lg px-4 py-3">{error}</p> : null}
 
       {datos && r ? (
         <>
-          {/* ── cifras ── */}
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
-            <Cifra titulo="Visitas" valor={r.visitas === null ? '—' : String(r.visitas)} sub="sesiones en la web" />
-            <Cifra titulo="Leads" valor={String(r.leads)} sub={r.visitas ? `${pct(r.pct_lead)} de las visitas` : 'dejaron sus datos'} />
-            <Cifra titulo="Reservaron llamada" valor={String(r.reservaron)} sub={`${pct(r.pct_reserva)} de los leads`} />
-            <Cifra titulo="Vinieron" valor={String(r.vinieron)} sub={r.reservaron ? `${pct(r.pct_vino)} de las reservas · ${r.no_vinieron} no vinieron` : ''} />
-            <Cifra titulo="Pagaron" valor={String(r.pagaron)} sub={`${pct(r.pct_pago)} de los leads`} />
-            <Cifra
-              titulo="Vendido"
-              valor={euros(r.cents)}
-              sub={
-                r.pagaron
-                  ? `cobrado ${euros(r.cobrado_cents ?? r.cents)}${
-                      (r.por_cobrar_cents ?? 0) > 0 ? ` · por cobrar ${euros(r.por_cobrar_cents ?? 0)}` : ''
-                    } · ${euros(Math.round(r.cents / r.pagaron))} de media`
-                  : ''
-              }
-            />
-          </div>
-          <p className={`${META} -mt-3 leading-relaxed`}>
-            Leads = quien dejó sus datos del {fecha(datos.desde + 'T12:00')} al {fecha(datos.hasta + 'T12:00')}. Reservaron, vinieron y pagaron cuenta
-            lo que hicieron ellos, aunque fuera después.
-            {datos.visitas_desde ? ` Las visitas se cuentan desde el ${fecha(datos.visitas_desde + 'T12:00')}.` : ' Las visitas se empiezan a contar hoy.'}
-          </p>
-
-          {/* ── pago vs orgánico ── */}
-          <Seccion titulo="Anuncios de pago y orgánico">
-            <div className="grid md:grid-cols-2 gap-2.5">
-              {datos.por_canal.map((c) => (
-                <Canal
-                  key={c.valor}
-                  fila={c}
-                  color={c.valor === 'ads' ? '#025dc7' : '#16A34A'}
-                  elegido={f.canal === c.valor}
-                  onElegir={() => poner({ canal: f.canal === c.valor ? '' : (c.valor as 'ads' | 'organico') })}
-                />
-              ))}
-            </div>
-          </Seccion>
-
-          {/* ── por día ── */}
-          <Seccion
-            titulo="Día a día"
-            extra={
-              <div className="flex gap-1.5 overflow-x-auto max-w-[70vw] sm:max-w-none">
-                {SERIES.map((s) => (
-                  <button key={s.id} className={filtro(serie === s.id)} onClick={() => setSerie(s.id)}>
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            }
-          >
-            <div className={`${TARJETA} p-3 sm:p-4`}>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={filasSerie} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                  <CartesianGrid stroke="#F3F4F6" vertical={false} />
-                  <XAxis dataKey="dia" tick={{ fontSize: 11, fill: '#6B7280' }} tickLine={false} axisLine={{ stroke: '#E5E7EB' }} interval="preserveStartEnd" minTickGap={12} />
-                  <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} tickLine={false} axisLine={false} allowDecimals={false} width={40} />
-                  <Tooltip
-                    cursor={{ fill: '#F9FAFB' }}
-                    contentStyle={{ borderRadius: 6, border: '1px solid #E5E7EB', boxShadow: 'none', fontSize: 12 }}
-                    formatter={(v: any) => [v, SERIES.find((s) => s.id === serie)?.label]}
-                    labelFormatter={(l: any) => `Día ${l}`}
-                  />
-                  <Bar isAnimationActive={false} dataKey="valor" fill="#025dc7" radius={[4, 4, 0, 0]} maxBarSize={22} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Seccion>
-
-          <Tabla
-            titulo="Por fuente"
-            primera="De dónde vienen"
-            filas={datos.por_fuente}
-            elegido={f.fuente}
-            onElegir={(v) => poner({ fuente: v === '-' ? '' : v })}
-            vacio="Nada en estas fechas."
-          />
-          <Tabla
-            titulo="Por campaña"
-            primera="Campaña"
-            filas={datos.por_campana}
-            conGasto
-            elegido={f.campana}
-            onElegir={(v) => poner({ campana: v, bf_todo: false })}
-            vacio="Nada en estas fechas."
-          />
-          {datos.por_campana.some((c) => c.gasto_cents) ? (
-            <p className={`${META} -mt-4`}>
-              El gasto es el apuntado en Panel → Anuncios, repartido por días entre estas fechas. Retorno = vendido ÷ gasto.
-            </p>
-          ) : null}
-          <Tabla
-            titulo="Por anuncio o enlace"
-            primera="Anuncio o enlace (utm_content)"
-            filas={datos.por_anuncio}
-            conVisitas={false}
-            elegido={f.anuncio}
-            onElegir={(v) => poner({ anuncio: v === '-' ? '' : v })}
-            vacio="Ningún lead con anuncio (utm_content) en estas fechas."
-          />
-
-          {/* ── páginas ── */}
-          <div className="grid lg:grid-cols-2 gap-6 items-start [&>*]:min-w-0">
-            <Seccion titulo="Páginas más vistas" extra={<span className={META}>visitas</span>}>
-              <div className={`${TARJETA} divide-y divide-[#F3F4F6]`}>
-                {datos.paginas.length === 0 ? (
-                  <p className={`${META} px-4 py-4`}>Aún no hay visitas contadas en estas fechas.</p>
-                ) : (
-                  datos.paginas.slice(0, 15).map((p) => (
-                    <div key={p.pagina} className="px-4 py-2 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[13px] text-gray-900 truncate">{p.pagina}</p>
-                        <p className={META}>{p.entradas ? `${p.entradas} entraron por aquí` : 'llegaron desde otra página'}</p>
-                      </div>
-                      <span className="shrink-0 text-[13.5px] font-semibold text-gray-900 tabular-nums">{p.sesiones}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-              {datos.dispositivos.movil + datos.dispositivos.ordenador ? (
-                <p className={META}>
-                  {Math.round((datos.dispositivos.movil * 100) / (datos.dispositivos.movil + datos.dispositivos.ordenador))} % desde el móvil ·{' '}
-                  {datos.dispositivos.ordenador} desde el ordenador
+          {/* ════════════ Resumen ════════════ */}
+          {vista === 'resumen' ? (
+            <div className="space-y-10">
+              <div>
+                <TiraResumen r={r} a={a} />
+                <p className={`${META} mt-2.5 leading-relaxed`}>
+                  Leads = quien dejó sus datos del {fecha(datos.desde)} al {fecha(datos.hasta)}; reservaron, vinieron y compraron cuenta lo que hicieron
+                  ellos, aunque fuera después.
+                  {ant ? ` Se compara con el ${fecha(ant.desde)} – ${fecha(ant.hasta)}.` : ''}
+                  {ant && !ant.visitas_comparables ? ` Las visitas no se comparan: se cuentan desde el ${fecha(datos.visitas_desde)}.` : ''}
                 </p>
-              ) : null}
-            </Seccion>
-            <Seccion titulo="Dónde dejan sus datos" extra={<span className={META}>leads</span>}>
-              <div className={`${TARJETA} divide-y divide-[#F3F4F6]`}>
-                {datos.donde_dejan.length === 0 ? (
-                  <p className={`${META} px-4 py-4`}>Nadie en estas fechas.</p>
+              </div>
+
+              <Seccion
+                titulo="Día a día"
+                extra={
+                  <div className="max-w-[72vw] sm:max-w-none overflow-x-auto">
+                    <Segmentado opciones={MEDIDAS.map((m) => ({ id: m.id, label: m.label }))} valor={medida} onChange={setMedida} />
+                  </div>
+                }
+              >
+                <DiaADia serie={datos.serie} antes={ant?.serie || null} medida={medida} sinVisitasAntes={!ant?.visitas_comparables} />
+              </Seccion>
+
+              <Seccion
+                titulo="Del clic a la venta"
+                extra={
+                  r.ventas_por_100_visitas !== null && r.ventas_por_100_visitas !== undefined ? (
+                    <span className={META}>
+                      De cada 100 visitas, {coma(r.ventas_por_100_visitas)} compran
+                      {a?.ventas_por_100_visitas !== null && a?.ventas_por_100_visitas !== undefined ? ` · antes ${coma(a.ventas_por_100_visitas)}` : ''}
+                    </span>
+                  ) : null
+                }
+              >
+                <EmbudoDibujado r={r} />
+              </Seccion>
+
+              <div className="grid lg:grid-cols-[1.5fr_1fr] gap-x-14 gap-y-10 items-start [&>*]:min-w-0">
+                <Seccion
+                  titulo="De dónde vienen"
+                  extra={
+                    <button type="button" className={ENLACE} onClick={() => irA('origen')}>
+                      Ver campañas y anuncios
+                    </button>
+                  }
+                >
+                  <TablaCifras
+                    filas={datos.por_fuente}
+                    primera="Fuente"
+                    csv="analitica-fuentes"
+                    conPorVisita
+                    elegido={f.fuente}
+                    onElegir={(v) => poner({ fuente: v === '-' ? '' : v })}
+                    vacio="Nada en estas fechas."
+                    tope={6}
+                    compacta
+                  />
+                </Seccion>
+                <div className="space-y-8">
+                  <Seccion
+                    titulo="Desde qué país"
+                    extra={
+                      <button type="button" className={ENLACE} onClick={() => irA('quien')}>
+                        Quién visita
+                      </button>
+                    }
+                  >
+                    {q && q.paises.length ? (
+                      <div>
+                        {q.paises.slice(0, 5).map((p) => (
+                          <BarraParte key={p.pais} nombre={p.pais} n={p.visitas} pctValor={p.pct} max={q.paises[0].visitas} />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className={META}>{sinMedir ? `El país se cuenta desde el ${medido}: en estas fechas aún no hay visitas con ese dato.` : 'Sin visitas en estas fechas.'}</p>
+                    )}
+                  </Seccion>
+                  {q ? (
+                    <Seccion titulo="Cómo entran">
+                      <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 text-[13.5px]">
+                        <dt className="text-[#8A93A3]">Desde el móvil</dt>
+                        <dd className="tabular-nums text-right">{q.movil + q.ordenador ? pct(Math.round((q.movil * 100) / (q.movil + q.ordenador))) : '—'}</dd>
+                        <dt className="text-[#8A93A3]">Ven una sola página y se van</dt>
+                        <dd className="tabular-nums text-right">{pct(q.pct_rebote)}</dd>
+                        <dt className="text-[#8A93A3]">Páginas por visita</dt>
+                        <dd className="tabular-nums text-right">{coma(q.paginas_por_visita)}</dd>
+                        <dt className="text-[#8A93A3]">Tiempo en la web</dt>
+                        <dd className="tabular-nums text-right">{duracion(q.segundos)}</dd>
+                        <dt className="text-[#8A93A3]">Ya habían venido antes</dt>
+                        <dd className="tabular-nums text-right">{q.medidas ? pct(q.pct_vuelven) : '—'}</dd>
+                      </dl>
+                    </Seccion>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* ════════════ De dónde vienen ════════════ */}
+          {vista === 'origen' ? (
+            <div className="space-y-10">
+              <p className={META}>Toca una fila para quedarte solo con ella: de la fuente a sus campañas, y de la campaña a sus anuncios.</p>
+              <Seccion titulo="Por fuente" filete>
+                <TablaCifras
+                  filas={datos.por_fuente}
+                  primera="De dónde vienen"
+                  csv="analitica-fuentes"
+                  conGasto
+                  conPorVisita
+                  elegido={f.fuente}
+                  onElegir={(v) => poner({ fuente: v === '-' ? '' : v })}
+                  vacio="Nada en estas fechas."
+                />
+              </Seccion>
+              <Seccion titulo="Por campaña" filete>
+                <TablaCifras
+                  filas={datos.por_campana}
+                  primera="Campaña"
+                  csv="analitica-campanas"
+                  conGasto
+                  elegido={f.campana}
+                  onElegir={(v) => poner({ campana: v, bf_todo: false })}
+                  vacio="Nada en estas fechas."
+                />
+                {datos.por_campana.some((c) => c.gasto_cents) ? (
+                  <p className={META}>El gasto es el apuntado en Panel → Anuncios, repartido por días entre estas fechas. Retorno = vendido ÷ gasto.</p>
+                ) : null}
+              </Seccion>
+              <Seccion titulo="Por anuncio o enlace" nota="Lo que lleva el enlace en utm_content: el anuncio de Meta, el reel, el setter…" filete>
+                <TablaCifras
+                  filas={datos.por_anuncio}
+                  primera="Anuncio o enlace"
+                  csv="analitica-anuncios"
+                  conVisitas={false}
+                  elegido={f.anuncio}
+                  onElegir={(v) => poner({ anuncio: v === '-' ? '' : v })}
+                  vacio="Ningún lead con anuncio (utm_content) en estas fechas."
+                />
+              </Seccion>
+              <div className={`${META} leading-relaxed space-y-1.5`}>
+                <p>
+                  <b className="font-semibold text-[#4B5565]">Cómo se cuenta.</b> Pago = llegó con un enlace de anuncio (utm_medium paid, cpc…) o por la
+                  página del anuncio. La fuente sale del enlace (utm_source); si no lo lleva, de la web de la que venía (Instagram, Google…); si no se
+                  sabe, «Directo». Black Friday junta su campaña y todo lo que pasa por blackfriday.holandesnawar.com, aunque llegue sin campaña.
+                </p>
+                <p>
+                  Quien reserva directo en Calendly (el enlace de un setter) cuenta por la campaña de su enlace de Calendly
+                  {datos.calendly.conectado ? '' : ' (ahora mismo Calendly no contesta: esas reservas no salen)'}. Quien está fuera de los números no
+                  cuenta.
+                </p>
+                <label className="flex flex-wrap items-center gap-2 text-[13px] text-[#4B5565] pt-1">
+                  A quién se le da el mérito de cada persona:
+                  <select className={SELECT} value={f.modelo} onChange={(e) => poner({ modelo: e.target.value as Modelo })}>
+                    {(Object.keys(datos.modelos || { ficha: '', primera: '', ultima: '' }) as Modelo[]).map((m) => (
+                      <option key={m} value={m}>
+                        {datos.modelos[m] || m}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+          ) : null}
+
+          {/* ════════════ Páginas ════════════ */}
+          {vista === 'paginas' ? (
+            <div className="space-y-10">
+              <Seccion
+                titulo="Páginas por las que entran"
+                nota="La primera página de cada visita: cuántos entran por ella, cuántos se van sin ver nada más y cuántos acaban dejando sus datos en esa visita."
+                filete
+              >
+                {pag && pag.entrada.length ? (
+                  <div>
+                    <div className="overflow-x-auto">
+                      <table className={`${TABLA} min-w-[560px]`}>
+                        <thead>
+                          <tr>
+                            <th className={TH}>Página</th>
+                            <th className={TH_NUM}>Entraron</th>
+                            <th className={TH_NUM}>Se van sin más</th>
+                            <th className={TH_NUM}>Dejaron sus datos</th>
+                            <th className={TH_NUM}>Entrada → datos</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pag.entrada.slice(0, 20).map((p) => (
+                            <tr key={p.pagina}>
+                              <td className={`${TD} max-w-[300px]`}>
+                                <Pagina ruta={p.pagina} />
+                              </td>
+                              <td className={`${TD_NUM} font-semibold`}>{num(p.entraron)}</td>
+                              <td className={TD_NUM}>{pct(p.pct_rebote)}</td>
+                              <td className={TD_NUM}>{p.medidas ? num(p.datos) : '—'}</td>
+                              <td className={TD_NUM}>{p.medidas ? pct(p.pct_datos) : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 mt-1.5">
+                      <span className={META}>«Dejaron sus datos» {notaMedido.charAt(0).toLowerCase() + notaMedido.slice(1)}</span>
+                      <BotonCSV
+                        onClick={() =>
+                          descargarCSV(
+                            'analitica-paginas-de-entrada',
+                            ['Página', 'Dirección', 'Entraron', 'Se van sin más %', 'Visitas medidas', 'Dejaron sus datos', 'Entrada a datos %'],
+                            pag.entrada.map((p) => [nombreDePagina(p.pagina), p.pagina, p.entraron, p.pct_rebote ?? '', p.medidas, p.datos, p.pct_datos ?? '']),
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
                 ) : (
-                  datos.donde_dejan.slice(0, 15).map((p) => (
-                    <div key={p.marca || '-'} className="px-4 py-2 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[13px] text-gray-900 truncate first-letter:uppercase">{p.nombre}</p>
-                        <p className={META}>
-                          {p.reservaron} reservaron · {p.pagaron} pagaron
+                  <p className={META}>Aún no hay visitas contadas en estas fechas.</p>
+                )}
+              </Seccion>
+
+              <div className="grid lg:grid-cols-2 gap-x-14 gap-y-10 items-start [&>*]:min-w-0">
+                <Seccion titulo="Páginas más vistas" filete>
+                  <TablaPaginas filas={pag?.vistas || []} columnas={['sesiones', 'entradas']} csv="analitica-paginas" vacio="Aún no hay visitas contadas en estas fechas." />
+                </Seccion>
+                <Seccion titulo="Por dónde se van" nota="La última página que vieron, y qué parte de quien la vio se fue desde ella." filete>
+                  <TablaPaginas filas={pag?.salida || []} columnas={['salidas']} csv="analitica-paginas-de-salida" vacio="Aún no hay visitas contadas en estas fechas." />
+                </Seccion>
+              </div>
+
+              <div className="grid lg:grid-cols-2 gap-x-14 gap-y-10 items-start [&>*]:min-w-0">
+                <Seccion titulo="Artículos del blog" nota="Cuántos leen cada uno y cuántos acaban dejando sus datos en esa visita." filete>
+                  <TablaPaginas filas={pag?.blog || []} columnas={['sesiones', 'entradas', 'datos']} csv="analitica-blog" vacio="Nadie ha leído el blog en estas fechas." />
+                </Seccion>
+                <Seccion titulo="Dónde dejan sus datos" nota="La primera página por la que pasó cada lead (por su ficha), y en qué acabó." filete>
+                  {datos.donde_dejan.length === 0 ? (
+                    <p className={META}>Nadie en estas fechas.</p>
+                  ) : (
+                    <table className={TABLA}>
+                      <thead>
+                        <tr>
+                          <th className={TH}>Página</th>
+                          <th className={TH_NUM}>Leads</th>
+                          <th className={TH_NUM}>Reservaron</th>
+                          <th className={TH_NUM}>Pagaron</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {datos.donde_dejan.slice(0, 15).map((p) => (
+                          <tr key={p.marca || '-'}>
+                            <td className={`${TD} first-letter:uppercase`}>{p.nombre}</td>
+                            <td className={`${TD_NUM} font-semibold`}>{num(p.leads)}</td>
+                            <td className={TD_NUM}>{num(p.reservaron)}</td>
+                            <td className={TD_NUM}>{num(p.pagaron)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </Seccion>
+              </div>
+            </div>
+          ) : null}
+
+          {/* ════════════ Embudo ════════════ */}
+          {vista === 'embudo' ? (
+            <div className="space-y-10">
+              <Seccion
+                titulo="Del clic a la venta"
+                nota="La altura de las columnas va a escala de raíz, para que los pasos pequeños se vean: la cifra exacta es la de debajo."
+                extra={
+                  r.ventas_por_100_visitas !== null && r.ventas_por_100_visitas !== undefined ? (
+                    <span className={META}>De cada 100 visitas, {coma(r.ventas_por_100_visitas)} compran</span>
+                  ) : null
+                }
+              >
+                <EmbudoDibujado r={r} />
+              </Seccion>
+
+              {datos.tiempos ? (
+                <Seccion titulo="Cuánto tardan" nota="La mediana: la mitad tarda menos y la otra mitad, más. Entre paréntesis, la media.">
+                  <Tira>
+                    {(
+                      [
+                        ['De dejar sus datos a reservar', datos.tiempos.lead_reserva],
+                        ['De reservar a comprar', datos.tiempos.reserva_pago],
+                        ['De dejar sus datos a comprar', datos.tiempos.lead_pago],
+                      ] as const
+                    ).map(([rotulo, t]) => (
+                      <Cifra
+                        key={rotulo}
+                        rotulo={rotulo}
+                        valor={t.mediana_dias === null ? '—' : t.mediana_dias < 1 ? `${Math.max(1, Math.round(t.mediana_dias * 24))} h` : coma(t.mediana_dias)}
+                        sufijo={t.mediana_dias !== null && t.mediana_dias >= 1 ? 'días' : undefined}
+                        nota={t.n ? `${t.n} ${t.n === 1 ? 'persona' : 'personas'} (media ${coma(t.media_dias)} días)` : 'nadie en estas fechas'}
+                      />
+                    ))}
+                  </Tira>
+                </Seccion>
+              ) : null}
+
+              <Seccion titulo="Anuncios de pago y orgánico, lado a lado" nota="Toca uno para quedarte solo con ese tráfico.">
+                <div className="grid md:grid-cols-2 gap-x-14 gap-y-8 [&>*]:min-w-0">
+                  {datos.por_canal.map((c) => {
+                    const color = c.valor === 'ads' ? COLOR_PAGO : COLOR_ORGANICO
+                    return (
+                      <button
+                        key={c.valor}
+                        type="button"
+                        onClick={() => poner({ canal: f.canal === c.valor ? '' : (c.valor as 'ads' | 'organico') })}
+                        className={`text-left rounded-[10px] p-4 -m-4 hover:bg-[#F7F8FA] transition-colors ${f.canal === c.valor ? 'bg-[#F7F8FA]' : ''}`}
+                      >
+                        <div className="flex items-baseline justify-between gap-3 mb-3">
+                          <Estado color={color} className="!text-[14px] !font-semibold !text-[#0B1020]">
+                            {c.nombre}
+                          </Estado>
+                          <span className="text-[14px] font-semibold tabular-nums">
+                            {euros(c.cents)} <span className="text-[12.5px] font-normal text-[#8A93A3]">vendido</span>
+                          </span>
+                        </div>
+                        <EmbudoDibujado r={c} color={color} claro={c.valor === 'ads' ? '#CFDDFB' : '#CBE8D8'} compacto />
+                      </button>
+                    )
+                  })}
+                </div>
+              </Seccion>
+            </div>
+          ) : null}
+
+          {/* ════════════ Quién visita ════════════ */}
+          {vista === 'quien' && q ? (
+            <div className="space-y-10">
+              <div>
+                <Tira>
+                  <Cifra rotulo="Desde el móvil" valor={q.movil + q.ordenador ? pct(Math.round((q.movil * 100) / (q.movil + q.ordenador))) : '—'} nota={`${num(q.ordenador)} desde el ordenador`} />
+                  <Cifra rotulo="Se van sin más" valor={pct(q.pct_rebote)} nota="ven una sola página" />
+                  <Cifra rotulo="Páginas por visita" valor={coma(q.paginas_por_visita)} nota={`${num(q.sesiones)} visitas`} />
+                  <Cifra rotulo="Tiempo en la web" valor={duracion(q.segundos)} nota="de quien ve más de una página" />
+                  <Cifra rotulo="Ya habían venido" valor={q.medidas ? pct(q.pct_vuelven) : '—'} nota={q.medidas ? `${num(q.vuelven)} vuelven · ${num(q.nuevos)} nuevos` : `desde el ${medido}`} />
+                  <Cifra rotulo="Dejan sus datos" valor={q.medidas ? pct(q.pct_datos) : '—'} nota={q.medidas ? `${num(q.dejaron_datos)} de ${num(q.medidas)} visitas` : `desde el ${medido}`} />
+                </Tira>
+                <p className={`${META} mt-2.5`}>
+                  El país, si ya habían venido y si dejaron sus datos se cuentan desde el {medido}
+                  {q.medidas < q.sesiones ? `: de las ${num(q.sesiones)} visitas de estas fechas, ${num(q.medidas)} traen ese dato.` : '.'} Nada de esto identifica a nadie.
+                </p>
+              </div>
+
+              <div className="grid lg:grid-cols-2 gap-x-14 gap-y-10 items-start [&>*]:min-w-0">
+                <Seccion
+                  titulo="Visitas por país"
+                  nota="Por la zona horaria del navegador, sin mirar la IP."
+                  filete
+                >
+                  {q.paises.length ? (
+                    <table className={TABLA}>
+                      <thead>
+                        <tr>
+                          <th className={TH}>País</th>
+                          <th className={TH_NUM}>Visitas</th>
+                          <th className={TH_NUM}>% de las visitas</th>
+                          <th className={TH_NUM}>Dejan sus datos</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {q.paises.map((p) => (
+                          <tr key={p.pais} className="cursor-pointer hover:bg-[#F7F8FA]" onClick={() => poner({ pais: f.pais === p.pais ? '' : p.pais })} title="Tocar para filtrar por este país">
+                            <td className={`${TD} font-medium`}>{p.pais}</td>
+                            <td className={TD_NUM}>{num(p.visitas)}</td>
+                            <td className={`${TD_NUM} text-[#4B5565]`}>{pct(p.pct)}</td>
+                            <td className={TD_NUM}>
+                              {num(p.datos)} <span className="text-[12.5px] text-[#8A93A3]">({pct(p.pct_datos)})</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : null}
+                  {q.paises.length ? (
+                    <div className="flex justify-end">
+                      <BotonCSV
+                        onClick={() =>
+                          descargarCSV(
+                            'analitica-paises',
+                            ['País', 'Visitas', '% de las visitas', 'Dejaron sus datos', '% que deja sus datos'],
+                            q.paises.map((p) => [p.pais, p.visitas, p.pct ?? '', p.datos, p.pct_datos ?? '']),
+                          )
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <p className={META}>{sinMedir ? `El país se cuenta desde el ${medido}: en estas fechas aún no hay visitas con ese dato.` : 'Sin visitas en estas fechas.'}</p>
+                  )}
+                </Seccion>
+                <Seccion titulo="Leads por país" nota="Por el prefijo del teléfono que dejó cada persona." filete>
+                  {q.paises_personas.length ? (
+                    <table className={TABLA}>
+                      <thead>
+                        <tr>
+                          <th className={TH}>País</th>
+                          <th className={TH_NUM}>Leads</th>
+                          <th className={TH_NUM}>Reservaron</th>
+                          <th className={TH_NUM}>Pagaron</th>
+                          <th className={TH_NUM}>Vendido</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {q.paises_personas.map((p) => (
+                          <tr key={p.pais}>
+                            <td className={`${TD} font-medium`}>
+                              {p.pais}
+                              {p.pais === 'Sin dato' ? <span className={SUB}>sin teléfono o sin prefijo</span> : null}
+                            </td>
+                            <td className={TD_NUM}>{num(p.leads)}</td>
+                            <td className={TD_NUM}>{num(p.reservaron)}</td>
+                            <td className={TD_NUM}>{num(p.pagaron)}</td>
+                            <td className={`${TD_NUM} font-semibold`}>{p.cents ? euros(p.cents) : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className={META}>Nadie en estas fechas.</p>
+                  )}
+                </Seccion>
+              </div>
+
+              <div className="grid lg:grid-cols-[1.4fr_1fr] gap-x-14 gap-y-10 items-start [&>*]:min-w-0">
+                <Seccion titulo="Cuándo visitan" extra={<span className={META}>hora de Países Bajos</span>}>
+                  <MapaCalor calor={q.calor} />
+                  {q.mejores.length ? (
+                    <p className="text-[13px] text-[#4B5565]">
+                      El mejor rato:{' '}
+                      <b className="font-semibold text-[#0B1020]">
+                        {q.mejores
+                          .slice(0, 2)
+                          .map((m) => `${diaTexto(m.dia).toLowerCase()} de ${franjaTexto(m.franja)}`)
+                          .join(' y ')}
+                      </b>
+                      .
+                    </p>
+                  ) : null}
+                </Seccion>
+                <Seccion titulo="Móvil u ordenador, nuevos o repiten">
+                  <div>
+                    <BarraParte nombre="Móvil" n={q.movil} pctValor={q.movil + q.ordenador ? Math.round((q.movil * 100) / (q.movil + q.ordenador)) : null} max={q.movil + q.ordenador} />
+                    <BarraParte nombre="Ordenador" n={q.ordenador} pctValor={q.movil + q.ordenador ? Math.round((q.ordenador * 100) / (q.movil + q.ordenador)) : null} max={q.movil + q.ordenador} />
+                  </div>
+                  {q.medidas ? (
+                    <div>
+                      <BarraParte nombre="Primera vez" n={q.nuevos} pctValor={Math.round((q.nuevos * 100) / q.medidas)} max={q.medidas} />
+                      <BarraParte nombre="Ya habían venido" n={q.vuelven} pctValor={q.pct_vuelven} max={q.medidas} />
+                    </div>
+                  ) : (
+                    <p className={META}>Si ya habían venido se cuenta desde el {medido}.</p>
+                  )}
+                </Seccion>
+              </div>
+            </div>
+          ) : null}
+
+          {/* ════════════ Personas ════════════ */}
+          {vista === 'personas' ? (
+            <Seccion
+              titulo="Quién es cada uno"
+              nota={`${num(datos.personas_total)} ${datos.personas_total === 1 ? 'persona dejó' : 'personas dejaron'} sus datos en estas fechas. Toca una para abrir su ficha.`}
+              extra={
+                <>
+                  <div className="max-w-[60vw] sm:max-w-none overflow-x-auto">
+                    <Segmentado
+                      opciones={[
+                        { id: 'reservaron', label: 'Reservaron' },
+                        { id: 'pagaron', label: 'Pagaron' },
+                        { id: 'todas', label: 'Todos' },
+                      ]}
+                      valor={quien}
+                      onChange={setQuien}
+                    />
+                  </div>
+                  <BotonCSV
+                    onClick={() =>
+                      descargarCSV(
+                        'analitica-personas',
+                        ['Nombre', 'Correo', 'Entró', 'Canal', 'Fuente', 'Campaña', 'Anuncio', 'Primera página', 'País', 'Reservó', 'Vino', 'Pagó', 'Vendido €', 'Cobrado €'],
+                        personas.map((p) => [
+                          p.nombre,
+                          p.email,
+                          p.entro.slice(0, 10),
+                          p.canal === 'ads' ? 'Pago' : 'Orgánico',
+                          p.fuente,
+                          p.campana_nombre,
+                          p.anuncio,
+                          p.primera_pagina,
+                          p.pais || '',
+                          p.reservo ? p.reservo.slice(0, 10) : '',
+                          p.vino ? 'sí' : p.no_vino ? 'no vino' : '',
+                          p.pago ? 'sí' : '',
+                          p.cents ? (p.cents / 100).toFixed(2).replace('.', ',') : '',
+                          p.pago ? ((p.cobrado_cents ?? p.cents) / 100).toFixed(2).replace('.', ',') : '',
+                        ]),
+                      )
+                    }
+                  />
+                </>
+              }
+              junto
+            >
+              <div className="border-t border-[#E6E8EE]">
+                {personas.length === 0 ? (
+                  <p className={`${META} py-4`}>Nadie con estos filtros.</p>
+                ) : (
+                  personas.slice(0, 200).map((p) => (
+                    <button
+                      key={p.email}
+                      onClick={() => setAbierta(p.email)}
+                      className="w-full text-left py-[11px] border-b border-[#F0F1F5] hover:bg-[#F7F8FA] flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] font-medium text-[#0B1020] truncate">{p.nombre || p.email}</p>
+                        <p className={`${META} truncate`}>
+                          <span className={p.canal === 'ads' ? 'font-medium text-[#2F6FED]' : ''}>{p.fuente}</span>
+                          {p.campana_nombre ? ` · ${p.campana_nombre}` : ''}
+                          {p.anuncio ? ` · ${p.anuncio}` : ''}
+                          {p.primera_pagina ? ` · entró por ${p.primera_pagina}` : ''}
+                          {p.pais && p.pais !== 'Sin dato' ? ` · ${p.pais}` : ''}
                         </p>
                       </div>
-                      <span className="shrink-0 text-[13.5px] font-semibold text-gray-900 tabular-nums">{p.leads}</span>
-                    </div>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 shrink-0">
+                        <span className={META}>Lead {fecha(p.entro)}</span>
+                        {p.reservo ? <Estado tono="azul">Reservó {fecha(p.reservo)}</Estado> : null}
+                        {p.vino ? <Estado tono="azul">Vino</Estado> : p.no_vino ? <Estado tono="rojo">No vino</Estado> : null}
+                        {p.pago ? (
+                          <Estado tono="verde">
+                            {p.cents && (p.cobrado_cents ?? p.cents) < p.cents
+                              ? `Compró ${euros(p.cents)} · cobrado ${euros(p.cobrado_cents ?? 0)}`
+                              : `Pagó${p.cents ? ` ${euros(p.cents)}` : ''}`}
+                          </Estado>
+                        ) : null}
+                      </div>
+                    </button>
                   ))
                 )}
+                {personas.length > 200 ? <p className={`${META} py-2.5`}>Y {personas.length - 200} más: afina con los filtros o descarga el CSV.</p> : null}
               </div>
-              <p className={META}>La primera página de la web por la que pasaron antes de dejar sus datos.</p>
             </Seccion>
-          </div>
-
-          {/* ── personas ── */}
-          <Seccion
-            titulo="Quién es cada uno"
-            extra={
-              <div className="flex gap-1.5 overflow-x-auto max-w-[70vw] sm:max-w-none">
-                {(
-                  [
-                    ['reservaron', 'Reservaron'],
-                    ['pagaron', 'Pagaron'],
-                    ['todas', 'Todos los leads'],
-                  ] as const
-                ).map(([v, l]) => (
-                  <button key={v} className={filtro(quien === v)} onClick={() => setQuien(v)}>
-                    {l}
-                  </button>
-                ))}
-              </div>
-            }
-          >
-            <div className={`${TARJETA} divide-y divide-[#F3F4F6]`}>
-              {personas.length === 0 ? (
-                <p className={`${META} px-4 py-4`}>Nadie con estos filtros.</p>
-              ) : (
-                personas.slice(0, 200).map((p) => (
-                  <button key={p.email} onClick={() => setAbierta(p.email)} className="w-full text-left px-4 py-2.5 hover:bg-[#F7F9FE] flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13.5px] font-medium text-gray-900 truncate">{p.nombre || p.email}</p>
-                      <p className={`${META} truncate`}>
-                        <span className={p.canal === 'ads' ? 'text-[#025dc7] font-medium' : ''}>{p.fuente}</span>
-                        {p.campana_nombre ? ` · ${p.campana_nombre}` : ''}
-                        {p.anuncio ? ` · ${p.anuncio}` : ''}
-                        {p.primera_pagina ? ` · entró por ${p.primera_pagina}` : ''}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 shrink-0">
-                      <span className={META}>Lead {fecha(p.entro)}</span>
-                      {p.reservo ? <Estado tono="azul">Reservó {fecha(p.reservo)}</Estado> : null}
-                      {p.vino ? <Estado tono="azul">Vino</Estado> : p.no_vino ? <Estado tono="rojo">No vino</Estado> : null}
-                      {p.pago ? <Estado tono="verde">
-                          {p.cents && (p.cobrado_cents ?? p.cents) < p.cents
-                            ? `Compró ${euros(p.cents)} · cobrado ${euros(p.cobrado_cents ?? 0)}`
-                            : `Pagó${p.cents ? ` ${euros(p.cents)}` : ''}`}
-                        </Estado> : null}
-                    </div>
-                  </button>
-                ))
-              )}
-              {personas.length > 200 ? <p className={`${META} px-4 py-2.5`}>Y {personas.length - 200} más: afina con los filtros.</p> : null}
-            </div>
-          </Seccion>
-
-          <div className={`${META} leading-relaxed space-y-1.5`}>
-            <p>
-              <b className="font-semibold text-[#374151]">Cómo se cuenta.</b> Pago = llegó con un enlace de anuncio (utm_medium paid, cpc…) o por la página del
-              anuncio. La fuente sale del enlace (utm_source); si no lo lleva, de la web de la que venía (Instagram, Google…); si no se sabe, «Directo».
-              Black Friday junta su campaña y todo lo que pasa por blackfriday.holandesnawar.com, aunque llegue sin campaña.
-            </p>
-            <p>
-              Quien reserva directo en Calendly (el enlace de un setter) cuenta por la campaña de su enlace de Calendly
-              {datos.calendly.conectado ? '' : ' (ahora mismo Calendly no contesta: esas reservas no salen)'}. Quien está fuera de los números no cuenta.
-            </p>
-          </div>
+          ) : null}
         </>
       ) : null}
 

@@ -43,6 +43,23 @@ lee `agenda.cita_desde_calendly`).
 
 Quien está fuera de los números (`metric_exclusion`) no cuenta en nada.
 `calcular` es pura (con test, `test_analitica.py`); `analitica` reúne los datos.
+
+**Ampliada el 22/11/2026** («lo sigo viendo pobre»): cada cifra se compara con
+el periodo de antes (mismo largo, justo antes; se apaga con `comparar=0`), y la
+pantalla va por pestañas (Resumen · De dónde vienen · Páginas · Embudo · Quién
+visita · Personas). Lo nuevo que se guarda de cada visita, siempre sin nada
+personal (`MEDIDO_DESDE`; las visitas de antes salen como «Sin dato»):
+
+- `zona`: la zona horaria del navegador. De ahí sale el **país** (`pais_de`),
+  sin mirar la IP. El país de una PERSONA sale del prefijo de su teléfono
+  (`pais_del_telefono`): son dos medidas distintas y la pantalla lo dice.
+- `vuelve`: ese navegador ya había venido otro día (una marca suya).
+- `dejo_datos`: en esa visita se mandó un formulario con los datos de alguien
+  (no se guarda de quién). Con eso se sabe qué página de ENTRADA, qué artículo
+  del blog, qué país y qué hora acaban en un lead. No sustituye a la cuenta de
+  leads (las personas, por su ficha): es el % de visitas que dejan sus datos.
+
+No se ha cambiado cómo se cuentan leads, reservas, ventas ni el mérito.
 """
 
 from __future__ import annotations
@@ -50,6 +67,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import date, datetime, timedelta, timezone
+from statistics import median
 from typing import Any, Iterable, Optional
 from urllib.parse import unquote
 from zoneinfo import ZoneInfo
@@ -70,6 +88,73 @@ _BOT = re.compile(
     re.I,
 )
 _MAX_PAGINAS = 30
+
+#: Desde cuándo cada visita trae la zona horaria (país), si vuelve y si dejó
+#: sus datos. La pantalla lo dice: lo de antes no se inventa.
+MEDIDO_DESDE = "2026-11-22"
+_ZONA = re.compile(r"^[A-Za-z_]{2,20}(/[A-Za-z0-9_+\-]{1,30}){0,2}$")
+#: Una visita abierta en una pestaña olvidada no cuenta como horas en la web.
+_TOPE_SEGUNDOS = 30 * 60
+#: «En la web ahora»: sesiones que han cargado una página en estos minutos.
+MINUTOS_AHORA = 5
+
+SIN_DATO = "Sin dato"
+_PAIS_POR_ZONA = {
+    "europe/amsterdam": "Países Bajos",
+    "europe/brussels": "Bélgica",
+    "europe/madrid": "España", "atlantic/canary": "España", "africa/ceuta": "España",
+    "europe/berlin": "Alemania", "europe/busingen": "Alemania",
+    "europe/london": "Reino Unido",
+    "america/curacao": "Caribe neerlandés", "america/aruba": "Caribe neerlandés",
+    "america/kralendijk": "Caribe neerlandés", "america/lower_princes": "Caribe neerlandés",
+    "america/paramaribo": "Caribe neerlandés",
+}
+#: Las zonas de América donde se habla español (lo demás de América, «Otros»).
+_ZONAS_LATAM = {
+    "mexico_city", "cancun", "merida", "monterrey", "tijuana", "chihuahua", "hermosillo", "mazatlan",
+    "bahia_banderas", "matamoros", "ojinaga", "ciudad_juarez", "bogota", "lima", "caracas", "santiago",
+    "punta_arenas", "buenos_aires", "montevideo", "asuncion", "la_paz", "guayaquil", "panama",
+    "costa_rica", "guatemala", "el_salvador", "tegucigalpa", "managua", "santo_domingo", "havana",
+    "puerto_rico", "cordoba", "mendoza", "catamarca", "jujuy", "rosario",
+}
+_PAIS_POR_PREFIJO = (
+    ("+31", "Países Bajos"), ("+32", "Bélgica"), ("+34", "España"), ("+49", "Alemania"), ("+44", "Reino Unido"),
+    ("+599", "Caribe neerlandés"), ("+297", "Caribe neerlandés"), ("+597", "Caribe neerlandés"),
+    ("+1809", "Latinoamérica"), ("+1829", "Latinoamérica"), ("+1849", "Latinoamérica"),
+    ("+1787", "Latinoamérica"), ("+1939", "Latinoamérica"),
+    ("+52", "Latinoamérica"), ("+57", "Latinoamérica"), ("+51", "Latinoamérica"), ("+58", "Latinoamérica"),
+    ("+56", "Latinoamérica"), ("+54", "Latinoamérica"), ("+598", "Latinoamérica"), ("+595", "Latinoamérica"),
+    ("+591", "Latinoamérica"), ("+593", "Latinoamérica"), ("+507", "Latinoamérica"), ("+506", "Latinoamérica"),
+    ("+502", "Latinoamérica"), ("+503", "Latinoamérica"), ("+504", "Latinoamérica"), ("+505", "Latinoamérica"),
+    ("+53", "Latinoamérica"),
+)
+
+
+def pais_de(zona: str) -> str:
+    """El país de una visita por la zona horaria de su navegador. Función
+    pura. Sin zona (una visita de antes del 22/11), «Sin dato»."""
+    z = (zona or "").strip().lower()
+    if not z:
+        return SIN_DATO
+    if z in _PAIS_POR_ZONA:
+        return _PAIS_POR_ZONA[z]
+    if z.startswith("america/") and z.split("/")[-1] in _ZONAS_LATAM or z.startswith("america/argentina/"):
+        return "Latinoamérica"
+    return "Otros"
+
+
+def pais_del_telefono(telefono: str) -> str:
+    """El país de una persona por el prefijo de su teléfono. Función pura.
+    Sin prefijo (un 06… a secas) no se adivina: «Sin dato»."""
+    t = re.sub(r"[^0-9+]", "", str(telefono or ""))
+    if t.startswith("00"):
+        t = "+" + t[2:]
+    if not t.startswith("+") or len(t) < 8:
+        return SIN_DATO
+    for prefijo, pais in sorted(_PAIS_POR_PREFIJO, key=lambda x: -len(x[0])):
+        if t.startswith(prefijo):
+            return pais
+    return "Otros"
 
 
 def _corto(valor: Any, largo: int = 120) -> str:
@@ -106,6 +191,7 @@ def leer_visita(datos: dict, user_agent: str = "") -> Optional[dict]:
         ancho = int(float(datos.get("w") or 0))
     except (TypeError, ValueError):
         ancho = 0
+    zona = _corto(datos.get("z"), 40)
     return {
         "sesion": sesion,
         "host": host,
@@ -113,12 +199,28 @@ def leer_visita(datos: dict, user_agent: str = "") -> Optional[dict]:
         "referrer": referrer.removeprefix("www."),
         "dispositivo": "" if ancho <= 0 else ("movil" if ancho < 768 else "ordenador"),
         **{c: _corto(datos.get(c)) for c in ("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term")},
+        # Desde el 22/11: zona horaria (país), si ya había venido y si en esta
+        # visita se mandaron los datos de alguien. `e: datos` es un aviso
+        # suelto de eso último: no es otra página vista.
+        "zona": zona if _ZONA.match(zona) else "",
+        "vuelve": str(datos.get("v") or "") in ("1", "True", "true"),
+        "datos": str(datos.get("d") or "") in ("1", "True", "true"),
+        "solo_datos": str(datos.get("e") or "") == "datos",
     }
 
 
 def aplicar_visita(fila: Any, visita: dict, ahora: str) -> None:
     """Suma una página a la sesión. La campaña y la web de origen son las de la
     primera página que las trae."""
+    if visita.get("datos") or visita.get("solo_datos"):
+        fila.dejo_datos = True
+    if visita.get("zona") and not getattr(fila, "zona", ""):
+        fila.zona = visita["zona"]
+        fila.vuelve = bool(visita.get("vuelve"))
+    if visita.get("solo_datos") and int(getattr(fila, "vistas", 0) or 0) > 0:
+        # El aviso de «dejó sus datos»: la página ya estaba contada.
+        fila.updated_at = ahora
+        return
     try:
         paginas = json.loads(fila.paginas or "[]")
         if not isinstance(paginas, list):
@@ -447,6 +549,7 @@ def personas_de(
                 "cents": int(importes.get(email, 0)) if pago_ok else 0,
                 "cobrado_cents": int((importes if cobrados is None else cobrados).get(email, 0)) if pago_ok else 0,
                 "etapa": f.get("etapa") or "",
+                "pais": pais_del_telefono(f.get("telefono") or ""),
                 "bf": any(_es_bf(t) or campana_de(t.get("utm_campaign") or "") == BLACK_FRIDAY for t in toques),
             }
         )
@@ -467,18 +570,51 @@ def visitas_de(filas: Iterable[Any]) -> list[dict]:
             "utm_source": f.utm_source, "utm_medium": f.utm_medium, "utm_campaign": f.utm_campaign,
             "utm_content": f.utm_content, "referrer": f.referrer, "paginas": paginas, "host": f.host,
         }
+        entrada = f.entrada or (paginas[0] if paginas else "/")
+        zona = getattr(f, "zona", "") or ""
+        creada = _instante(getattr(f, "created_at", "") or "")
+        ultima = _instante(getattr(f, "updated_at", "") or "")
+        segundos = 0
+        if creada and ultima and ultima > creada:
+            segundos = min(_TOPE_SEGUNDOS, int((ultima - creada).total_seconds()))
+        local = creada.astimezone(ZONA) if creada else None
+        vistas = int(f.vistas or 0)
         salida.append(
             {
                 "dia": f.dia,
-                "entrada": f.entrada or (paginas[0] if paginas else "/"),
+                "entrada": entrada,
                 "paginas": paginas,
-                "vistas": int(f.vistas or 0),
+                "vistas": vistas,
                 "dispositivo": f.dispositivo or "",
                 **clasificar(toque),
                 "bf": _es_bf(toque) or campana_de(f.utm_campaign or "") == BLACK_FRIDAY,
+                # Lo de «Quién visita» y «Páginas».
+                "salida": paginas[-1] if paginas else entrada,
+                "rebote": len(paginas) <= 1 and vistas <= 1,
+                "segundos": segundos,
+                "hora": local.hour if local else None,
+                "dia_semana": local.weekday() if local else None,
+                "pais": pais_de(zona),
+                # Solo las visitas que ya traen la zona saben si vuelven y si
+                # dejaron sus datos: las de antes no cuentan en esos %.
+                "medida": bool(zona),
+                "vuelve": bool(getattr(f, "vuelve", False)) if zona else None,
+                "dejo_datos": bool(getattr(f, "dejo_datos", False)),
+                "ultima": getattr(f, "updated_at", "") or "",
             }
         )
     return salida
+
+
+def en_la_web_ahora(visitas: list[dict], ahora: datetime, minutos: int = MINUTOS_AHORA) -> int:
+    """Cuántas sesiones han cargado una página en los últimos minutos."""
+    limite = ahora - timedelta(minutes=minutos)
+    n = 0
+    for v in visitas:
+        d = _instante(v.get("ultima") or "")
+        if d and limite <= d <= ahora + timedelta(minutes=1):
+            n += 1
+    return n
 
 
 def _pasa(x: dict, filtros: dict) -> bool:
@@ -498,6 +634,8 @@ def _pasa(x: dict, filtros: dict) -> bool:
         return False
     anuncio = filtros.get("anuncio") or ""
     if anuncio and (x.get("anuncio") or "").lower() != anuncio.lower():
+        return False
+    if filtros.get("pais") and (x.get("pais") or SIN_DATO) != filtros["pais"]:
         return False
     return True
 
@@ -571,6 +709,153 @@ def _gasto_en(campana: dict, desde: str, hasta: str, hoy: str) -> int:
     return round(total * len(_dias(a, b)) / dias)
 
 
+def periodo_anterior(desde: str, hasta: str) -> tuple[str, str]:
+    """El periodo del mismo largo que acaba el día de antes. Función pura."""
+    n = len(_dias(desde, hasta))
+    fin = date.fromisoformat(desde) - timedelta(days=1)
+    return (fin - timedelta(days=n - 1)).isoformat(), fin.isoformat()
+
+
+def _serie(ps: list[dict], vs: list[dict], desde: str, hasta: str) -> list[dict]:
+    por_dia: dict[str, dict] = {
+        d: {"dia": d, "visitas": 0, "leads": 0, "leads_ads": 0, "reservas": 0, "ventas": 0} for d in _dias(desde, hasta)
+    }
+    for v in vs:
+        if v["dia"] in por_dia:
+            por_dia[v["dia"]]["visitas"] += 1
+    for p in ps:
+        if p["dia"] in por_dia:
+            por_dia[p["dia"]]["leads"] += 1
+            por_dia[p["dia"]]["leads_ads"] += 1 if p["canal"] == "ads" else 0
+        d = dia_nl(p["reservo"]) if p["reservo"] else ""
+        if d in por_dia:
+            por_dia[d]["reservas"] += 1
+        d = dia_nl(p["pago_at"]) if p["pago"] and p.get("pago_at") else ""
+        if d in por_dia:
+            por_dia[d]["ventas"] += 1
+    return list(por_dia.values())
+
+
+def _dias_entre(a: str, b: str) -> Optional[float]:
+    x, y = _instante(a), _instante(b)
+    if not x or not y or y < x:
+        return None
+    return (y - x).total_seconds() / 86400
+
+
+def tiempos_de(ps: list[dict]) -> dict:
+    """Cuánto tarda la gente de un paso al siguiente (mediana y media, en
+    días). Función pura."""
+
+    def resumen(valores: list[float]) -> dict:
+        if not valores:
+            return {"n": 0, "mediana_dias": None, "media_dias": None}
+        return {"n": len(valores), "mediana_dias": round(median(valores), 1), "media_dias": round(sum(valores) / len(valores), 1)}
+
+    lead_reserva = [d for p in ps if p["reservo"] for d in [_dias_entre(p["entro"], p["reservo"])] if d is not None]
+    reserva_pago = [
+        d for p in ps if p["pago"] and p["reservo"] and p.get("pago_at")
+        for d in [_dias_entre(p["reservo"], p["pago_at"])] if d is not None
+    ]
+    lead_pago = [d for p in ps if p["pago"] and p.get("pago_at") for d in [_dias_entre(p["entro"], p["pago_at"])] if d is not None]
+    return {"lead_reserva": resumen(lead_reserva), "reserva_pago": resumen(reserva_pago), "lead_pago": resumen(lead_pago)}
+
+
+def paginas_de(vs: list[dict]) -> dict:
+    """Las páginas: por cuál entran (y cuántos se van sin más o dejan sus
+    datos), cuáles se ven más, por cuál se van y los artículos del blog.
+    Función pura. «Dejan sus datos» solo se sabe de las visitas medidas (las
+    que ya traen la zona horaria): el % va sobre esas."""
+    entradas: dict[str, dict] = {}
+    vistas: dict[str, dict] = {}
+    salidas: dict[str, int] = {}
+    for v in vs:
+        e = entradas.setdefault(
+            v["entrada"], {"pagina": v["entrada"], "entraron": 0, "rebotes": 0, "medidas": 0, "datos": 0}
+        )
+        e["entraron"] += 1
+        e["rebotes"] += 1 if v.get("rebote") else 0
+        e["medidas"] += 1 if v.get("medida") else 0
+        e["datos"] += 1 if v.get("medida") and v.get("dejo_datos") else 0
+        for p in v["paginas"] or [v["entrada"]]:
+            f = vistas.setdefault(p, {"pagina": p, "sesiones": 0, "entradas": 0, "medidas": 0, "datos": 0})
+            f["sesiones"] += 1
+            f["medidas"] += 1 if v.get("medida") else 0
+            f["datos"] += 1 if v.get("medida") and v.get("dejo_datos") else 0
+        vistas.setdefault(v["entrada"], {"pagina": v["entrada"], "sesiones": 0, "entradas": 0, "medidas": 0, "datos": 0})["entradas"] += 1
+        salidas[v.get("salida") or v["entrada"]] = salidas.get(v.get("salida") or v["entrada"], 0) + 1
+    for e in entradas.values():
+        e["pct_rebote"] = _pct(e["rebotes"], e["entraron"])
+        e["pct_datos"] = _pct(e["datos"], e["medidas"])
+    for f in vistas.values():
+        f["pct_datos"] = _pct(f["datos"], f["medidas"])
+        f["salidas"] = salidas.get(f["pagina"], 0)
+        f["pct_salida"] = _pct(f["salidas"], f["sesiones"])
+    mas_vistas = sorted(vistas.values(), key=lambda x: (x["sesiones"], x["entradas"]), reverse=True)
+    return {
+        "entrada": sorted(entradas.values(), key=lambda x: x["entraron"], reverse=True)[:60],
+        "vistas": mas_vistas[:60],
+        "salida": sorted((f for f in vistas.values() if f["salidas"]), key=lambda x: x["salidas"], reverse=True)[:30],
+        "blog": [f for f in mas_vistas if f["pagina"].startswith("/blog/")][:40],
+    }
+
+
+#: Las franjas del mapa de calor: de dos en dos horas.
+FRANJAS = 12
+
+
+def quien_visita(vs: list[dict], ps: list[dict]) -> dict:
+    """Cómo es la gente que visita: móvil u ordenador, cuánto mira, cuándo
+    viene, desde qué país y si ya había venido. Función pura."""
+    n = len(vs)
+    medidas = [v for v in vs if v.get("medida")]
+    con_tiempo = [v["segundos"] for v in vs if v.get("segundos")]
+    calor = [[0] * FRANJAS for _ in range(7)]
+    for v in vs:
+        if v.get("hora") is not None and v.get("dia_semana") is not None:
+            calor[v["dia_semana"]][min(FRANJAS - 1, v["hora"] * FRANJAS // 24)] += 1
+    celdas = sorted(
+        ({"dia": d, "franja": f, "n": calor[d][f]} for d in range(7) for f in range(FRANJAS) if calor[d][f]),
+        key=lambda c: c["n"], reverse=True,
+    )
+    paises: dict[str, dict] = {}
+    for v in medidas:
+        f = paises.setdefault(v["pais"], {"pais": v["pais"], "visitas": 0, "datos": 0})
+        f["visitas"] += 1
+        f["datos"] += 1 if v.get("dejo_datos") else 0
+    for f in paises.values():
+        f["pct"] = _pct(f["visitas"], len(medidas))
+        f["pct_datos"] = _pct(f["datos"], f["visitas"])
+    de_personas: dict[str, dict] = {}
+    for p in ps:
+        f = de_personas.setdefault(p.get("pais") or SIN_DATO, {"pais": p.get("pais") or SIN_DATO, "leads": 0, "reservaron": 0, "pagaron": 0, "cents": 0})
+        f["leads"] += 1
+        f["reservaron"] += 1 if p["reservo"] else 0
+        f["pagaron"] += 1 if p["pago"] else 0
+        f["cents"] += p["cents"]
+    vuelven = sum(1 for v in medidas if v.get("vuelve"))
+    return {
+        "sesiones": n,
+        "movil": sum(1 for v in vs if v["dispositivo"] == "movil"),
+        "ordenador": sum(1 for v in vs if v["dispositivo"] == "ordenador"),
+        "paginas_por_visita": round(sum(v["vistas"] or 1 for v in vs) / n, 1) if n else None,
+        "pct_rebote": _pct(sum(1 for v in vs if v.get("rebote")), n),
+        # La media de quien ve más de una página (de una sola no hay cómo
+        # saber cuánto estuvo).
+        "segundos": round(sum(con_tiempo) / len(con_tiempo)) if con_tiempo else None,
+        "medidas": len(medidas),
+        "nuevos": len(medidas) - vuelven,
+        "vuelven": vuelven,
+        "pct_vuelven": _pct(vuelven, len(medidas)),
+        "dejaron_datos": sum(1 for v in medidas if v.get("dejo_datos")),
+        "pct_datos": _pct(sum(1 for v in medidas if v.get("dejo_datos")), len(medidas)),
+        "paises": sorted(paises.values(), key=lambda x: x["visitas"], reverse=True),
+        "paises_personas": sorted(de_personas.values(), key=lambda x: (x["leads"], x["pagaron"]), reverse=True),
+        "calor": calor,
+        "mejores": celdas[:3],
+    }
+
+
 def calcular(
     *,
     personas: list[dict],
@@ -582,8 +867,15 @@ def calcular(
     nombres_paginas: Optional[dict] = None,
     campanas_apuntadas: Optional[list[dict]] = None,
     hoy: str = "",
+    comparar: bool = True,
+    visitas_desde: str = "",
 ) -> dict:
-    """Todo lo de la pantalla. Función pura."""
+    """Todo lo de la pantalla. Función pura.
+
+    `visitas` puede traer también las del periodo de antes (para comparar).
+    `visitas_desde`: el primer día con visitas guardadas; si el periodo de
+    antes empieza antes de ese día, sus visitas no se comparan (saldría una
+    subida falsa)."""
     from src.services.panel.ads import nombre_del_anuncio
 
     hoy = hoy or hasta
@@ -600,7 +892,12 @@ def calcular(
 
     # Las opciones de los filtros: lo que hay en estas fechas, sin el resto de
     # filtros (si no, al elegir una fuente desaparecerían las demás).
+    orden_paises = ["Países Bajos", "Bélgica", "España", "Alemania", "Reino Unido", "Latinoamérica", "Caribe neerlandés", "Otros", SIN_DATO]
     opciones = {
+        "paises": sorted(
+            {x.get("pais") or SIN_DATO for x in [*del_periodo, *visitas_periodo]},
+            key=lambda v: orden_paises.index(v) if v in orden_paises else 99,
+        ),
         "fuentes": sorted({x["fuente"] for x in [*del_periodo, *visitas_periodo] if x.get("fuente")}),
         "campanas": [
             {"valor": v, "nombre": nombre_campana(v)}
@@ -625,7 +922,34 @@ def calcular(
              **_cifras([p for p in ps if p["canal"] == canal], [v for v in vs if v["canal"] == canal])}
         )
 
+    # El periodo de antes, con los mismos filtros.
+    desde_ant, hasta_ant = periodo_anterior(desde, hasta)
+    ps_ant = [p for p in personas if desde_ant <= p["dia"] <= hasta_ant and _pasa(p, filtros)]
+    vs_ant = [v for v in visitas if desde_ant <= (v.get("dia") or "") <= hasta_ant and _pasa(v, filtros)]
+    # Sin visitas guardadas de todo ese periodo, no se comparan (0 → N no es
+    # una subida: es que antes no se contaba).
+    visitas_comparables = bool(visitas_desde) and visitas_desde <= desde_ant
+    anterior = None
+    if comparar:
+        cifras_ant = _cifras(ps_ant, vs_ant if visitas_comparables else None)
+        anterior = {
+            "desde": desde_ant,
+            "hasta": hasta_ant,
+            "resumen": cifras_ant,
+            "serie": _serie(ps_ant, vs_ant if visitas_comparables else [], desde_ant, hasta_ant),
+            "visitas_comparables": visitas_comparables,
+        }
+
+    por_fuente = _por("fuente", ps, vs)
+    for fila in por_fuente:
+        v = fila["valor"]
+        fila["cents_por_visita"] = round(fila["cents"] / fila["visitas"]) if fila["visitas"] else None
+        if comparar:
+            fila["leads_antes"] = sum(1 for p in ps_ant if p["fuente"] == v)
+            fila["visitas_antes"] = sum(1 for x in vs_ant if x["fuente"] == v) if visitas_comparables else None
+
     por_campana = _por("campana", ps, vs, nombre_campana)
+    gasto_por_fuente: dict[str, int] = {}
     for fila in por_campana:
         c = apuntadas.get(fila["valor"])
         gasto = _gasto_en(c, desde, hasta, hoy) if c else 0
@@ -633,6 +957,21 @@ def calcular(
         fila["coste_lead_cents"] = round(gasto / fila["leads"]) if gasto and fila["leads"] else None
         fila["coste_venta_cents"] = round(gasto / fila["pagaron"]) if gasto and fila["pagaron"] else None
         fila["retorno"] = round(fila["cents"] / gasto, 2) if gasto else None
+        if gasto:
+            # El gasto de una campaña va a la fuente de pago que más gente
+            # trajo con ella (lo normal es una sola: «Meta · anuncios»).
+            cuenta: dict[str, int] = {}
+            for x in [*ps, *vs]:
+                if x.get("campana") == fila["valor"] and x.get("canal") == "ads":
+                    cuenta[x["fuente"]] = cuenta.get(x["fuente"], 0) + 1
+            if cuenta:
+                fuente = max(cuenta, key=lambda k: cuenta[k])
+                gasto_por_fuente[fuente] = gasto_por_fuente.get(fuente, 0) + gasto
+    for fila in por_fuente:
+        gasto = gasto_por_fuente.get(fila["valor"], 0)
+        fila["gasto_cents"] = gasto
+        fila["retorno"] = round(fila["cents"] / gasto, 2) if gasto else None
+        fila["coste_lead_cents"] = round(gasto / fila["leads"]) if gasto and fila["leads"] else None
 
     por_anuncio = [
         f for f in _por("anuncio", ps, [], lambda v: nombre_del_anuncio(v, nombres_anuncios) or "Sin anuncio")
@@ -658,18 +997,15 @@ def calcular(
         fila["pagaron"] += 1 if p["pago"] else 0
     donde_dejan = sorted(primeras.values(), key=lambda x: x["leads"], reverse=True)
 
-    serie = []
-    for dia in _dias(desde, hasta):
-        serie.append(
-            {
-                "dia": dia,
-                "visitas": sum(1 for v in vs if v["dia"] == dia),
-                "leads": sum(1 for p in ps if p["dia"] == dia),
-                "leads_ads": sum(1 for p in ps if p["dia"] == dia and p["canal"] == "ads"),
-                "reservas": sum(1 for p in ps if dia_nl(p["reservo"]) == dia),
-                "ventas": sum(1 for p in ps if p["pago"] and dia_nl(p["pago_at"]) == dia),
-            }
-        )
+    serie = _serie(ps, vs, desde, hasta)
+    resumen = _cifras(ps, vs)
+    resumen["cents_por_visita"] = round(resumen["cents"] / len(vs)) if vs else None
+    resumen["ventas_por_100_visitas"] = round(resumen["pagaron"] * 100 / len(vs), 1) if vs else None
+    if anterior is not None:
+        r = anterior["resumen"]
+        n_ant = r.get("visitas")
+        r["cents_por_visita"] = round(r["cents"] / n_ant) if n_ant else None
+        r["ventas_por_100_visitas"] = round(r["pagaron"] * 100 / n_ant, 1) if n_ant else None
 
     dispositivos = {
         "movil": sum(1 for v in vs if v["dispositivo"] == "movil"),
@@ -685,6 +1021,7 @@ def calcular(
             "primera_pagina": (nombres_paginas or {}).get(p["primera_pagina"], p["primera_pagina"]),
             "reservo": p["reservo"], "vino": p["vino"], "no_vino": p["no_vino"], "pago": p["pago"], "cents": p["cents"],
             "cobrado_cents": p.get("cobrado_cents", p["cents"]),
+            "pais": p.get("pais") or SIN_DATO,
         }
         for p in lista[:600]
     ]
@@ -694,9 +1031,10 @@ def calcular(
         "hasta": hasta,
         "filtros": filtros,
         "opciones": opciones,
-        "resumen": _cifras(ps, vs),
+        "resumen": resumen,
+        "anterior": anterior,
         "por_canal": por_canal,
-        "por_fuente": _por("fuente", ps, vs),
+        "por_fuente": por_fuente,
         "por_campana": por_campana,
         "por_anuncio": por_anuncio,
         "paginas": paginas[:60],
@@ -705,6 +1043,11 @@ def calcular(
         "serie": serie,
         "personas": personas_salida,
         "personas_total": len(lista),
+        # Lo del 22/11/2026.
+        "paginas_detalle": paginas_de(vs),
+        "tiempos": tiempos_de(ps),
+        "quien": quien_visita(vs, ps),
+        "medido_desde": MEDIDO_DESDE,
     }
 
 
@@ -745,7 +1088,10 @@ async def analitica(org_id: int, params: dict, db_session: AsyncSession) -> dict
         "campana": _corto(params.get("campana"), 120).lower(),
         "anuncio": _corto(params.get("anuncio"), 120),
         "bf_todo": str(params.get("bf_todo") or "") in ("1", "true", "si"),
+        "pais": _corto(params.get("pais"), 40),
     }
+    comparar = str(params.get("comparar") if params.get("comparar") is not None else "1") not in ("0", "false", "no")
+    desde_ant, _ = periodo_anterior(desde, hasta)
 
     fuera = await emails_excluidos(db_session)
     fichas = fusionar_contactos(await _todos_los_eventos(db_session), await _emails_con_cuenta(db_session))
@@ -774,22 +1120,39 @@ async def analitica(org_id: int, params: dict, db_session: AsyncSession) -> dict
         fichas, citas, resultados, pagaron, importes, fuera, modelo, datetime.now(timezone.utc), cobrados
     )
     filas = (
-        await db_session.execute(select(WebVisita).where(WebVisita.dia >= desde, WebVisita.dia <= hasta))
+        await db_session.execute(
+            select(WebVisita).where(WebVisita.dia >= (desde_ant if comparar else desde), WebVisita.dia <= hasta)
+        )
     ).scalars().all()
     visitas = visitas_de(filas)
+    # «En la web ahora»: aparte, porque las fechas elegidas pueden no llegar a hoy.
+    ahora_utc = datetime.now(timezone.utc)
+    limite = (ahora_utc - timedelta(minutes=MINUTOS_AHORA)).isoformat()
+    tope = (ahora_utc + timedelta(minutes=1)).isoformat()
+    try:
+        from sqlalchemy import func
+
+        ahora_n = int(
+            (await db_session.execute(select(func.count()).select_from(WebVisita).where(WebVisita.updated_at >= limite, WebVisita.updated_at <= tope))).scalar() or 0
+        )
+    except Exception:  # noqa: BLE001
+        ahora_n = None
     campanas = [
         {"nombre": c.nombre, "utm_campaign": c.utm_campaign, "inicio": c.inicio, "fin": c.fin, "gasto_cents": c.gasto_cents}
         for c in (await db_session.execute(select(AdCampaign).where(AdCampaign.org_id == org_id))).scalars().all()
     ]
     primera = (await db_session.execute(select(WebVisita.dia).order_by(WebVisita.dia).limit(1))).first()
+    visitas_desde = (primera[0] if primera else "") or ""
 
     salida = calcular(
         personas=personas, visitas=visitas, desde=desde, hasta=hasta, filtros=filtros,
         nombres_anuncios=await leer_nombres(org_id, db_session), nombres_paginas=_NOMBRES,
-        campanas_apuntadas=campanas, hoy=hoy.isoformat(),
+        campanas_apuntadas=campanas, hoy=hoy.isoformat(), comparar=comparar, visitas_desde=visitas_desde,
     )
+    salida["comparar"] = comparar
+    salida["ahora"] = ahora_n
     salida["modelo"] = modelo
     salida["modelos"] = MODELOS
-    salida["visitas_desde"] = (primera[0] if primera else "") or ""
+    salida["visitas_desde"] = visitas_desde
     salida["calendly"] = {"conectado": calendly_ok, "error": datos_agenda.get("error") or ""}
     return salida
