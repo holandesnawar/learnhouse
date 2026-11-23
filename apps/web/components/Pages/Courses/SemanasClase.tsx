@@ -58,6 +58,7 @@ import { duracionCorta } from '@/lib/nawar/recorte'
 import { tituloDeClase } from '@/lib/nawar/salaProfes'
 import GrabacionDeSala from '@components/Pages/Grabaciones/GrabacionDeSala'
 import FilaGrabacionAlumno from '@components/Pages/Grabaciones/FilaGrabacionAlumno'
+import { claveDeSemana, rutaDeClase, rutaGrabacion } from '@/lib/nawar/verGrabacion'
 import { Cargando, Esqueleto } from '@components/Objects/Esqueleto'
 import PresentacionesSemana from '@components/Pages/Presentaciones/PresentacionesSemana'
 
@@ -275,7 +276,7 @@ function ContenidoSemana({
           </p>
         </div>
       ) : semana.grabacion_sala ? (
-        <FilaGrabacionAlumno courseUuid={semana.course_uuid} semana={semana} grabacion={semana.grabacion_sala} />
+        <FilaGrabacionAlumno href={getUriWithOrg(orgslug, '') + rutaGrabacion(semana.course_uuid, claveDeSemana(semana.id))} grabacion={semana.grabacion_sala} />
       ) : (
         <Fila
           tipo="grabacion"
@@ -520,8 +521,8 @@ export default function SemanasClase({
   const archivo = conGrabadas ? data.archivo || [] : []
   if (!semanas.length && !archivo.length && !equipo) return null
 
-  const rutaClase = (c: ClaseSemana) =>
-    getUriWithOrg(orgslug, '') + `/course/${courseuuid}/activity/${c.activity_uuid.replace('activity_', '')}`
+  // Las grabaciones, a su propia página (23/11/2026); lo demás, a la clase del curso.
+  const rutaClase = (c: ClaseSemana) => getUriWithOrg(orgslug, '') + rutaDeClase(courseuuid, c)
   const recargar = () => queryClient.invalidateQueries({ queryKey: claveSemanas(courseUuid) })
 
   const semanaActual = semanas.find((s) => s.id === actual) || null

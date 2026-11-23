@@ -109,7 +109,7 @@ export default function useClasesEquipo(org: any, token: string) {
               hora: '',
               profe: a.profe || '',
               presentaciones: [],
-              grabaciones: [{ activity_uuid: a.activity_uuid, nombre: a.nombre }],
+              grabaciones: [{ activity_uuid: a.activity_uuid, nombre: a.nombre, video: a.video }],
               ejercicios: [],
               tieneTarea: false,
               enunciado: '',

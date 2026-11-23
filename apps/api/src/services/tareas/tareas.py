@@ -458,15 +458,19 @@ async def _clases(chapter_uuids: list[str], db_session: AsyncSession) -> dict[st
         if (cu, aid) in vistas:
             continue
         vistas.add((cu, aid))
-        salida.setdefault(cu, []).append(
-            {
-                "id": int(aid),
-                "activity_uuid": auuid or "",
-                "nombre": nombre or "",
-                "tipo": tipo_de_clase(tipo, sub, content),
-                "creada": creada or "",
-            }
-        )
+        clase = {
+            "id": int(aid),
+            "activity_uuid": auuid or "",
+            "nombre": nombre or "",
+            "tipo": tipo_de_clase(tipo, sub, content),
+            "creada": creada or "",
+        }
+        # La grabación se ve en su propia página, no «como un curso»
+        # (23/11/2026): con cada una va cómo se reproduce. None = no se
+        # reconoce (se abre como antes, con la pantalla del curso).
+        if clase["tipo"] == "grabacion":
+            clase["video"] = video_para_la_pagina(tipo, sub, content)
+        salida.setdefault(cu, []).append(clase)
     return salida
 
 
@@ -829,6 +833,8 @@ async def semanas_para_alumno(
         "actual": actual,
         "proxima": proxima,
         "semanas": _orden_reciente(semanas),
+        # El nombre de la clase, para la página de cada grabación (23/11/2026).
+        "curso": course.name or "",
     }
     if con_archivo:
         salida["archivo"] = archivo
@@ -1686,7 +1692,13 @@ def aviso_grabacion(semana: dict, grabacion: dict, curso: str, course_uuid: str,
         "kind": "grabacion",
         "title": f"Ya está la grabación: {semana['tema']}",
         "excerpt": f"{curso} · {texto}" if curso else texto,
-        "url": f"/course/{course_uuid}/activity/{grabacion['activity_uuid'].replace('activity_', '')}",
+        # En su propia página, no «como un curso» (23/11/2026). Si no se sabe
+        # reproducir fuera del curso (`video` vacío), la clase de siempre.
+        "url": (
+            f"/grabacion/{course_uuid}/{grabacion['activity_uuid'].replace('activity_', '')}"
+            if grabacion.get("video")
+            else f"/course/{course_uuid}/activity/{grabacion['activity_uuid'].replace('activity_', '')}"
+        ),
         "date": desde,
     }
 
@@ -1890,6 +1902,21 @@ def video_de(activity_type: Any, sub_type: Any, content: Any) -> Optional[dict]:
     if m:
         return {"tipo": "vimeo", "url": f"https://player.vimeo.com/video/{m.group(1)}"}
     return None
+
+
+def video_para_la_pagina(activity_type: Any, sub_type: Any, content: Any) -> Optional[dict]:
+    """Lo mismo que `video_de`, para la página propia de una grabación
+    (`/grabacion/<curso>/<clase>`, 23/11/2026): si es un archivo subido a la
+    escuela, lleva además su nombre (`archivo`), que es con lo que el navegador
+    arma la dirección del vídeo (la misma de siempre, bajo `/content`). Un
+    archivo sin nombre, o con un nombre raro, no se da. Pura."""
+    v = video_de(activity_type, sub_type, content)
+    if not v or v.get("tipo") != "archivo":
+        return v
+    nombre = str((content or {}).get("filename") or "") if isinstance(content, dict) else ""
+    if not nombre or "/" in nombre or ".." in nombre:
+        return None
+    return {**v, "archivo": nombre}
 
 
 def es_hermana(nombre_a: Any, nombre_b: Any) -> bool:

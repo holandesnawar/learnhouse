@@ -44,6 +44,7 @@ import { confirmarVoy, diaCorto, type ClaseSemana, type Semana } from '@services
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
 import { DIAS, MESES, dia, sinPrefijo, pasosDeSemana, FilaPaso } from './pasosSemana'
+import { rutaDeClase } from '@/lib/nawar/verGrabacion'
 
 /** El recuadro de cada clase: hora, profe y duración (lo de siempre). */
 function useRecuadro(uuid: string) {
@@ -316,15 +317,14 @@ function GrabadasDeUnaClase({ uuid, nombre, mostrarNombre }: { uuid: string; nom
   const org = useOrg() as any
   const filas = useMemo(() => {
     if (!data) return []
-    const ruta = (a: string) => getUriWithOrg(org?.slug || '', `/course/${sinPrefijo(uuid)}/activity/${a.replace('activity_', '')}`)
     const semanas = data.semanas
       .filter((s) => s.fecha && s.fecha < data.hoy)
       .map((s) => {
         const g = (s.clases || []).find((c) => c.tipo === 'grabacion')
         const p = (s.clases || []).find((c) => c.tipo === 'presentacion')
-        return { fecha: s.fecha, tema: s.tema, href: g ? ruta(g.activity_uuid) : p ? getUriWithOrg(org?.slug || '', `/presentacion/${s.id}`) : '', tiene: g ? 'Grabación' : p ? 'Solo presentación' : 'Sin grabación', vista: !!g?.hecha }
+        return { fecha: s.fecha, tema: s.tema, href: g ? getUriWithOrg(org?.slug || '', rutaDeClase(uuid, g)) : p ? getUriWithOrg(org?.slug || '', `/presentacion/${s.id}`) : '', tiene: g ? 'Grabación' : p ? 'Solo presentación' : 'Sin grabación', vista: !!g?.hecha }
       })
-    const sueltas = (data.archivo || []).map((c) => ({ fecha: c.fecha || '', tema: c.tema || c.nombre, href: ruta(c.activity_uuid), tiene: c.profe ? `Grabación · con ${c.profe}` : 'Grabación', vista: c.hecha }))
+    const sueltas = (data.archivo || []).map((c) => ({ fecha: c.fecha || '', tema: c.tema || c.nombre, href: getUriWithOrg(org?.slug || '', rutaDeClase(uuid, c)), tiene: c.profe ? `Grabación · con ${c.profe}` : 'Grabación', vista: c.hecha }))
     return [...semanas, ...sueltas].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
   }, [data, org?.slug, uuid])
   if (!data || !filas.length) return null

@@ -60,6 +60,7 @@ const SituacionViewer = lazy(() => import('@components/exercises-app/SituacionVi
 const SchoolGuide = lazy(() => import('@components/Pages/Guides/SchoolGuide'))
 import { getSituacion } from '@/lib/exercises-app/situaciones'
 import { useIrALaPresentacion } from '@components/Pages/Presentaciones/useIrALaPresentacion'
+import { useIrALaGrabacion } from '@components/Pages/Grabaciones/useIrALaGrabacion'
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -309,6 +310,8 @@ function ActivityClient(props: ActivityClientProps) {
   const router = useRouter();
   // La presentación de una clase en directo tiene su propia página (22/11/2026).
   useIrALaPresentacion(course?.course_uuid, activity, orgslug);
+  // Y la grabación de una clase en directo, la suya (23/11/2026).
+  useIrALaGrabacion(course?.course_uuid, activity, orgslug);
 
   const { track } = useAnalytics()
   const activityStartTime = useRef(Date.now())
