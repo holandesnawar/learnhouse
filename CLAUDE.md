@@ -8423,6 +8423,13 @@ regla para plazos también».
   con Stripe» la rellenen, «a quién afectaría» puede decir 0 aunque haya
   cobros fallidos. Pulsar «Comprobar todos» ANTES de encender la regla.
 
+### «¿Vienes?» en la página de la Masterclass y el Spreek Club (23/11/2026)
+Desde el 18/11 esas clases esconden la sesión al alumno hasta que se da
+(`seVe` en `SemanasClase.tsx`), y con ella se iba el «¿Vienes? Asistiré / No
+puedo»: solo salía en el Inicio. Ahora la próxima sesión escondida sale en una
+línea (`proximaOculta`): «Próxima clase/sesión · día», el tema y «¿Vienes?»,
+sin presentación ni nada de dentro. Lo vio la closer Belén en su cuenta.
+
 ### El vídeo de portada en blanco (Belén, 23/11/2026)
 Una closer veía en blanco los vídeos de portada de la Masterclass y el Spreek
 Club, también tras recargar y cerrar sesión. `VideoPortada.tsx` se quedaba con
