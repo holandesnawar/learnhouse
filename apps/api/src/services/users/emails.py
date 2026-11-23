@@ -1312,11 +1312,19 @@ def send_plazo_fallido_email(
     tel_num = "".join(ch for ch in (plan.get("telefono") or "") if ch.isdigit())
     wa = f"https://wa.me/{tel_num}" if tel_num else ""
 
+    # Con la regla de los plazos sin pagar encendida (pausa.py) llega
+    # `dias_pausa`; apagada, la frase de siempre.
+    dias_pausa = int(plan.get("dias_pausa") or 0)
+    acceso_txt = (
+        f"Sigue teniendo acceso a la escuela. Si no paga, a los {dias_pausa} días su acceso a la formación y a las clases quedará en pausa solo (Panel → Pagos a plazos)."
+        if dias_pausa > 0
+        else "Sigue teniendo acceso a la escuela: si hay que quitárselo, es en Panel → Usuarios."
+    )
     body_content = f"""
         <h1 style="{STYLES['h1']}">Un pago a plazos no ha entrado</h1>
         <p style="{STYLES['p']}"><strong>{nombre}</strong><br>{correo}{' · ' + telefono if telefono else ''}</p>
         <p style="{STYLES['p']}">{fallo}</p>
-        <p style="{STYLES['p']}">Lleva pagados {pagado} € de {total} € ({int(plan.get('cuotas_pagadas') or 0)} de {int(plan.get('cuotas') or 0)} pagos). Sigue teniendo acceso a la escuela: si hay que quitárselo, es en Panel → Usuarios.</p>
+        <p style="{STYLES['p']}">Lleva pagados {pagado} € de {total} € ({int(plan.get('cuotas_pagadas') or 0)} de {int(plan.get('cuotas') or 0)} pagos). {acceso_txt}</p>
         <p style="{STYLES['p']}">{'A la alumna o alumno le ha llegado un correo con un botón para pagar esta cuota.' if plan.get('alumno_avisado') else 'No se le ha podido mandar el correo para pagar esta cuota: escríbele.'}</p>
         <a href="{ACADEMY_URL}/dash/estadisticas?tab=plazos" class="brand-btn" style="{STYLES['button']}">Ver en el panel</a>
         {f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{wa}" style="color: #025dc7; font-weight: 600;">Escribirle por WhatsApp</a></p>' if wa else ''}
@@ -1357,6 +1365,16 @@ def send_plazo_fallido_alumno_email(
         if pagar_url
         else ""
     )
+    # La regla de los plazos sin pagar (23/11/2026, services/payments/pausa.py):
+    # SOLO si está encendida llega `dias_pausa` y el correo dice cuántos días
+    # hay. Apagada (como nace), la frase es la de siempre.
+    dias_pausa = int(datos.get("dias_pausa") or 0)
+    sigue = (
+        f"De momento sigues teniendo acceso a la escuela. Si el pago sigue pendiente dentro de {dias_pausa} días, "
+        "tu acceso a la formación y a las clases quedará en pausa hasta que se ponga al día; en cuanto pagues, vuelve solo."
+        if dias_pausa > 0
+        else "De momento sigues teniendo acceso a la escuela."
+    )
     body_content = f"""
         <h1 style="{STYLES['h1']}">No hemos podido cobrar tu pago</h1>
         <p style="{STYLES['p']}">Hola{(' ' + nombre) if nombre else ''},</p>
@@ -1364,7 +1382,7 @@ def send_plazo_fallido_alumno_email(
         {f'<p style="{STYLES["p"]}">Lo volveremos a intentar el {reintento}. Si prefieres solucionarlo ya, puedes pagarlo ahora, por ejemplo con otra tarjeta:</p>' if reintento and pagar_url else ''}
         {f'<p style="{STYLES["p"]}">Puedes pagarlo ahora, por ejemplo con otra tarjeta:</p>' if pagar_url and not reintento else ''}
         {boton}
-        <p style="{STYLES['p']}; margin-top: 24px;">De momento sigues teniendo acceso a la escuela. Si ya lo has solucionado, ignora este correo. Si tienes cualquier duda, escríbenos a info@holandesnawar.com.</p>
+        <p style="{STYLES['p']}; margin-top: 24px;">{sigue} Si ya lo has solucionado, ignora este correo. Si tienes cualquier duda, escríbenos a info@holandesnawar.com.</p>
     """
 
     return send_email(
@@ -1374,6 +1392,85 @@ def send_plazo_fallido_alumno_email(
         body=_email_layout(
             title="No hemos podido cobrar tu pago",
             body_content=body_content,
+        ),
+    )
+
+
+def send_acceso_en_pausa_alumno_email(
+    email: EmailStr,
+    datos: dict,
+    preview: bool = False,
+):
+    """AL ALUMNO: su acceso a la formación y a las clases ha quedado en pausa
+    por una cuota sin pagar (23/11/2026, la regla de los plazos sin pagar:
+    services/payments/pausa.py). Solo sale con la regla ENCENDIDA y una vez por
+    factura. Tono tranquilo: decir qué pasa, cómo se arregla y que vuelve solo."""
+    nombre = html.escape((datos.get("nombre") or "").split(" ")[0] or "")
+    numero = int(datos.get("numero") or 0)
+    cuotas = int(datos.get("cuotas") or 0)
+    importe = f"{int(datos.get('importe_cents') or 0) / 100:.2f}".replace(".", ",").replace(",00", "")
+    pagar_url = html.escape(datos.get("pagar_url") or "", quote=True)
+    cual = f"el pago {numero} de {cuotas}" if numero and cuotas else "un pago"
+
+    boton = (
+        f'<a href="{pagar_url}" class="brand-btn" style="{STYLES["button"]}">Pagar ahora</a>'
+        if pagar_url
+        else f'<a href="{ACADEMY_URL}" class="brand-btn" style="{STYLES["button"]}">Entrar a la escuela</a>'
+    )
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">Tu acceso está en pausa</h1>
+        <p style="{STYLES['p']}">Hola{(' ' + nombre) if nombre else ''},</p>
+        <p style="{STYLES['p']}">Sigue pendiente {cual} de tu Formación Nawar A0-A1 ({importe} €). Por eso tu acceso a la formación y a las clases en directo ha quedado en pausa.</p>
+        <p style="{STYLES['p']}">No has perdido nada: tu avance, tus tareas y tu plaza siguen ahí. En cuanto el pago entre, el acceso vuelve solo, sin que tengas que escribirnos.</p>
+        {boton}
+        <p style="{STYLES['p']}; margin-top: 24px;">Puedes seguir entrando a la escuela, a la comunidad y a los mensajes. Si ya has pagado, entra y pulsa «Ya he pagado: comprobar». Y si hay algún problema con el pago, cuéntanoslo en Mensajes o en info@holandesnawar.com y lo vemos contigo.</p>
+    """
+
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject="Tu acceso está en pausa: falta un pago",
+        body=_email_layout(
+            title="Tu acceso está en pausa",
+            body_content=body_content,
+        ),
+    )
+
+
+def send_acceso_en_pausa_email(
+    email: EmailStr,
+    datos: dict,
+    preview: bool = False,
+):
+    """AL EQUIPO: a esta persona se le ha puesto el acceso en pausa por la
+    regla de los plazos sin pagar (pausa.py). Una vez por factura."""
+    nombre = html.escape(datos.get("nombre") or datos.get("email") or "Alguien")
+    correo = html.escape(datos.get("email") or "")
+    telefono = html.escape(datos.get("telefono") or "")
+    numero = int(datos.get("numero") or 0)
+    cuotas = int(datos.get("cuotas") or 0)
+    dias = int(datos.get("dias") or 0)
+    importe = f"{int(datos.get('importe_cents') or 0) / 100:.2f}".replace(".", ",").replace(",00", "")
+    tel_num = "".join(ch for ch in (datos.get("telefono") or "") if ch.isdigit())
+    wa = f"https://wa.me/{tel_num}" if tel_num else ""
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">Acceso en pausa por un pago a plazos</h1>
+        <p style="{STYLES['p']}"><strong>{nombre}</strong><br>{correo}{' · ' + telefono if telefono else ''}</p>
+        <p style="{STYLES['p']}">Lleva más de {dias} días con el pago {numero} de {cuotas} sin pagar ({importe} €). Desde hoy no puede abrir la formación ni las clases en directo; la comunidad y los mensajes, sí. Le ha llegado un correo con el botón para pagar.</p>
+        <p style="{STYLES['p']}">El acceso vuelve solo en cuanto pague. Si habéis acordado otra cosa, en Panel → Pagos a plazos está «No pausar a esta persona».</p>
+        <a href="{ACADEMY_URL}/dash/estadisticas?tab=plazos" class="brand-btn" style="{STYLES['button']}">Ver en el panel</a>
+        {f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{wa}" style="color: #025dc7; font-weight: 600;">Escribirle por WhatsApp</a></p>' if wa else ''}
+    """
+
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject=f"Acceso en pausa: {datos.get('nombre') or datos.get('email') or 'alguien'}",
+        body=_email_layout(
+            title="Acceso en pausa por un pago a plazos",
+            body_content=body_content,
+            footer_note="Recibes esto porque eres administrador de la escuela.",
         ),
     )
 

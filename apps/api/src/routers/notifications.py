@@ -189,6 +189,18 @@ async def api_drip_diario(
         await _soltar_transaccion(db_session)
         resultado["plazos"] = {"error": type(e).__name__}
 
+    # La regla de los plazos sin pagar (services/payments/pausa.py). Apagada
+    # (como nace) solo cuenta a cuántos afectaría; encendida, avisa una vez a
+    # quien entra en pausa. Solo números.
+    try:
+        from src.services.payments.pausa import tarea_diaria as _pausa_diaria
+
+        resultado["plazos_pausa"] = await _pausa_diaria(db_session)
+    except Exception as e:  # noqa: BLE001
+        logger.exception("La regla de los plazos sin pagar falló")
+        await _soltar_transaccion(db_session)
+        resultado["plazos_pausa"] = {"error": type(e).__name__}
+
     # La campaña del ebook de Black Friday (services/ebook/ebook.py): un correo
     # al día como mucho a quien compró y aún no ha reservado ni pagado.
     try:
