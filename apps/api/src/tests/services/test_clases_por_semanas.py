@@ -70,6 +70,24 @@ def test_el_video_de_una_grabacion():
         "tipo": "youtube", "url": "https://www.youtube-nocookie.com/embed/abcdefGHIJ1"}
     assert T.video_de("TYPE_VIDEO", "SUBTYPE_VIDEO_HOSTED", {"filename": "a.mp4"})["tipo"] == "archivo"
     assert T.video_de("TYPE_DYNAMIC", "SUBTYPE_DYNAMIC_PAGE", {"type": "doc"}) is None
+
+
+def test_el_video_para_la_pagina_propia_de_la_grabacion():
+    """23/11/2026: la grabación se abre en `/grabacion/…`, no «como un curso»."""
+    # Bunny, YouTube y Vimeo: igual que `video_de`.
+    assert T.video_para_la_pagina("TYPE_DYNAMIC", "SUBTYPE_DYNAMIC_PAGE", BUNNY)["tipo"] == "bunny"
+    # Un archivo subido lleva su nombre; sin nombre o con un nombre raro, no se da.
+    assert T.video_para_la_pagina("TYPE_VIDEO", "SUBTYPE_VIDEO_HOSTED", {"filename": "a.mp4"}) == {"tipo": "archivo", "url": "", "archivo": "a.mp4"}
+    assert T.video_para_la_pagina("TYPE_VIDEO", "SUBTYPE_VIDEO_HOSTED", {}) is None
+    assert T.video_para_la_pagina("TYPE_VIDEO", "SUBTYPE_VIDEO_HOSTED", {"filename": "../../x.mp4"}) is None
+    # Lo que no se reconoce (se abrirá como antes).
+    assert T.video_para_la_pagina("TYPE_DYNAMIC", "SUBTYPE_DYNAMIC_PAGE", {"type": "doc"}) is None
+    # El aviso de la campana lleva a la página nueva solo si se sabe reproducir.
+    semana = {"id": 3, "tema": "Het weer", "fecha": "2026-11-02"}
+    con = T.aviso_grabacion(semana, {"activity_uuid": "activity_73", "video": {"tipo": "bunny", "url": "x"}}, "Clase", "mc", "2026-11-03")
+    assert con["url"] == "/grabacion/mc/73"
+    sin = T.aviso_grabacion(semana, {"activity_uuid": "activity_73", "video": None}, "Clase", "mc", "2026-11-03")
+    assert sin["url"] == "/course/mc/activity/73"
     assert T.es_hermana("Clase semanal", "clase  Semanal") and not T.es_hermana("Clase semanal", "Masterclass")
     assert T.dia_habitual(["2026-11-05", "2026-10-29", "2026-11-02"]) == "jueves"
 

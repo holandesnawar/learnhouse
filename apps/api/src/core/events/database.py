@@ -424,6 +424,10 @@ _ADDED_COLUMNS = [
     "ALTER TABLE IF EXISTS llamada_templada ADD COLUMN IF NOT EXISTS temperatura_manual VARCHAR(12) DEFAULT ''",
     # El total del plan de pagos propio (19/10): 435 o 497 €. 0 = cuotas × cuota.
     "ALTER TABLE IF EXISTS plan_pagos ADD COLUMN IF NOT EXISTS total_cents INTEGER DEFAULT 0",
+    # La regla de los plazos sin pagar (23/11/2026, services/payments/pausa.py):
+    # la factura que se debe y desde cuándo, y «no pausar a esta persona».
+    "ALTER TABLE IF EXISTS plan_pagos ADD COLUMN IF NOT EXISTS impago TEXT DEFAULT '{}'",
+    "ALTER TABLE IF EXISTS plan_pagos ADD COLUMN IF NOT EXISTS sin_pausa BOOLEAN DEFAULT FALSE",
     # El closer que lleva cada llamada (22/10): tablero de Ventas y reparto.
     "ALTER TABLE IF EXISTS lead_pipeline ADD COLUMN IF NOT EXISTS closer_id INTEGER DEFAULT 0",
     "ALTER TABLE IF EXISTS lead_pipeline ADD COLUMN IF NOT EXISTS closer VARCHAR(120) DEFAULT ''",

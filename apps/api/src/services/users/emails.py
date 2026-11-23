@@ -237,6 +237,8 @@ def _carta_layout(title: str, body_content: str) -> str:
         a {{ text-decoration: none; }}
         @media (prefers-color-scheme: dark) {{
             .carta p {{ color: #e6e8ef !important; }}
+            .carta p.carta-rotulo {{ color: #9aa3b5 !important; }}
+            .carta a.carta-enlace {{ color: #7db9ff !important; }}
             .carta-pie p, .carta-pie a {{ color: #9aa3b5 !important; }}
         }}
     </style>
@@ -630,48 +632,129 @@ def send_payment_welcome_email(
     )
 
 
+ESTILO_RESUMEN_ROTULO = "margin: 26px 0 6px 0; font-size: 13px; line-height: 1.4; color: #5b6478; font-weight: 600;"
+ESTILO_RESUMEN_LINEA = "margin: 0 0 8px 0; font-size: 16px; line-height: 1.6; color: #1f2430; font-weight: 400;"
+ESTILO_RESUMEN_ENLACE = "color: #025dc7; font-weight: 600; text-decoration: underline;"
+
+
+def _resumen_enlace(texto: str, url: str) -> str:
+    if not url:
+        return ""
+    return f' <a href="{html.escape(url, quote=True)}" class="carta-enlace" style="{ESTILO_RESUMEN_ENLACE}">{html.escape(texto)}</a>'
+
+
+def cuerpo_del_resumen(resumen: dict, hoy=None) -> str:
+    """Las partes del resumen semanal, en HTML. Solo salen las que traen algo.
+    Todo lo que viene de la escuela (temas, nombres de clases) va escapado."""
+    from src.services.notifications.resumen_semanal import cuando_cae, dia_corto
+
+    def rotulo(texto: str) -> str:
+        return f'<p class="carta-rotulo" style="{ESTILO_RESUMEN_ROTULO}">{html.escape(texto)}</p>'
+
+    def linea(contenido: str) -> str:
+        return f'<p style="{ESTILO_RESUMEN_LINEA}">{contenido}</p>'
+
+    partes: list[str] = []
+
+    clases = resumen.get("clases") or []
+    if clases:
+        partes.append(rotulo("En directo esta semana"))
+        for c in clases:
+            cuando = cuando_cae(c.get("fecha") or "", hoy) if hoy else f"el {dia_corto(c.get('fecha') or '')}"
+            hora = f" a las {html.escape(c['hora'])}" if c.get("hora") else ""
+            tema = f" Tema: {html.escape(c['tema'])}." if c.get("tema") else ""
+            palabra = html.escape(c.get("palabra") or "clase")
+            partes.append(
+                linea(
+                    f"<strong>{html.escape(c.get('curso') or '')}</strong>: tienes {palabra} {html.escape(cuando)}{hora}.{tema}"
+                    + _resumen_enlace("Ver la " + (c.get("palabra") or "clase"), c.get("url") or "")
+                )
+            )
+
+    f = resumen.get("formacion")
+    if f:
+        toca = f.get("toca") or {}
+        partes.append(rotulo("Tu formación"))
+        partes.append(linea(html.escape(f.get("texto") or "")))
+        if toca.get("clase"):
+            antes = "Dejaste a medias" if toca.get("a_medias") else "Te toca"
+            modulo = f" ({html.escape(toca['modulo'])})" if toca.get("modulo") else ""
+            partes.append(linea(f"{antes}: <strong>{html.escape(toca['clase'])}</strong>{modulo}."))
+        if f.get("url"):
+            partes.append(
+                f'<p style="margin: 14px 0 6px 0;"><a href="{html.escape(f["url"], quote=True)}" class="brand-btn" '
+                f'style="{STYLES["button"]}">{html.escape(txt("weekly_digest", "boton"))}</a></p>'
+            )
+
+    tareas = resumen.get("tareas") or []
+    corregidas = resumen.get("corregidas") or []
+    if tareas or corregidas:
+        partes.append(rotulo("Tu tarea"))
+        for c in corregidas:
+            de = f" de «{html.escape(c['tema'])}»" if c.get("tema") else ""
+            quien = f"{html.escape(c['por'])} ha corregido tu tarea{de}." if c.get("por") else f"Tu tarea{de} ya está corregida."
+            partes.append(linea(quien + _resumen_enlace("Ver la corrección", c.get("url") or "")))
+        for t in tareas:
+            de = f" de «{html.escape(t['tema'])}»" if t.get("tema") else ""
+            hasta = f" Tienes hasta el {html.escape(t['hasta'])}." if t.get("hasta") else ""
+            partes.append(linea(f"Te queda por entregar la tarea{de}.{hasta}" + _resumen_enlace("Hacer la tarea", t.get("url") or "")))
+
+    lectura = resumen.get("lectura")
+    if lectura and lectura.get("titulo"):
+        partes.append(rotulo("Lectura de la semana"))
+        partes.append(linea(f"«{html.escape(lectura['titulo'])}»." + _resumen_enlace("Leerla", lectura.get("url") or "")))
+
+    return "\n".join(partes)
+
+
 def send_weekly_digest_email(
     email: EmailStr,
     name: str = "alumno/a",
-    lessons_done: int = 3,
-    progress_pct: int = 45,
-    next_lesson: str = "1.4 Lezen — Anna & Marco",
+    resumen: Optional[dict] = None,
+    baja_url: str = "",
+    hoy=None,
     preview: bool = False,
 ):
-    """Lunes por la mañana: resumen de la semana del alumno."""
-    safe_name = html.escape(name)
-    safe_next = html.escape(next_lesson)
-    heading = txt("weekly_digest", "titulo", nombre=safe_name)
+    """El resumen semanal del alumno (lunes por la mañana).
 
-    body_content = f"""
-        <h1 style="{STYLES['h1']}">{heading}</h1>
-        {parrafos(txt("weekly_digest", "cuerpo", nombre=name), STYLES['p'])}
-        <ul style="padding: 0; margin: 0 0 24px 0; list-style: none; text-align: left;">
-            <li style="margin: 0 0 8px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
-                ✅ <strong>{lessons_done} lecciones</strong> completadas
-            </li>
-            <li style="margin: 0 0 8px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
-                🎯 Vas por el <strong>{progress_pct}%</strong> del Module 1
-            </li>
-            <li style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
-                📌 Te toca <strong>{safe_next}</strong>
-            </li>
-        </ul>
-        {parrafos(txt("weekly_digest", "cierre", nombre=name), STYLES['p'])}
-        <a href="{RUTA_FORMACION_URL}" class="brand-btn" style="{STYLES['button']}">
-            {html.escape(txt("weekly_digest", "boton"))}
-        </a>
+    `resumen` es lo que arma `services/notifications/resumen_semanal.py` con
+    los datos de ESE alumno: sus clases en directo de la semana, cómo va en la
+    formación y qué le toca, su tarea y la lectura. Sin él, un ejemplo creíble
+    (para el catálogo de correos). `baja_url`: su enlace para no recibirlo más.
+    Es una carta: letra grande, sin banner, y se contesta a info@.
     """
+    if resumen is None:
+        from src.services.notifications.resumen_semanal import resumen_de_ejemplo
+
+        resumen = resumen_de_ejemplo(hoy)
+    nombre = name if name and name != "alumno/a" else (resumen.get("nombre") or "alumno/a")
+    heading = txt("weekly_digest", "titulo", nombre=html.escape(nombre))
+    pie = html.escape(txt("weekly_digest", "pie"))
+    baja = (
+        f' <a href="{html.escape(baja_url, quote=True)}" style="color: #8a90a0; text-decoration: underline;">No quiero recibir este resumen</a>.'
+        if baja_url
+        else ""
+    )
+
+    body_content = "\n".join(
+        p
+        for p in [
+            f'<p style="margin: 0 0 12px 0; font-size: 21px; line-height: 1.3; color: #0a1656; font-weight: 600;">{heading}</p>',
+            parrafos(txt("weekly_digest", "cuerpo", nombre=nombre), ESTILO_CARTA_P.replace("0 0 18px 0", "0 0 4px 0")),
+            cuerpo_del_resumen(resumen, hoy),
+            '<div style="height: 26px; line-height: 26px; font-size: 0;">&nbsp;</div>',
+            parrafos(txt("weekly_digest", "cierre", nombre=nombre), ESTILO_CARTA_P),
+            f'<p class="carta-rotulo" style="margin: 8px 0 0 0; font-size: 12px; line-height: 1.6; color: #8a90a0;">{pie}{baja}</p>',
+        ]
+        if p
+    )
 
     return send_email(
         dry_run=preview,
         to=email,
-        subject=txt("weekly_digest", "asunto", nombre=name),
-        body=_email_layout(
-            title=heading,
-            body_content=body_content,
-            footer_note="Recibes este resumen cada lunes para no perderte nada de tu formación.",
-        ),
+        subject=txt("weekly_digest", "asunto", nombre=nombre),
+        body=_carta_layout(title=heading, body_content=body_content),
+        reply_to=SUPPORT_EMAIL,
     )
 
 
@@ -1229,11 +1312,19 @@ def send_plazo_fallido_email(
     tel_num = "".join(ch for ch in (plan.get("telefono") or "") if ch.isdigit())
     wa = f"https://wa.me/{tel_num}" if tel_num else ""
 
+    # Con la regla de los plazos sin pagar encendida (pausa.py) llega
+    # `dias_pausa`; apagada, la frase de siempre.
+    dias_pausa = int(plan.get("dias_pausa") or 0)
+    acceso_txt = (
+        f"Sigue teniendo acceso a la escuela. Si no paga, a los {dias_pausa} días su acceso a la formación y a las clases quedará en pausa solo (Panel → Pagos a plazos)."
+        if dias_pausa > 0
+        else "Sigue teniendo acceso a la escuela: si hay que quitárselo, es en Panel → Usuarios."
+    )
     body_content = f"""
         <h1 style="{STYLES['h1']}">Un pago a plazos no ha entrado</h1>
         <p style="{STYLES['p']}"><strong>{nombre}</strong><br>{correo}{' · ' + telefono if telefono else ''}</p>
         <p style="{STYLES['p']}">{fallo}</p>
-        <p style="{STYLES['p']}">Lleva pagados {pagado} € de {total} € ({int(plan.get('cuotas_pagadas') or 0)} de {int(plan.get('cuotas') or 0)} pagos). Sigue teniendo acceso a la escuela: si hay que quitárselo, es en Panel → Usuarios.</p>
+        <p style="{STYLES['p']}">Lleva pagados {pagado} € de {total} € ({int(plan.get('cuotas_pagadas') or 0)} de {int(plan.get('cuotas') or 0)} pagos). {acceso_txt}</p>
         <p style="{STYLES['p']}">{'A la alumna o alumno le ha llegado un correo con un botón para pagar esta cuota.' if plan.get('alumno_avisado') else 'No se le ha podido mandar el correo para pagar esta cuota: escríbele.'}</p>
         <a href="{ACADEMY_URL}/dash/estadisticas?tab=plazos" class="brand-btn" style="{STYLES['button']}">Ver en el panel</a>
         {f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{wa}" style="color: #025dc7; font-weight: 600;">Escribirle por WhatsApp</a></p>' if wa else ''}
@@ -1274,6 +1365,16 @@ def send_plazo_fallido_alumno_email(
         if pagar_url
         else ""
     )
+    # La regla de los plazos sin pagar (23/11/2026, services/payments/pausa.py):
+    # SOLO si está encendida llega `dias_pausa` y el correo dice cuántos días
+    # hay. Apagada (como nace), la frase es la de siempre.
+    dias_pausa = int(datos.get("dias_pausa") or 0)
+    sigue = (
+        f"De momento sigues teniendo acceso a la escuela. Si el pago sigue pendiente dentro de {dias_pausa} días, "
+        "tu acceso a la formación y a las clases quedará en pausa hasta que se ponga al día; en cuanto pagues, vuelve solo."
+        if dias_pausa > 0
+        else "De momento sigues teniendo acceso a la escuela."
+    )
     body_content = f"""
         <h1 style="{STYLES['h1']}">No hemos podido cobrar tu pago</h1>
         <p style="{STYLES['p']}">Hola{(' ' + nombre) if nombre else ''},</p>
@@ -1281,7 +1382,7 @@ def send_plazo_fallido_alumno_email(
         {f'<p style="{STYLES["p"]}">Lo volveremos a intentar el {reintento}. Si prefieres solucionarlo ya, puedes pagarlo ahora, por ejemplo con otra tarjeta:</p>' if reintento and pagar_url else ''}
         {f'<p style="{STYLES["p"]}">Puedes pagarlo ahora, por ejemplo con otra tarjeta:</p>' if pagar_url and not reintento else ''}
         {boton}
-        <p style="{STYLES['p']}; margin-top: 24px;">De momento sigues teniendo acceso a la escuela. Si ya lo has solucionado, ignora este correo. Si tienes cualquier duda, escríbenos a info@holandesnawar.com.</p>
+        <p style="{STYLES['p']}; margin-top: 24px;">{sigue} Si ya lo has solucionado, ignora este correo. Si tienes cualquier duda, escríbenos a info@holandesnawar.com.</p>
     """
 
     return send_email(
@@ -1291,6 +1392,85 @@ def send_plazo_fallido_alumno_email(
         body=_email_layout(
             title="No hemos podido cobrar tu pago",
             body_content=body_content,
+        ),
+    )
+
+
+def send_acceso_en_pausa_alumno_email(
+    email: EmailStr,
+    datos: dict,
+    preview: bool = False,
+):
+    """AL ALUMNO: su acceso a la formación y a las clases ha quedado en pausa
+    por una cuota sin pagar (23/11/2026, la regla de los plazos sin pagar:
+    services/payments/pausa.py). Solo sale con la regla ENCENDIDA y una vez por
+    factura. Tono tranquilo: decir qué pasa, cómo se arregla y que vuelve solo."""
+    nombre = html.escape((datos.get("nombre") or "").split(" ")[0] or "")
+    numero = int(datos.get("numero") or 0)
+    cuotas = int(datos.get("cuotas") or 0)
+    importe = f"{int(datos.get('importe_cents') or 0) / 100:.2f}".replace(".", ",").replace(",00", "")
+    pagar_url = html.escape(datos.get("pagar_url") or "", quote=True)
+    cual = f"el pago {numero} de {cuotas}" if numero and cuotas else "un pago"
+
+    boton = (
+        f'<a href="{pagar_url}" class="brand-btn" style="{STYLES["button"]}">Pagar ahora</a>'
+        if pagar_url
+        else f'<a href="{ACADEMY_URL}" class="brand-btn" style="{STYLES["button"]}">Entrar a la escuela</a>'
+    )
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">Tu acceso está en pausa</h1>
+        <p style="{STYLES['p']}">Hola{(' ' + nombre) if nombre else ''},</p>
+        <p style="{STYLES['p']}">Sigue pendiente {cual} de tu Formación Nawar A0-A1 ({importe} €). Por eso tu acceso a la formación y a las clases en directo ha quedado en pausa.</p>
+        <p style="{STYLES['p']}">No has perdido nada: tu avance, tus tareas y tu plaza siguen ahí. En cuanto el pago entre, el acceso vuelve solo, sin que tengas que escribirnos.</p>
+        {boton}
+        <p style="{STYLES['p']}; margin-top: 24px;">Puedes seguir entrando a la escuela, a la comunidad y a los mensajes. Si ya has pagado, entra y pulsa «Ya he pagado: comprobar». Y si hay algún problema con el pago, cuéntanoslo en Mensajes o en info@holandesnawar.com y lo vemos contigo.</p>
+    """
+
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject="Tu acceso está en pausa: falta un pago",
+        body=_email_layout(
+            title="Tu acceso está en pausa",
+            body_content=body_content,
+        ),
+    )
+
+
+def send_acceso_en_pausa_email(
+    email: EmailStr,
+    datos: dict,
+    preview: bool = False,
+):
+    """AL EQUIPO: a esta persona se le ha puesto el acceso en pausa por la
+    regla de los plazos sin pagar (pausa.py). Una vez por factura."""
+    nombre = html.escape(datos.get("nombre") or datos.get("email") or "Alguien")
+    correo = html.escape(datos.get("email") or "")
+    telefono = html.escape(datos.get("telefono") or "")
+    numero = int(datos.get("numero") or 0)
+    cuotas = int(datos.get("cuotas") or 0)
+    dias = int(datos.get("dias") or 0)
+    importe = f"{int(datos.get('importe_cents') or 0) / 100:.2f}".replace(".", ",").replace(",00", "")
+    tel_num = "".join(ch for ch in (datos.get("telefono") or "") if ch.isdigit())
+    wa = f"https://wa.me/{tel_num}" if tel_num else ""
+
+    body_content = f"""
+        <h1 style="{STYLES['h1']}">Acceso en pausa por un pago a plazos</h1>
+        <p style="{STYLES['p']}"><strong>{nombre}</strong><br>{correo}{' · ' + telefono if telefono else ''}</p>
+        <p style="{STYLES['p']}">Lleva más de {dias} días con el pago {numero} de {cuotas} sin pagar ({importe} €). Desde hoy no puede abrir la formación ni las clases en directo; la comunidad y los mensajes, sí. Le ha llegado un correo con el botón para pagar.</p>
+        <p style="{STYLES['p']}">El acceso vuelve solo en cuanto pague. Si habéis acordado otra cosa, en Panel → Pagos a plazos está «No pausar a esta persona».</p>
+        <a href="{ACADEMY_URL}/dash/estadisticas?tab=plazos" class="brand-btn" style="{STYLES['button']}">Ver en el panel</a>
+        {f'<p style="margin: 16px 0 0 0; font-size: 13px;"><a href="{wa}" style="color: #025dc7; font-weight: 600;">Escribirle por WhatsApp</a></p>' if wa else ''}
+    """
+
+    return send_email(
+        dry_run=preview,
+        to=email,
+        subject=f"Acceso en pausa: {datos.get('nombre') or datos.get('email') or 'alguien'}",
+        body=_email_layout(
+            title="Acceso en pausa por un pago a plazos",
+            body_content=body_content,
+            footer_note="Recibes esto porque eres administrador de la escuela.",
         ),
     )
 

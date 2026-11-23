@@ -16,6 +16,8 @@ import { PageViewTracker } from '@components/Analytics/PageViewTracker'
 import { usePathname } from 'next/navigation'
 import { usePlan } from '@components/Hooks/usePlan'
 import { getGoogleFontUrl, DEFAULT_FONT } from '@/lib/fonts'
+import { PantallaPausa, useAcceso } from '@components/Pages/Acceso/AccesoPausa'
+import { rutaEnPausa } from '@services/student/acceso'
 
 /** useLayoutEffect en el navegador; en el servidor no existe y avisaría. */
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
@@ -111,8 +113,16 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
   // footer and watermark so the lesson + its own "Contenido del curso" panel
   // get the whole screen (Thinkific-style). Leaving the lesson restores the
   // normal chrome.
-  const isLessonPage =
+  const enLeccion =
     pathParts.includes('course') && pathParts.includes('activity')
+
+  // La regla de los plazos sin pagar (pausa.py): con el acceso en pausa, la
+  // formación y las clases enseñan la pantalla de pausa. Solo se pregunta en
+  // esas rutas, y con la regla apagada el servidor contesta siempre «no».
+  const enRutaDePausa = rutaEnPausa(pathParts)
+  const acceso = useAcceso(enRutaDePausa)
+  const enPausa = enRutaDePausa && !!acceso?.pausado
+  const isLessonPage = enLeccion && !enPausa
 
   // El ancho reservado para la barra del curso se fija AQUÍ, en cuanto se sabe
   // que estamos en una lección, sin esperar a que cargue la lección y monte su
@@ -151,7 +161,7 @@ function LayoutContent({ children, orgslug }: { children: React.ReactNode; orgsl
         {!isLessonPage && <OrgSidebar orgslug={orgslug} />}
         <div className={`flex flex-1 min-w-0 flex-col ${isLessonPage ? 'lg:pl-[var(--course-sidebar-w,340px)] transition-[padding] duration-200' : ''}`}>
           <div className="flex-1 relative" style={{ zIndex: 'var(--z-content)' }}>
-            {children}
+            {enPausa && acceso ? <PantallaPausa acceso={acceso} orgslug={orgslug} /> : children}
           </div>
           {!isFullBleedPage && !isLessonPage && <OrgFooter />}
           {!isFullBleedPage && !isLessonPage && <Watermark />}

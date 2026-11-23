@@ -14,13 +14,22 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { comprobarTodosLosPlazos, getPlazos, type ListaPlazos, type PlanEnLista } from '@services/stats/kpis'
+import {
+  cambiarSinPausa,
+  comprobarTodosLosPlazos,
+  getPlazos,
+  guardarReglaPlazos,
+  type ListaPlazos,
+  type PlanEnLista,
+  type ReglaPlazos,
+} from '@services/stats/kpis'
 import { comprobarPlazos, getReservas, type Reserva } from '@services/stats/contactos'
 import { euros } from '@services/stats/school'
 import { numeroWhatsApp } from '@/lib/nawar/telefono'
 import { Loader2, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import FichaCliente from './Ficha'
+import { confirmar } from '@/lib/nawar/confirmar'
 import { BOTON, ENLACE, Estado, META, Meta, Seccion, TARJETA, type Tono } from './ui'
 
 const TONO: Record<string, Tono> = { fallido: 'rojo', activo: 'azul', completado: 'verde', cancelado: 'gris' }
@@ -47,7 +56,147 @@ function Cifra({ titulo, valor, sub, alerta }: { titulo: string; valor: string; 
   )
 }
 
-function FilaPlan({ plan, onAbrir, onCambio }: { plan: PlanEnLista; onAbrir: () => void; onCambio: (p: PlanEnLista) => void }) {
+const dia = (d: string) =>
+  d ? new Date(`${d}T12:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'Europe/Amsterdam' }) : ''
+
+/** Lo que dice la regla de los plazos sin pagar de este plan (pausa.py). */
+function LineaPausa({ plan, activa, onCambio }: { plan: PlanEnLista; activa: boolean; onCambio: (p: PlanEnLista) => void }) {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const accessToken = session?.data?.tokens?.access_token
+  const [guardando, setGuardando] = useState(false)
+  const p = plan.pausa
+  if (!p?.debe) return null
+
+  async function exentar(valor: boolean) {
+    setGuardando(true)
+    const r = await cambiarSinPausa(org?.id, plan.id, valor, accessToken)
+    setGuardando(false)
+    if (!r.ok || !r.datos) {
+      toast.error(r.error || 'No se ha podido guardar')
+      return
+    }
+    const nuevo = r.datos.planes.find((x) => x.id === plan.id)
+    if (nuevo) onCambio(nuevo)
+  }
+
+  let texto = ''
+  let rojo = false
+  if (p.sin_pausa) texto = 'No se le pausa el acceso (acordado con el equipo).'
+  else if (p.nota) texto = p.nota
+  else if (p.en_pausa) {
+    texto = `Acceso en pausa desde el ${dia(p.pausa_el)}: no puede abrir la formación ni las clases hasta que pague.`
+    rojo = true
+  } else if (p.cumple) texto = `Con la regla encendida, tendría el acceso en pausa desde el ${dia(p.pausa_el)}.`
+  else texto = activa ? `Se pausa el ${dia(p.pausa_el)} si no paga.` : `Con la regla encendida, se pausaría el ${dia(p.pausa_el)} si no paga.`
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <p className={`text-[13px] ${rojo ? 'text-red-700 font-medium' : 'text-gray-700'}`}>{texto}</p>
+      <button onClick={() => exentar(!p.sin_pausa)} disabled={guardando} className={`${ENLACE} disabled:opacity-50`}>
+        {p.sin_pausa ? 'Volver a aplicar la regla' : 'No pausar a esta persona'}
+      </button>
+    </div>
+  )
+}
+
+/** El interruptor de la regla, con sus días y a quién afectaría hoy. */
+function ReglaPausa({ regla, onCambio }: { regla: ReglaPlazos; onCambio: (d: ListaPlazos) => void }) {
+  const org = useOrg() as any
+  const session = useLHSession() as any
+  const accessToken = session?.data?.tokens?.access_token
+  const [dias, setDias] = useState(regla.dias)
+  const [guardando, setGuardando] = useState(false)
+  useEffect(() => setDias(regla.dias), [regla.dias])
+
+  async function guardar(datos: { activa?: boolean; dias?: number }) {
+    setGuardando(true)
+    const r = await guardarReglaPlazos(org?.id, datos, accessToken)
+    setGuardando(false)
+    if (!r.ok || !r.datos) {
+      toast.error(r.error || 'No se ha podido guardar')
+      return
+    }
+    onCambio(r.datos)
+    toast.success(datos.activa === undefined ? 'Guardado' : datos.activa ? 'Regla encendida' : 'Regla apagada')
+  }
+
+  async function cambiarInterruptor() {
+    if (!regla.activa && regla.afectaria > 0) {
+      const ok = await confirmar(
+        `Hoy dejaría con el acceso en pausa a ${regla.afectaria} ${regla.afectaria === 1 ? 'persona' : 'personas'}. Antes se le pregunta a Stripe por si alguien ya ha pagado. A quien quede en pausa le llegará un correo mañana por la mañana.`,
+        { boton: 'Encender la regla' }
+      )
+      if (!ok) return
+    }
+    guardar({ activa: !regla.activa })
+  }
+
+  const cambiado = dias !== regla.dias
+  return (
+    <Seccion titulo="Cuando un pago no entra">
+      <div className={`${TARJETA} px-4 py-4 space-y-3`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 max-w-[620px]">
+            <p className="text-[14px] font-semibold text-gray-900">Pausar el acceso si una cuota sigue sin pagar</p>
+            <p className="text-[13px] text-gray-700 mt-1 leading-relaxed">
+              A los {regla.dias} días de un cobro que no entra, la persona deja de poder abrir la formación y las clases en directo (la
+              comunidad y los mensajes, sí). En cuanto paga, el acceso vuelve solo. Nunca al equipo.
+            </p>
+          </div>
+          <button
+            onClick={cambiarInterruptor}
+            disabled={guardando}
+            role="switch"
+            aria-checked={regla.activa}
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+              regla.activa ? 'bg-[#16A34A]' : 'bg-[#D1D5DB]'
+            }`}
+          >
+            <span className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${regla.activa ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+            <span className="sr-only">{regla.activa ? 'Apagar la regla' : 'Encender la regla'}</span>
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-[13px] text-gray-700">
+          <span>Días de margen</span>
+          <input
+            type="number"
+            min={regla.dias_min}
+            max={regla.dias_max}
+            value={dias}
+            onChange={(e) => setDias(Math.max(regla.dias_min, Math.min(regla.dias_max, Number(e.target.value) || regla.dias_min)))}
+            className="w-16 rounded-lg border border-[#E6E8EE] px-2 py-1 text-[13px] tabular-nums"
+          />
+          {cambiado ? (
+            <button onClick={() => guardar({ dias })} disabled={guardando} className={BOTON}>
+              Guardar
+            </button>
+          ) : null}
+          <span className={META}>de {regla.dias_min} a {regla.dias_max}</span>
+        </div>
+        <p className={`text-[13px] ${regla.activa && regla.en_pausa ? 'text-red-700 font-medium' : 'text-gray-900'}`}>
+          {regla.activa
+            ? regla.en_pausa
+              ? `En pausa ahora: ${regla.en_pausa} ${regla.en_pausa === 1 ? 'persona' : 'personas'} (mira abajo quién).`
+              : 'En pausa ahora: nadie.'
+            : `Apagada. Si estuviera encendida, hoy afectaría a ${regla.afectaria} ${regla.afectaria === 1 ? 'persona' : 'personas'}.`}
+        </p>
+      </div>
+    </Seccion>
+  )
+}
+
+function FilaPlan({
+  plan,
+  activa,
+  onAbrir,
+  onCambio,
+}: {
+  plan: PlanEnLista
+  activa: boolean
+  onAbrir: () => void
+  onCambio: (p: PlanEnLista) => void
+}) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token
@@ -99,6 +248,7 @@ function FilaPlan({ plan, onAbrir, onCambio }: { plan: PlanEnLista; onAbrir: () 
         </p>
       ) : null}
       {plan.fallo ? <p className="text-[13px] text-red-700">{plan.fallo}</p> : null}
+      <LineaPausa plan={plan} activa={activa} onCambio={onCambio} />
       {vivo && !plan.calendario ? (
         <p className="text-[12.5px] text-[#8A6A2A]">
           Stripe aún no tiene el calendario que corta los cobros en el pago {plan.cuotas}. La escuela lo vuelve a poner cada día y, si
@@ -193,6 +343,8 @@ export default function PlazosPanel() {
         <Cifra titulo="Pagados enteros" valor={String(t.completados)} sub={t.cancelados ? `${t.cancelados} cancelados sin completar` : undefined} />
       </div>
 
+      {datos.regla ? <ReglaPausa regla={datos.regla} onCambio={setDatos} /> : null}
+
       <Seccion
         titulo="Planes en marcha"
         extra={
@@ -204,7 +356,7 @@ export default function PlazosPanel() {
         {vivos.length ? (
           <div className={`${TARJETA} divide-y divide-[#F3F4F6]`}>
             {vivos.map((p) => (
-              <FilaPlan key={p.id} plan={p} onAbrir={() => setAbierta(p.email)} onCambio={cambiar} />
+              <FilaPlan key={p.id} plan={p} activa={!!datos.regla?.activa} onAbrir={() => setAbierta(p.email)} onCambio={cambiar} />
             ))}
           </div>
         ) : (
@@ -215,8 +367,10 @@ export default function PlazosPanel() {
         <p className={META}>
           Stripe cobra solo cada mes con el mismo método de pago y corta la suscripción en el último pago. Si un cobro falla, Stripe lo
           reintenta durante unos días; a la persona le llega un correo de la escuela con un botón para pagar esa cuota y a vosotros, otro
-          aviso. El acceso a la escuela no se quita solo: si hay que hacerlo, es en Panel → Usuarios. La escuela comprueba los planes
-          con Stripe cada mañana.
+          aviso. {datos.regla?.activa
+            ? `Si a los ${datos.regla.dias} días sigue sin pagar, su acceso a la formación y a las clases queda en pausa hasta que pague.`
+            : 'El acceso a la escuela no se quita solo: si hay que hacerlo, es en Panel → Usuarios.'}{' '}
+          La escuela comprueba los planes con Stripe cada mañana.
         </p>
       </Seccion>
 
@@ -253,7 +407,7 @@ export default function PlazosPanel() {
           {verAcabados ? (
             <div className={`${TARJETA} divide-y divide-[#F3F4F6]`}>
               {acabados.map((p) => (
-                <FilaPlan key={p.id} plan={p} onAbrir={() => setAbierta(p.email)} onCambio={cambiar} />
+                <FilaPlan key={p.id} plan={p} activa={!!datos.regla?.activa} onAbrir={() => setAbierta(p.email)} onCambio={cambiar} />
               ))}
             </div>
           ) : null}

@@ -265,6 +265,15 @@ async def get_courses_orgslug(
         if cached is not None:
             return [CourseRead.model_validate(c) for c in cached]
 
+    # La regla de los plazos sin pagar (23/11/2026, services/payments/pausa.py):
+    # con el acceso en pausa no se listan cursos (ni la formación ni las clases
+    # en directo). Con la regla apagada, que es como nace, esto no hace nada.
+    if isinstance(current_user, PublicUser) and not is_anon:
+        from src.services.payments import pausa as _pausa
+
+        if await _pausa.pausa_de(current_user, db_session):
+            return []
+
     offset = (page - 1) * limit
 
     # Get organization

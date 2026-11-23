@@ -726,6 +726,8 @@ export function PropsOrigen({ ficha, conPaginas = true }: { ficha: Ficha; conPag
         </Prop>
       ) : null}
       <Prop t="Fuente">{ficha.canal?.detalle || mayuscula(ficha.vino_de || '')}</Prop>
+      {/* Con canal, «Fuente» dice el anuncio o el setter: la página por la que entró va aparte (la ficha de siempre decía las dos). */}
+      {ficha.canal?.detalle && ficha.vino_de ? <Prop t="Llegó por">{mayuscula(ficha.vino_de)}</Prop> : null}
       {ficha.canal?.antes ? <Prop t="Antes">Sin anuncio: {ficha.canal.antes}</Prop> : null}
       <Prop t="Campaña">{ficha.utm.campaign}</Prop>
       {ficha.utm.correo ? (

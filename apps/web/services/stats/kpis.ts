@@ -112,6 +112,34 @@ export type PlanEnLista = PlanPagos & {
   /** Stripe tiene puesto el calendario que corta la suscripción al último pago. */
   calendario: boolean
   fuera_de_metricas: boolean
+  /** «No pausar a esta persona» (la regla de los plazos sin pagar). */
+  sin_pausa?: boolean
+  /** Cómo queda con la regla de los plazos sin pagar (apps/api/src/services/payments/pausa.py). */
+  pausa?: PausaPlan | null
+}
+
+export interface PausaPlan {
+  /** Tiene una factura sin pagar. */
+  debe: boolean
+  sin_pagar_desde: string
+  /** AAAA-MM-DD (hora NL): el día en que se cumple el plazo. */
+  pausa_el: string
+  /** Ya se ha cumplido (con la regla encendida o no): «a quién afectaría». */
+  cumple: boolean
+  en_pausa: boolean
+  sin_pausa: boolean
+  debe_cents: number
+  /** Por qué no se pausa aunque deba (otra matrícula pagada, sin cuenta…). */
+  nota: string
+}
+
+export interface ReglaPlazos {
+  activa: boolean
+  dias: number
+  dias_min: number
+  dias_max: number
+  afectaria: number
+  en_pausa: number
 }
 
 export interface ListaPlazos {
@@ -125,6 +153,8 @@ export interface ListaPlazos {
     cobrado_cents: number
     sin_calendario: number
   }
+  /** La regla de los plazos sin pagar. Nace apagada. */
+  regla?: ReglaPlazos
   /** Solo al comprobar con Stripe: lo que hizo (números). */
   resultado?: { revisados: number; al_dia: number; fallidos: number; completados: number; errores: number }
 }
@@ -148,6 +178,25 @@ export const getPlazos = (orgId: number, accessToken: string) =>
 
 export const comprobarTodosLosPlazos = (orgId: number, accessToken: string) =>
   pedir<ListaPlazos>(`stats/org/${orgId}/plazos/comprobar`, 'POST', accessToken)
+
+async function enviar<T>(url: string, metodo: string, cuerpo: any, accessToken: string): Promise<{ ok: boolean; datos?: T; error?: string }> {
+  try {
+    const res = await fetch(`${getAPIUrl()}${url}`, RequestBodyWithAuthHeader(metodo, cuerpo, null, accessToken))
+    const datos = await res.json().catch(() => ({}))
+    if (!res.ok) return { ok: false, error: typeof (datos as any)?.detail === 'string' ? (datos as any).detail : 'No se ha podido guardar' }
+    return { ok: true, datos: datos as T }
+  } catch {
+    return { ok: false, error: 'No se ha podido conectar' }
+  }
+}
+
+/** Encender, apagar o cambiar los días de la regla de los plazos sin pagar. */
+export const guardarReglaPlazos = (orgId: number, datos: { activa?: boolean; dias?: number }, accessToken: string) =>
+  enviar<ListaPlazos>(`stats/org/${orgId}/plazos/regla`, 'PUT', datos, accessToken)
+
+/** «No pausar a esta persona». */
+export const cambiarSinPausa = (orgId: number, planId: number, sinPausa: boolean, accessToken: string) =>
+  enviar<ListaPlazos>(`stats/org/${orgId}/plazos/${planId}/sin-pausa`, 'PUT', { sin_pausa: sinPausa }, accessToken)
 
 export interface NoShow {
   con_resultado: number

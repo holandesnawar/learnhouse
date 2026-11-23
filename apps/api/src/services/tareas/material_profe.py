@@ -85,6 +85,10 @@ def leer(texto: Any) -> dict:
         else None
     )
     salida = {"notas": str(d.get("notas") or ""), "archivos": archivos, "profe": str(d.get("profe") or ""), "mensaje": mensaje}
+    # Cuándo se le asignó (23/11/2026): con eso la campana avisa al profe.
+    if salida["profe"] and str(d.get("profe_at") or ""):
+        salida["profe_at"] = str(d.get("profe_at") or "")
+        salida["profe_por"] = str(d.get("profe_por") or "")
     # La pizarra de clase (10/11/2026, pizarra.py) vive aquí dentro: se
     # conserva tal cual para que guardar unas notas no la borre.
     if isinstance(d.get("pizarra"), dict):
@@ -125,9 +129,23 @@ def _pizarra_resumen(m: dict) -> Optional[dict]:
     }
 
 
-def con_profe(m: dict, profe: str) -> dict:
-    """Quién da esta semana (vacío = el de la clase)."""
-    return {**m, "profe": " ".join((profe or "").split())[:80]}
+def con_profe(m: dict, profe: str, por: str = "") -> dict:
+    """Quién da esta semana (vacío = el de la clase).
+
+    Si CAMBIA a otra persona se apunta cuándo (`profe_at`) y quién lo puso
+    (`profe_por`): con eso la campana le avisa («Te han asignado…»,
+    `avisos_de_asignacion`). Guardar el mismo nombre otra vez no avisa de nuevo."""
+    nuevo = " ".join((profe or "").split())[:80]
+    salida = {k: v for k, v in m.items() if k not in ("profe_at", "profe_por")}
+    salida["profe"] = nuevo
+    if nuevo:
+        if _plano(nuevo) == _plano(m.get("profe") or "") and m.get("profe_at"):
+            salida["profe_at"] = m.get("profe_at")
+            salida["profe_por"] = m.get("profe_por") or ""
+        else:
+            salida["profe_at"] = _ahora()
+            salida["profe_por"] = " ".join((por or "").split())[:80]
+    return salida
 
 
 def con_mensaje(m: dict, texto: str, por: str) -> dict:
@@ -314,7 +332,6 @@ async def avisos_de_mensajes(org_id: int, user_id: int, db_session) -> list[dict
     from src.db.tareas import TareaSemana
     from src.db.users import User
     from src.services.panel.tandas import hoy_nl
-    from src.services.salas import salas as S
 
     yo = (await db_session.execute(select(User).where(User.id == user_id))).scalars().first()
     if not yo or not (yo.first_name or "").strip():
@@ -342,9 +359,15 @@ async def avisos_de_mensajes(org_id: int, user_id: int, db_session) -> list[dict
         quien = m.get("profe") or ""
         if not quien:
             if s.course_uuid not in recuadros:
+                # El «La da» de la clase vive en el recuadro de la sala
+                # (`salas[uuid].banner`). Antes se buscaba en `config_de`, que
+                # solo devuelve si la sala está encendida: salía siempre vacío
+                # y el aviso no llegaba a quien da la clase entera (23/11/2026).
                 try:
-                    cfg = await S.config_de(org_id, s.course_uuid, db_session)
-                    recuadros[s.course_uuid] = str((cfg.get("banner") or {}).get("teacher") or "")
+                    from src.services.tareas import tareas as T
+
+                    cfg = await T._config(org_id, db_session)
+                    recuadros[s.course_uuid] = str((T._ajustes_sala(cfg, s.course_uuid).get("banner") or {}).get("teacher") or "")
                 except Exception:  # noqa: BLE001
                     recuadros[s.course_uuid] = ""
             quien = recuadros[s.course_uuid]
@@ -361,3 +384,107 @@ async def avisos_de_mensajes(org_id: int, user_id: int, db_session) -> list[dict
             }
         )
     return out
+
+
+#: Durante cuántos días sale en la campana una clase recién asignada.
+DIAS_AVISO_ASIGNACION = 14
+
+
+def agrupar_asignaciones(filas: list[dict]) -> list[dict]:
+    """Los avisos de «te han asignado…», uno por clase (curso). Puro.
+
+    `filas`: [{semana_id, curso, fecha, tema, at}] ya filtradas (son de esta
+    persona, de hoy en adelante y asignadas hace poco). Con varias fechas de
+    la misma clase (se crearon 8 seguidas) sale UNA línea, no ocho."""
+    por_curso: dict[str, list[dict]] = {}
+    for f in filas:
+        por_curso.setdefault(f["curso"], []).append(f)
+    out = []
+    for curso, lista in por_curso.items():
+        lista.sort(key=lambda f: f["fecha"])
+        ultima = max(f["at"] for f in lista)
+        primera = lista[0]
+        if len(lista) == 1:
+            detalle = _dia_corto(primera["fecha"]) + (f" · {primera['tema']}" if primera.get("tema") else "")
+        else:
+            detalle = f"{len(lista)} fechas; la primera, el {_dia_corto(primera['fecha'])}"
+        out.append(
+            {
+                "id": f"clase-asignada:{primera['semana_id']}:{ultima}",
+                "kind": "clase",
+                "title": f"Te han asignado: {curso}",
+                "excerpt": detalle,
+                "url": "/equipo?vista=calendario",
+                "date": ultima,
+            }
+        )
+    out.sort(key=lambda i: i["date"], reverse=True)
+    return out
+
+
+_DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+_MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+
+
+def _dia_corto(fecha: str) -> str:
+    from datetime import date
+
+    try:
+        d = date.fromisoformat(fecha)
+    except ValueError:
+        return fecha
+    return f"{_DIAS[d.weekday()]} {d.day} {_MESES[d.month - 1]}"
+
+
+async def avisos_de_asignacion(org_id: int, user_id: int, db_session) -> list[dict]:
+    """La campana del profe (23/11/2026): «Te han asignado: Masterclass · jueves
+    26 nov» cuando un administrador le pone una clase («La da esta semana» en
+    la ficha, o «Nueva clase» con su nombre). Sale durante dos semanas, solo de
+    clases que aún no han pasado, y se quita como cualquier aviso. Va por el
+    nombre de pila, como el resto de la sala de profesores."""
+    from datetime import date, datetime, timedelta, timezone
+
+    from sqlmodel import select
+
+    from src.db.courses.courses import Course
+    from src.db.tareas import TareaSemana
+    from src.db.users import User
+    from src.services.panel.tandas import hoy_nl
+    from src.services.salas.salas import nombre_con_etiqueta
+    from src.services.tareas import tareas as T
+
+    yo = (await db_session.execute(select(User).where(User.id == user_id))).scalars().first()
+    if not yo or not (yo.first_name or "").strip():
+        return []
+    hoy = hoy_nl()
+    corte = (datetime.now(timezone.utc) - timedelta(days=DIAS_AVISO_ASIGNACION)).replace(microsecond=0).isoformat()
+    filas = (
+        await db_session.execute(
+            select(TareaSemana).where(
+                TareaSemana.org_id == org_id,
+                TareaSemana.fecha >= hoy,
+                TareaSemana.material_profe.contains("profe_at"),  # type: ignore[attr-defined]
+            )
+        )
+    ).scalars().all()
+    mio = " ".join(f"{yo.first_name or ''} {yo.last_name or ''}".split())
+    mias: list[dict] = []
+    for s in filas:
+        m = leer(s.material_profe)
+        at = m.get("profe_at") or ""
+        if not at or at < corte or not es_para(m.get("profe") or "", yo.first_name or ""):
+            continue
+        # Si se la puso él mismo, no hace falta avisarle.
+        if mio and _plano(m.get("profe_por") or "") == _plano(mio):
+            continue
+        mias.append({"semana_id": s.id, "course_uuid": s.course_uuid, "fecha": s.fecha, "tema": s.tema or "", "at": at})
+    if not mias:
+        return []
+    config = await T._config(org_id, db_session)
+    nombres: dict[str, str] = {}
+    for u in {f["course_uuid"] for f in mias}:
+        c = (await db_session.execute(select(Course).where(Course.course_uuid == u))).scalars().first()
+        nombres[u] = nombre_con_etiqueta(config, u, c.name if c else "Clase")
+    for f in mias:
+        f["curso"] = nombres[f["course_uuid"]]
+    return agrupar_asignaciones(mias)

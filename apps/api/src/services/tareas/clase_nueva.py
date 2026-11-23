@@ -136,7 +136,7 @@ async def _crear_una(course: Course, fecha: str, tema: str, profe: str, autor: s
     )
     if profe:
         s = await T.tarea(r["semana"]["id"], db_session)
-        await MP.guardar(s, MP.con_profe(MP.leer(s.material_profe), profe), db_session)
+        await MP.guardar(s, MP.con_profe(MP.leer(s.material_profe), profe, autor), db_session)
     return r["semana"]
 
 

@@ -26,6 +26,7 @@ import KpisPanel from '../Panel/KpisPanel'
 import CorreosPanel from '../Panel/CorreosPanel'
 import PlazosPanel from '../Panel/PlazosPanel'
 import TandasPanel from '../Panel/TandasPanel'
+import FallosPanel from '../Panel/FallosPanel'
 import CabeceraPagina from '../Panel/Cabecera'
 import { BOTON_PRINCIPAL, BOTON_TEXTO, Cifra as CifraTira, Fila, Seccion, Segmentado, SUB, TABLA, TD, TD_NUM, TH, TH_NUM, Tira } from '../Panel/ui'
 import ClasesProfes from '@components/Pages/Profes/ClasesProfes'
@@ -89,6 +90,7 @@ import {
   Lightbulb,
   Video,
   Activity,
+  Flag,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -129,6 +131,7 @@ const SECCIONES: Record<string, { titulo: string; icono: React.ReactNode; que: s
   correos: { titulo: 'Correos', icono: <Mails {...ICONO} />, que: 'Quién está en cada campaña y a quién le ha llegado cada correo.' },
   resenas: { titulo: 'Reseñas', icono: <Video {...ICONO} />, que: 'Pide a tus alumnos una reseña en vídeo, revísala y bájala. El regalo es por grabarla, no por hablar bien.' },
   estado: { titulo: 'Estado de la escuela', icono: <Activity {...ICONO} />, que: 'Qué ha fallado, qué va lento y qué pantallas se han roto, para enterarte antes que los alumnos.' },
+  fallos: { titulo: 'Fallos avisados', icono: <Flag {...ICONO} />, que: 'Lo que los alumnos avisan con «¿Ves un fallo? Avísanos» de cada ejercicio, agrupado por ejercicio y listo para copiar.' },
   estudio: { titulo: 'Estudio', icono: <Lightbulb {...ICONO} />, que: 'Tu pizarra para apuntar deprisa, el banco de ideas de contenido y los prompts ya preparados para Claude.' },
   profes: { titulo: 'Clases de los profes', icono: <Presentation {...ICONO} />, que: 'Las próximas clases con su presentación, lo que falta preparar y los recursos. Lo mismo que ven los profes en la escuela.' },
 }
@@ -274,7 +277,7 @@ export default function EstadisticasPage() {
   // ?tab= va a Matrículas, no a Números, o saltaría de una a otra sin parar.
   const esCloserRef = React.useRef(false)
   esCloserRef.current = isCloser
-  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas' | 'enfoque' | 'camino' | 'seguimiento' | 'correos' | 'profes' | 'estudio' | 'resenas' | 'estado'>('numeros')
+  const [tab, setTab] = useState<'numeros' | 'contactos' | 'llamadas' | 'facturas' | 'gastos' | 'guion' | 'paginas' | 'utm' | 'matriculas' | 'tareas' | 'clientes' | 'anuncios' | 'progreso' | 'recursos' | 'vision' | 'kpis' | 'plazos' | 'tandas' | 'fallos' | 'enfoque' | 'camino' | 'seguimiento' | 'correos' | 'profes' | 'estudio' | 'resenas' | 'estado'>('numeros')
   // El closer arranca en Matrículas, que es lo suyo. Contactos también lo ve
   // desde el 03/11 (del 08/10 al 03/11 era solo del administrador).
   useEffect(() => {
@@ -286,7 +289,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const leer = () => {
       const pedida = new URLSearchParams(window.location.search).get('tab')
-      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos' || pedida === 'tandas' || pedida === 'enfoque' || pedida === 'camino' || pedida === 'seguimiento' || pedida === 'correos' || pedida === 'profes' || pedida === 'estudio' || pedida === 'resenas' || pedida === 'estado') setTab(pedida)
+      if (pedida === 'numeros' || pedida === 'contactos' || pedida === 'llamadas' || pedida === 'facturas' || pedida === 'gastos' || pedida === 'guion' || pedida === 'paginas' || pedida === 'utm' || pedida === 'matriculas' || pedida === 'tareas' || pedida === 'clientes' || pedida === 'anuncios' || pedida === 'progreso' || pedida === 'recursos' || pedida === 'vision' || pedida === 'kpis' || pedida === 'plazos' || pedida === 'tandas' || pedida === 'fallos' || pedida === 'enfoque' || pedida === 'camino' || pedida === 'seguimiento' || pedida === 'correos' || pedida === 'profes' || pedida === 'estudio' || pedida === 'resenas' || pedida === 'estado') setTab(pedida)
       // Sin ?tab= (el enlace «Estadísticas» de la barra) = los números.
       else if (!pedida) setTab(esCloserRef.current ? 'matriculas' : 'numeros')
     }
@@ -450,6 +453,8 @@ export default function EstadisticasPage() {
         <PlazosPanel key={vuelta} />
       ) : tab === 'tandas' ? (
         <TandasPanel key={vuelta} />
+      ) : tab === 'fallos' ? (
+        <FallosPanel key={vuelta} />
       ) : !loaded ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-gray-400" size={28} />

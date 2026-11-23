@@ -26,6 +26,7 @@ import {
   Loader2,
   Eye,
 } from 'lucide-react'
+import { confirmar } from '@lib/nawar/confirmar'
 
 /**
  * Redactor de avisos con formato.
@@ -130,9 +131,7 @@ export default function AvisosComposer() {
       return
     }
     if (!testOnly) {
-      const ok = window.confirm(
-        `Se va a enviar "${subject}" ${aQuien}.\n\n¿Seguro que quieres mandarlo?`
-      )
+      const ok = await confirmar(`Se va a enviar "${subject}" ${aQuien}.\n\n¿Seguro que quieres mandarlo?`, { boton: 'Enviar' })
       if (!ok) return
     }
 

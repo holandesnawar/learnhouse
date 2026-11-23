@@ -16,6 +16,8 @@ import {
 } from '@/lib/consultas/consultas'
 import { avisarConsultaNueva } from '@services/consultas/aviso'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
+import { confirmar } from '@lib/nawar/confirmar'
+import toast from 'react-hot-toast'
 
 function formatDate(iso: string): string {
   try {
@@ -224,7 +226,7 @@ export default function ConsultasBoard({
     const aviso = propia
       ? '¿Borrar tu consulta? Esta acción no se puede deshacer.'
       : `¿Borrar la consulta de ${c.author_name || 'este alumno'}? No se puede deshacer.`
-    if (!confirm(aviso)) return
+    if (!(await confirmar(aviso, { boton: 'Borrar', peligro: true }))) return
     try {
       // Si es tuya se borra con tu permiso local; si no, hace falta ser del
       // equipo y va por el servidor.
@@ -233,7 +235,7 @@ export default function ConsultasBoard({
       setSelected(null)
       await loadFeed()
     } catch (e: any) {
-      alert(e?.message || 'No se pudo borrar.')
+      toast.error(e?.message || 'No se pudo borrar.')
     }
   }
 

@@ -19,6 +19,13 @@ export interface ClaseSemana {
   fecha?: string
   tema?: string
   profe?: string
+  /**
+   * Solo en las grabaciones: el vídeo, para verlo en su propia página
+   * (`/grabacion/<curso>/<clase>`, 23/11/2026). Sin él (un vídeo que la
+   * escuela no reconoce) se abre como antes, con la pantalla del curso.
+   * En un vídeo subido a la escuela, `archivo` es el nombre del fichero.
+   */
+  video?: (VideoGrabacion & { archivo?: string }) | null
 }
 
 /** Una grabación de los meses de antes sin semana: sale como una clase más. */
@@ -153,6 +160,8 @@ export interface SemanasClase {
   semanas: Semana[]
   /** Las grabaciones de antes que no tienen semana (06/11/2026). */
   archivo?: ClaseArchivo[]
+  /** El nombre de la clase (curso). */
+  curso?: string
   /** Solo al equipo: la otra clase con el mismo nombre. */
   hermanas?: Hermana[]
   equipo: boolean

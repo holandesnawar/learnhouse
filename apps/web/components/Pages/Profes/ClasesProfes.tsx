@@ -48,6 +48,7 @@ import { diaCorto, getClasesEnDirecto, getPorCorregir, getSemanas, type ClaseSem
 import { abrirUrl, getRecursos, type Carpeta } from '@services/recursos/recursos'
 import { ajustesDirecto, colorDeEtiqueta, CURSO_CLASE_SEMANAL_UUID } from '@/lib/nawar/cursos'
 import { PasarLista, TuGrupo } from './ListaYGrupo'
+import { rutaDeClase } from '@/lib/nawar/verGrabacion'
 import { COLUMNAS, columnaDe, cuandoCae, esDe, ordenar, preparacion, type Columna } from '@/lib/nawar/clasesProfes'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
@@ -463,7 +464,8 @@ function TarjetaClase({ t, hoy, ruta, onLista }: { t: Tarjeta; hoy: string; ruta
   const sePasaLista = !!t.fecha && t.fecha <= hoy
   const cuando = cuandoCae(t.fecha, hoy)
   const pct = prep.total ? Math.round((prep.hechos / prep.total) * 100) : 0
-  const actividad = (c: ClaseSemana) => ruta(`/course/${t.courseUuid}/activity/${c.activity_uuid.replace('activity_', '')}`)
+  // Las grabaciones, a su propia página (23/11/2026).
+  const actividad = (c: ClaseSemana) => ruta(rutaDeClase(t.courseUuid, c))
 
   return (
     <article className="rounded-xl bg-white border border-[#E1E8F5] p-3.5 hover:border-[#B9D3F7] transition-colors">

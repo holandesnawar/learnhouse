@@ -26,6 +26,7 @@ import {
   Workflow as WorkflowIcon,
   Zap,
 } from 'lucide-react'
+import { confirmar } from '@lib/nawar/confirmar'
 
 /**
  * Automatizaciones.
@@ -264,7 +265,7 @@ function MineList({
   }
 
   const remove = async (row: Automation) => {
-    if (!window.confirm(`¿Borrar «${row.name}»? No se puede deshacer.`)) return
+    if (!(await confirmar(`¿Borrar «${row.name}»? No se puede deshacer.`, { boton: 'Borrar', peligro: true }))) return
     try {
       await deleteAutomation(orgId, row.id, accessToken)
       toast.success('Borrada')

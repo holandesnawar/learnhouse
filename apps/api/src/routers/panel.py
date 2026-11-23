@@ -579,6 +579,31 @@ async def api_alumnos(
     return await listar_alumnos(org_id, db_session)
 
 
+@router.get(
+    "/org/{org_id}/alumno",
+    summary="Cómo va UN alumno (su fila de Progreso y su camino), sin dinero: la ficha del alumno para closers.",
+)
+async def api_alumno_de_la_ficha(
+    request: Request,
+    org_id: int,
+    email: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """`/alumnos` y `/camino` son de administradores y devuelven a todos. Esta
+    es para la ficha que abre un closer (23/11/2026): una persona, con la
+    puerta de contactos y «Qué ven los closers» (la misma comprobación que
+    `/cliente`), y sin ningún dato de dinero."""
+    from src.services.panel.alcance import filtro_de
+    from src.services.panel.alumnos import alumno_de_la_ficha
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    filtro = await filtro_de(current_user.id, org_id, db_session)
+    if filtro and not filtro.ve_correo(email):
+        raise HTTPException(status_code=403, detail="Esta persona la lleva otro closer")
+    return await alumno_de_la_ficha(org_id, email, db_session)
+
+
 @router.post(
     "/org/{org_id}/alumnos/{user_id}/whatsapp",
     summary="Apuntar que se le ha escrito por WhatsApp a un alumno que no avanza (administradores).",
@@ -871,6 +896,90 @@ async def api_recordatorio_auto_vista(
     if datos.a_mi and not a_mi:
         raise HTTPException(status_code=400, detail="Tu cuenta no tiene correo")
     return await recordatorio.vista_auto(org_id, datos.asunto, datos.texto, db_session, enviar_a=a_mi)
+
+
+# ── El resumen semanal (services/notifications/resumen_semanal.py). Solo administradores.
+
+
+class ResumenVistaIn(BaseModel):
+    # El alumno con el que se enseña. Sin él, el de ejemplo.
+    user_id: Optional[int] = None
+    a_mi: bool = False
+
+
+class ResumenBajaIn(BaseModel):
+    baja: bool
+
+
+@router.get("/org/{org_id}/resumen-semanal", summary="El interruptor del resumen semanal y a quién le saldría el lunes.")
+async def api_resumen_semanal(
+    request: Request,
+    org_id: int,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    from src.services.notifications import resumen_semanal as R
+
+    return await R.estado_panel(org_id, db_session)
+
+
+@router.put("/org/{org_id}/resumen-semanal", summary="Encender o apagar el resumen semanal.")
+async def api_resumen_semanal_guardar(
+    request: Request,
+    org_id: int,
+    datos: AutoIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    from src.services.notifications import resumen_semanal as R
+
+    try:
+        return await R.guardar_ajuste(org_id, datos.activo, _nombre(current_user), db_session)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/org/{org_id}/resumen-semanal/vista", summary="El resumen de un alumno tal cual le llegaría (o mandármelo a mí).")
+async def api_resumen_semanal_vista(
+    request: Request,
+    org_id: int,
+    datos: ResumenVistaIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    from src.services.notifications import resumen_semanal as R
+
+    a_mi = (current_user.email or "") if datos.a_mi else ""
+    if datos.a_mi and not a_mi:
+        raise HTTPException(status_code=400, detail="Tu cuenta no tiene correo")
+    try:
+        return await R.vista(org_id, datos.user_id, db_session, enviar_a=a_mi)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.put("/org/{org_id}/alumnos/{user_id}/resumen-semanal", summary="Quitarle (o devolverle) el resumen semanal a un alumno.")
+async def api_resumen_semanal_baja(
+    request: Request,
+    org_id: int,
+    user_id: int,
+    datos: ResumenBajaIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin_progreso(request, org_id, current_user, db_session)
+    from src.services.notifications import resumen_semanal as R
+
+    if not await R.es_alumno_de(org_id, user_id, db_session):
+        raise HTTPException(status_code=404, detail="Ese alumno no está en la escuela")
+    if datos.baja:
+        await R.dar_de_baja(user_id, db_session, por=_nombre(current_user))
+    else:
+        await R.volver_a_apuntar(user_id, db_session)
+    return {"baja": await R.esta_de_baja(user_id, db_session)}
 
 
 # ── El recordatorio del plan de estudio de cada alumno (services/plan/plan.py).

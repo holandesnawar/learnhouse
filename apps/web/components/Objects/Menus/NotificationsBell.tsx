@@ -12,7 +12,7 @@ import {
   type NotificationFeed,
 } from '@services/communities/engagement'
 import { msDeFecha } from '@/lib/nawar/haceCuanto'
-import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare, MessageCircle, UserCheck, Mic, ClipboardCheck, PhoneCall, Presentation, PlayCircle, BookOpenText, Award } from 'lucide-react'
+import { Bell, AtSign, Pin, Megaphone, Unlock, Trash2, MessagesSquare, MessageCircle, UserCheck, Mic, ClipboardCheck, PhoneCall, Presentation, PlayCircle, BookOpenText, Award, Flag } from 'lucide-react'
 
 /**
  * Campana del alumno. Recoge lo que se puede perder si no entra ese día:
@@ -52,6 +52,8 @@ const KIND_STYLE: Record<string, { icon: any; color: string }> = {
   lectura: { icon: BookOpenText, color: 'text-[#0b2da0]' },
   tarea: { icon: Mic, color: 'text-emerald-500' },
   corregir: { icon: ClipboardCheck, color: 'text-[#0b2da0]' },
+  // «N avisos de fallos en ejercicios», a los administradores (23/11/2026).
+  fallos: { icon: Flag, color: 'text-[#0b2da0]' },
   checkin: { icon: PhoneCall, color: 'text-[#0b2da0]' },
 }
 

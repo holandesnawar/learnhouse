@@ -492,6 +492,8 @@ export interface AlumnoProgreso {
   /** La clase a la que lleva "Seguir donde lo dejé" en el recordatorio. */
   seguir_uuid: string
   ultimo_recordatorio: { sent_at: string; tipo: string; por: string } | null
+  /** El resumen semanal: si se dio de baja y cuándo recibió el último. */
+  resumen?: { baja: boolean; ultimo: string }
   /** El WhatsApp que dejó al matricularse. */
   telefono?: string
   /** Su objetivo y sus días de estudio, si los ha rellenado. */
@@ -575,6 +577,46 @@ export const guardarRecordatorioAuto = (orgId: number, activo: boolean, t: strin
 export const vistaRecordatorioAuto = (orgId: number, datos: { asunto: string; texto: string; a_mi?: boolean }, t: string) =>
   pedir<{ para: string; asunto: string; html: string }>(`panel/org/${orgId}/recordatorio-auto/vista`, 'POST', datos, t)
 
+/** El resumen semanal por correo (apps/api/src/services/notifications/resumen_semanal.py). */
+export interface ResumenSemanalLinea {
+  user_id: number
+  nombre: string
+  email: string
+  /** Qué partes lleva el suyo: «clase», «formación», «tarea», «corrección», «lectura». */
+  partes: string[]
+  motivo?: string
+  motivo_texto?: string
+}
+
+export interface ResumenSemanalPanel {
+  activo: boolean
+  cambiado_en: string
+  por: string
+  /** El lunes en que sale el próximo (AAAA-MM-DD). */
+  proximo: string
+  le_tocaria: ResumenSemanalLinea[]
+  no_les_toca: ResumenSemanalLinea[]
+  alumnos: number
+}
+
+export const getResumenSemanal = (orgId: number, t: string) =>
+  pedir<ResumenSemanalPanel>(`panel/org/${orgId}/resumen-semanal`, 'GET', null, t)
+
+export const guardarResumenSemanal = (orgId: number, activo: boolean, t: string) =>
+  pedir<{ activo: boolean }>(`panel/org/${orgId}/resumen-semanal`, 'PUT', { activo }, t)
+
+export const vistaResumenSemanal = (orgId: number, datos: { user_id?: number | null; a_mi?: boolean }, t: string) =>
+  pedir<{ para: string; asunto: string; html: string; partes: string[]; motivo: string; motivo_texto: string; vacio: boolean }>(
+    `panel/org/${orgId}/resumen-semanal/vista`,
+    'POST',
+    datos,
+    t
+  )
+
+/** Quitarle (o devolverle) el resumen semanal a un alumno. */
+export const bajaResumenSemanal = (orgId: number, userId: number, baja: boolean, t: string) =>
+  pedir<{ baja: boolean }>(`panel/org/${orgId}/alumnos/${userId}/resumen-semanal`, 'PUT', { baja }, t)
+
 /** El recordatorio del plan de estudio de cada alumno (apps/api/src/services/plan/plan.py). */
 export interface PlanEstudioPanel {
   recordatorios: boolean
@@ -633,6 +675,14 @@ export const enviarRecordatorio = (
 
 export const getAlumnosProgreso = (orgId: number, t: string) =>
   pedir<{ alumnos: AlumnoProgreso[]; total_clases: number }>(`panel/org/${orgId}/alumnos`, 'GET', null, t)
+
+/**
+ * Cómo va UN alumno (su fila de Progreso y su camino), SIN dinero: lo que
+ * pide la ficha del alumno cuando quien mira es un closer. La lista entera
+ * (`getAlumnosProgreso`, `getCamino`) sigue siendo solo de administradores.
+ */
+export const getAlumnoDeFicha = (orgId: number, email: string, t: string) =>
+  pedir<{ alumno: AlumnoProgreso | null; camino: AlumnoCamino | null }>(`panel/org/${orgId}/alumno?email=${encodeURIComponent(email)}`, 'GET', null, t)
 
 /** «Sí, se lo he mandado»: apunta el WhatsApp a un alumno que no avanza. */
 export interface EnlaceContrasena {

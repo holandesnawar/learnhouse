@@ -26,7 +26,8 @@ export type SemanaEquipo = {
   hora: string
   profe: string
   presentaciones: { activity_uuid: string; nombre: string }[]
-  grabaciones: { activity_uuid: string; nombre: string }[]
+  /** `video`: si la escuela sabe reproducirla, se abre en su propia página (23/11/2026). */
+  grabaciones: { activity_uuid: string; nombre: string; video?: unknown }[]
   ejercicios: { activity_uuid: string; nombre: string }[]
   tieneTarea: boolean
   enunciado: string

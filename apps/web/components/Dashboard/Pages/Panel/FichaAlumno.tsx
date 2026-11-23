@@ -5,7 +5,17 @@
  * importa es si entra, por dónde va y si está al día con los pagos; cómo
  * llegó (lo del lead) queda en su pestaña, sin estorbar.
  *
- * Solo la ven los administradores (ver `Ficha.tsx`). Junta lo que antes
+ * La ven los administradores y, desde el 23/11/2026, los closers en «modo
+ * closer» (`admin={false}`, ver `Ficha.tsx`). Un closer ve de un alumno lo que
+ * ya veía en la ficha de siempre (sus pagos uno a uno y el total pagado, su
+ * plan de plazos, su señal, llamadas, notas, tareas, cómo llegó) y además
+ * cómo va: formación, clases en directo, su objetivo. NO ve: vendido / por
+ * cobrar ni la comisión (el servidor no se los manda), el bloque «Acceso»
+ * (contraseña, cambiar correo, ver como), «Mandar recordatorio», «Abrir ya»
+ * un módulo, ni borrar o quitar de los números: todo eso son rutas solo de
+ * administradores.
+ *
+ * Junta lo que antes
  * estaba en dos sitios: la ficha de siempre (`FichaCliente.tsx`: pagos,
  * llamadas, notas) y la ficha de Progreso (`FichaAlumno` de
  * `ProgresoPanel.tsx`: avance, módulos, recordatorio, contraseña).
@@ -38,7 +48,7 @@ import { mensajeAtascado, resumenAtasco } from '@/lib/nawar/atascados'
 import { aCaja, comisionCents, leerEuros, pctQueCuadra, textoPct } from '@lib/nawar/comision'
 import { CURSO_FORMACION_UUID, RUTA_FORMACION } from '@/lib/nawar/cursos'
 import { getSchoolUrl } from '@services/config/config'
-import { avisoTrasBorrar, borrarContacto, type Cita } from '@services/stats/contactos'
+import { avisoTrasBorrar, borrarContacto, type Cita, type VolverALlamar } from '@services/stats/contactos'
 import {
   apuntarWhatsappAlumno,
   euros,
@@ -207,9 +217,13 @@ export default function FichaAlumno({
   email,
   onClose,
   onCambio,
+  onCambioFecha,
   onQuitar,
   quitarEtiqueta,
+  admin,
 }: {
+  /** `false` = la mira un closer: sin lo que es solo de administradores. */
+  admin: boolean
   ficha: Ficha | null
   setFicha: (f: Ficha) => void
   /** Vuelve a leer la ficha, Progreso y el camino. */
@@ -221,6 +235,7 @@ export default function FichaAlumno({
   email: string
   onClose: () => void
   onCambio?: () => void
+  onCambioFecha?: (email: string, v: VolverALlamar | null) => void
   onQuitar?: () => void
   quitarEtiqueta?: string
 }) {
@@ -242,6 +257,11 @@ export default function FichaAlumno({
   const venta = ficha?.venta || null
   const av = alumno || ficha?.avance || null
   const fuera = !!ficha?.fuera_de_metricas
+  // Quitar de los números y borrar: administradores, o la pantalla de fuera
+  // si trae su propio «quitar» (hoy solo se lo pasa a administradores).
+  const puedeQuitar = admin || Boolean(onQuitar)
+  // Lo pagado con este correo: lo que un closer ya veía en la ficha de siempre.
+  const pagado = ficha?.total_pagado_cents ?? 0
 
   function refrescar() {
     cargar()
@@ -332,7 +352,7 @@ export default function FichaAlumno({
           </>
         }
         debajo={
-          preguntarWa ? (
+          admin && preguntarWa ? (
             <div className="flex flex-wrap items-center gap-2 text-[13.5px]">
               ¿Le has mandado el mensaje?
               <button
@@ -356,14 +376,14 @@ export default function FichaAlumno({
         }
       >
         {tel ? (
-          <a href={`https://wa.me/${tel}?text=${textoWa}`} target="_blank" rel="noreferrer" onClick={() => setPreguntarWa(true)} className={BOTON}>
+          <a href={`https://wa.me/${tel}?text=${textoWa}`} target="_blank" rel="noreferrer" onClick={admin ? () => setPreguntarWa(true) : undefined} className={BOTON}>
             Escribirle por WhatsApp
           </a>
-        ) : (
+        ) : admin ? (
           <button onClick={() => setRecordar(true)} className={BOTON}>
             Mandarle un correo
           </button>
-        )}
+        ) : null}
       </Paso>
     )
   } else if (ficha?.reserva?.estado === 'abierta') {
@@ -372,7 +392,11 @@ export default function FichaAlumno({
 
   const modulos =
     alumno?.por_avance && alumno.aperturas.length ? (
-      <ModulosPorAvance a={alumno} onAbrir={async (m) => (await abrirAMano(org.id, token, alumno, m)) && cargar()} onDeshacer={async (m) => (await deshacerAMano(org.id, token, alumno, m)) && cargar()} />
+      <ModulosPorAvance
+        a={alumno}
+        onAbrir={admin ? async (m) => (await abrirAMano(org.id, token, alumno, m)) && cargar() : undefined}
+        onDeshacer={admin ? async (m) => (await deshacerAMano(org.id, token, alumno, m)) && cargar() : undefined}
+      />
     ) : av?.modulos?.length ? (
       <ul>
         {av.modulos.map((m) => (
@@ -400,7 +424,7 @@ export default function FichaAlumno({
           <MessageCircle size={14} /> WhatsApp
         </a>
       ) : null}
-      {alumno ? (
+      {alumno && admin ? (
         <button onClick={() => setRecordar(true)} className={BOTON_PRINCIPAL}>
           <Bell size={14} /> Mandar recordatorio
         </button>
@@ -420,7 +444,7 @@ export default function FichaAlumno({
                 {telefono ? 'Corregir nombre o teléfono' : 'Añadir su teléfono'}
               </Opcion>
             ) : null}
-            {ficha ? (
+            {ficha && puedeQuitar ? (
               <>
                 <div className="my-1 border-t border-[#F0F1F5]" />
                 <Opcion
@@ -490,14 +514,24 @@ export default function FichaAlumno({
         <>
           <LadoTitulo>Compra</LadoTitulo>
           <Props>
-            <Prop t="Vendido">
-              <b className="font-semibold tabular-nums">{euros(vendido)}</b>
-              {plan ? ` · ${plan.cuotas} plazos` : ''}
-            </Prop>
-            <Prop t="Cobrado">
-              <span className="tabular-nums">{euros(cobrado)}</span>
-              {vendido > cobrado ? <span className="text-[#8A93A3]"> · faltan {euros(vendido - cobrado)}</span> : null}
-            </Prop>
+            {admin ? (
+              <>
+                <Prop t="Vendido">
+                  <b className="font-semibold tabular-nums">{euros(vendido)}</b>
+                  {plan ? ` · ${plan.cuotas} plazos` : ''}
+                </Prop>
+                <Prop t="Cobrado">
+                  <span className="tabular-nums">{euros(cobrado)}</span>
+                  {vendido > cobrado ? <span className="text-[#8A93A3]"> · faltan {euros(vendido - cobrado)}</span> : null}
+                </Prop>
+              </>
+            ) : (
+              // Modo closer: lo que ya veía en la ficha de siempre, el total pagado. Sin «vendido» ni «por cobrar».
+              <Prop t="Ha pagado">
+                <b className="font-semibold tabular-nums">{euros(pagado)}</b>
+                <span className="text-[#8A93A3]"> · {notaPagos}</span>
+              </Prop>
+            )}
             {plan?.proximo_cobro && plan.cuotas_pagadas < plan.cuotas && plan.estado !== 'cancelado' ? (
               <Prop t="Próximo">
                 {dia(plan.proximo_cobro)} · {euros(plan.cuota_cents)}
@@ -512,7 +546,7 @@ export default function FichaAlumno({
                 <span className="text-[#8A93A3]">Sin closer</span>
               )}
             </Prop>
-            {ficha.comision ? (
+            {admin && ficha.comision ? (
               <Prop t="Comisión">
                 <Comision email={ficha.email} com={ficha.comision} pcts={ficha.porcentajes_comision || []} onCambio={refrescar} />
               </Prop>
@@ -532,7 +566,7 @@ export default function FichaAlumno({
         </>
       ) : null}
 
-      {alumno ? (
+      {alumno && admin ? (
         <>
           <LadoTitulo>Acceso</LadoTitulo>
           <div className="space-y-2 [&_button]:text-left [&_button]:items-start [&_svg]:mt-[3px] [&_svg]:shrink-0">
@@ -598,7 +632,12 @@ export default function FichaAlumno({
                 valor={camino ? camino.clases_directo : camino === undefined ? '…' : '—'}
                 nota={camino ? (camino.semana ? `en ${Math.min(camino.semana, 16)} ${camino.semana === 1 ? 'semana' : 'semanas'}` : 'aún no ha empezado') : camino === undefined ? '' : 'no sale en el camino'}
               />
-              <Cifra pequena rotulo="Pagos" valor={ficha ? euros(cobrado) : '—'} nota={ficha ? `${vendido > cobrado ? `de ${euros(vendido)} · ` : ''}${notaPagos}` : 'sin rastro de venta'} />
+              <Cifra
+                pequena
+                rotulo="Pagos"
+                valor={ficha ? euros(admin ? cobrado : pagado) : '—'}
+                nota={ficha ? `${admin && vendido > cobrado ? `de ${euros(vendido)} · ` : ''}${notaPagos}` : 'sin rastro de venta'}
+              />
             </Tira>
 
             {aviso ? <div className="mt-6">{aviso}</div> : null}
@@ -641,13 +680,20 @@ export default function FichaAlumno({
                   email={ficha.email}
                   notas={ficha.notas}
                   volver={ficha.volver_a_llamar}
-                  conFecha={false}
+                  // «Volver a llamar» con un alumno: los closers lo tenían en la
+                  // ficha de siempre, así que lo conservan; al administrador solo
+                  // le sale si ya había una fecha puesta.
+                  conFecha={!admin || !!ficha.volver_a_llamar}
                   marcador="Añadir una nota…"
                   onNotas={(n) => {
                     setFicha({ ...ficha, notas: n })
                     onCambio?.()
                   }}
-                  onFecha={() => {}}
+                  onFecha={(v) => {
+                    setFicha({ ...ficha, volver_a_llamar: v })
+                    onCambioFecha?.(ficha.email, v)
+                    onCambio?.()
+                  }}
                 />
               </Sec>
             ) : null}
@@ -683,6 +729,13 @@ export default function FichaAlumno({
                   {alumno.ultimo_recordatorio
                     ? `${haceDias(alumno.ultimo_recordatorio.sent_at)}${alumno.ultimo_recordatorio.por ? `, por ${alumno.ultimo_recordatorio.por}` : ''}`
                     : 'Ninguno todavía'}
+                </Prop>
+                <Prop t="Resumen semanal">
+                  {alumno.resumen?.baja
+                    ? 'Se dio de baja: no lo recibe'
+                    : alumno.resumen?.ultimo
+                      ? `El último, ${haceDias(alumno.resumen.ultimo)}`
+                      : 'Aún no ha recibido ninguno'}
                 </Prop>
               </Props>
               <Sec titulo="Por módulo" extra={<span className="text-[#8A93A3]">{alumno.por_avance ? 'Se abren por avance: 80 % del anterior' : 'Por las fechas de la primera convocatoria'}</span>}>
@@ -747,11 +800,17 @@ export default function FichaAlumno({
                   <Vacio>Todavía no ha venido a ninguna clase en directo.</Vacio>
                 )}
                 <p className="text-[12.5px] text-[#8A93A3] mt-2">
-                  Cuenta un día de clase si estuvo 10 minutos o más en la sala de la escuela, o si el profe la marcó al pasar lista. Semana a semana, en{' '}
-                  <a href="/dash/estadisticas?tab=seguimiento" className={ENLACE}>
-                    Seguimiento
-                  </a>
-                  .
+                  Cuenta un día de clase si estuvo 10 minutos o más en la sala de la escuela, o si el profe la marcó al pasar lista.
+                  {admin ? (
+                    <>
+                      {' '}
+                      Semana a semana, en{' '}
+                      <a href="/dash/estadisticas?tab=seguimiento" className={ENLACE}>
+                        Seguimiento
+                      </a>
+                      .
+                    </>
+                  ) : null}
                 </p>
               </Sec>
             </>
@@ -761,11 +820,13 @@ export default function FichaAlumno({
         ) : pestana === 'pagos' ? (
           ficha ? (
             <>
-              <Tira>
-                <Cifra pequena rotulo="Vendido" valor={euros(vendido)} nota={plan ? `en ${plan.cuotas} plazos` : 'un pago'} />
-                <Cifra pequena rotulo="Cobrado" valor={euros(cobrado)} nota="lo que ya ha entrado" />
-                <Cifra pequena rotulo="Por cobrar" valor={euros(Math.max(0, vendido - cobrado))} nota={vendido > cobrado ? 'plazos que faltan' : 'nada pendiente'} />
-              </Tira>
+              {admin ? (
+                <Tira>
+                  <Cifra pequena rotulo="Vendido" valor={euros(vendido)} nota={plan ? `en ${plan.cuotas} plazos` : 'un pago'} />
+                  <Cifra pequena rotulo="Cobrado" valor={euros(cobrado)} nota="lo que ya ha entrado" />
+                  <Cifra pequena rotulo="Por cobrar" valor={euros(Math.max(0, vendido - cobrado))} nota={vendido > cobrado ? 'plazos que faltan' : 'nada pendiente'} />
+                </Tira>
+              ) : null}
               {plan ? (
                 <Sec titulo="Su plan de pagos">
                   <PlanPagosFicha key={plan.id} plan={plan} />
@@ -776,7 +837,7 @@ export default function FichaAlumno({
                   <ReservaPlaza email={ficha.email} nombre={ficha.nombre} telefono={ficha.telefono} reserva={ficha.reserva} esAlumno onCambio={(r) => setFicha({ ...ficha, reserva: r })} />
                 </Sec>
               ) : null}
-              <Sec titulo="Cada pago">
+              <Sec titulo="Cada pago" extra={admin || !ficha.pagos.length ? undefined : <span className="font-semibold tabular-nums">Total pagado: {euros(pagado)}</span>}>
                 {ficha.pagos.length ? (
                   <ul>
                     {ficha.pagos.map((p, i) => (
@@ -792,13 +853,15 @@ export default function FichaAlumno({
                 ) : (
                   <Vacio>No hay pagos apuntados con este correo.</Vacio>
                 )}
-                <p className="text-[12.5px] text-[#8A93A3] mt-2">
-                  Las facturas, en{' '}
-                  <a href="/dash/estadisticas?tab=facturas" className={ENLACE}>
-                    Facturas
-                  </a>
-                  .
-                </p>
+                {admin ? (
+                  <p className="text-[12.5px] text-[#8A93A3] mt-2">
+                    Las facturas, en{' '}
+                    <a href="/dash/estadisticas?tab=facturas" className={ENLACE}>
+                      Facturas
+                    </a>
+                    .
+                  </p>
+                ) : null}
               </Sec>
             </>
           ) : (
@@ -844,7 +907,7 @@ export default function FichaAlumno({
           sinFicha
         )}
       </Marco>
-      {recordar && alumno ? <RecordatorioModal alumno={alumno} onClose={() => setRecordar(false)} onEnviado={cargar} /> : null}
+      {recordar && alumno && admin ? <RecordatorioModal alumno={alumno} onClose={() => setRecordar(false)} onEnviado={cargar} /> : null}
       {cambiarCita ? <NuevaLlamada cambiar={cambiarCita} onClose={() => setCambiarCita(null)} onHecho={refrescar} /> : null}
     </>
   )

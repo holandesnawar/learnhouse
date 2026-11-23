@@ -19,6 +19,7 @@ import { clasesDadasPorProfe, clasesSinDatos, diaLegible, porMeses, quienDa, tit
 import FichaClase from './FichaClase'
 import type { ClaseEquipo } from './useClasesEquipo'
 import { POPPINS } from './estilo'
+import { claveDeClase, claveDeSemana, rutaGrabacion } from '@/lib/nawar/verGrabacion'
 
 type Que = 'todo' | 'presentacion' | 'grabacion' | 'tarea'
 
@@ -209,12 +210,16 @@ export default function ArchivoClases({
                           </button>
                         ))}
                         {s.grabaciones.map((g, i) => (
-                          <Link key={g.activity_uuid} href={actividad(s, g.activity_uuid)} className="font-semibold text-[#0b2da0] hover:underline">
+                          <Link key={g.activity_uuid} href={g.video ? ruta(rutaGrabacion(s.courseUuid, claveDeClase(g.activity_uuid))) : actividad(s, g.activity_uuid)} className="font-semibold text-[#0b2da0] hover:underline">
                             {s.grabaciones.length > 1 ? `Grabación ${i + 1}` : 'Grabación'}
                           </Link>
                         ))}
                         {!s.suelta && !s.presentaciones.length ? <span className="text-[#8A91AD]">Sin presentación</span> : null}
-                        {s.grabacionSala && !s.grabaciones.length ? <span className="text-[#3B4262]">Grabación publicada</span> : null}
+                        {s.grabacionSala && !s.grabaciones.length ? (
+                          <Link href={ruta(rutaGrabacion(s.courseUuid, claveDeSemana(s.semanaId)))} className="font-semibold text-[#0b2da0] hover:underline">
+                            Grabación
+                          </Link>
+                        ) : null}
                         {!s.suelta && !futura && !s.grabaciones.length && !s.grabacionSala ? <span className="text-[#8A91AD]">Sin grabación</span> : null}
                         {s.tieneTarea ? <span className="text-[#3B4262]">Tarea</span> : null}
                         {s.lista && (s.lista.pasada || s.lista.vinieron > 0) ? <span className="text-[#3B4262]">Vinieron {s.lista.vinieron}</span> : null}

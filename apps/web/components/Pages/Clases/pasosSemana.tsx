@@ -9,9 +9,8 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Check, Download, X } from 'lucide-react'
 import { diaCorto, type ClaseSemana, type Semana } from '@services/tareas/tareas'
-import type { GrabacionSala } from '@services/grabaciones/grabaciones'
 import { duracionCorta } from '@/lib/nawar/recorte'
-import VentanaGrabacionSala from '@components/Pages/Grabaciones/VentanaGrabacionSala'
+import { claveDeSemana, rutaDeClase, rutaGrabacion } from '@/lib/nawar/verGrabacion'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { urlPdfConNotas } from '@services/pizarra/pizarra'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
@@ -36,8 +35,6 @@ export type PasoSemana = {
   detalle?: string
   href?: string
   estado: 'hecho' | 'pendiente' | 'cerrado'
-  /** La grabación de la sala (10/11/2026): no es una clase del curso, se ve en una ventana de esta página. */
-  sala?: { courseUuid: string; semana: { id: number; tema: string; fecha: string }; grabacion: GrabacionSala }
   /** La presentación con las notas de la clase (10/11/2026, la pizarra): un PDF que se abre con la sesión. */
   notas?: { semanaId: number }
 }
@@ -97,7 +94,7 @@ function pasosSinPalabra(semana: Semana, courseUuid: string, ruta: (p: string) =
       estado: 'pendiente',
     })
   }
-  for (const c of grab) out.push({ key: c.activity_uuid, titulo: NOMBRE.grabacion, detalle: 'Por si no pudiste venir o quieres repasar', href: actividad(c), estado: c.hecha ? 'hecho' : 'pendiente' })
+  for (const c of grab) out.push({ key: c.activity_uuid, titulo: NOMBRE.grabacion, detalle: 'Por si no pudiste venir o quieres repasar', href: ruta(rutaDeClase(courseUuid, c)), estado: c.hecha ? 'hecho' : 'pendiente' })
   // La grabación que hizo la sala, publicada en esta semana (10/11/2026). Si ya
   // hay una subida a mano, se enseña esa y no las dos.
   const sala = semana.grabacion_sala
@@ -107,7 +104,8 @@ function pasosSinPalabra(semana: Semana, courseUuid: string, ruta: (p: string) =
       titulo: NOMBRE.grabacion,
       detalle: `${sala.titulo || 'Por si no pudiste venir o quieres repasar'}${sala.segundos ? ` · ${duracionCorta(sala.segundos)}` : ''}`,
       estado: sala.vista ? 'hecho' : 'pendiente',
-      sala: { courseUuid, semana: { id: semana.id, tema: semana.tema, fecha: semana.fecha }, grabacion: sala },
+      // En su propia página, como las demás grabaciones (23/11/2026; antes, una ventana).
+      href: ruta(rutaGrabacion(courseUuid, claveDeSemana(semana.id))),
     })
   if (pasada && !grab.length && !sala)
     out.push({
@@ -168,11 +166,10 @@ export function FilaPaso({ p }: { p: PasoSemana }) {
         <span className={`block text-[14.5px] font-medium ${p.estado === 'hecho' ? 'text-[#6B7393]' : p.estado === 'cerrado' ? 'text-[#8A91AD]' : 'text-[#0B1033]'}`}>{p.titulo}</span>
         {p.detalle ? <span className="block text-[12.5px] text-[#8A91AD] first-letter:uppercase">{p.detalle}</span> : null}
       </span>
-      {p.href || p.sala || p.notas ? <span className="shrink-0 text-[13px] font-semibold text-[#0b2da0] opacity-0 group-hover:opacity-100 transition-opacity">{p.sala ? 'Ver' : 'Abrir'}</span> : null}
+      {p.href || p.notas ? <span className="shrink-0 text-[13px] font-semibold text-[#0b2da0] opacity-0 group-hover:opacity-100 transition-opacity">Abrir</span> : null}
     </>
   )
   const cls = 'group flex items-center gap-3.5 px-5 py-3'
-  if (p.sala) return <FilaSala p={p} cls={cls} dentro={dentro} />
   if (p.notas) return <FilaNotas semanaId={p.notas.semanaId} cls={cls} dentro={dentro} />
   return p.href ? (
     <Link href={p.href} className={`${cls} hover:bg-[#F7F9FD]`}>
@@ -180,22 +177,6 @@ export function FilaPaso({ p }: { p: PasoSemana }) {
     </Link>
   ) : (
     <div className={cls}>{dentro}</div>
-  )
-}
-
-/** La fila de la grabación de la sala: un botón que abre el vídeo aquí mismo. */
-function FilaSala({ p, cls, dentro }: { p: PasoSemana; cls: string; dentro: React.ReactNode }) {
-  const [viendo, setViendo] = useState(false)
-  if (!p.sala) return null
-  return (
-    <>
-      <button type="button" onClick={() => setViendo(true)} className={`${cls} w-full text-left hover:bg-[#F7F9FD]`}>
-        {dentro}
-      </button>
-      {viendo ? (
-        <VentanaGrabacionSala courseUuid={p.sala.courseUuid} semana={p.sala.semana} grabacion={p.sala.grabacion} onClose={() => setViendo(false)} />
-      ) : null}
-    </>
   )
 }
 
