@@ -218,6 +218,18 @@ const LoginClient = (props: LoginClientProps) => {
     },
   })
 
+  // El correo que trae la dirección (?email=…), p. ej. desde «Crea tu cuenta»
+  // cuando el enlace ya se usó (23/11/2026): que no tenga que escribirlo.
+  useEffect(() => {
+    try {
+      const e = new URLSearchParams(window.location.search).get('email')
+      if (e && !formik.values.email) formik.setFieldValue('email', e)
+    } catch {
+      /* sin dirección: se escribe a mano */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <AuthShell>
         {/* Error Top Bar */}

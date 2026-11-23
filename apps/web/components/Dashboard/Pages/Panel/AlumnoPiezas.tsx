@@ -190,7 +190,7 @@ export function fechaCorta(iso: string): string {
 /**
  * «Mandarle el enlace para crear su contraseña» (17/11/2026, usuario: "entró
  * una nueva pero le caducó el link… algo manual así no le pido a este alumno").
- * Un enlace nuevo de 7 días: vale para quien no la puso nunca y para quien la
+ * Un enlace nuevo de 15 días: vale para quien no la puso nunca y para quien la
  * ha olvidado. Por correo o copiándolo para mandarlo por WhatsApp.
  */
 export function EnlaceContrasena({ a }: { a: AlumnoProgreso }) {
@@ -223,7 +223,7 @@ export function EnlaceContrasena({ a }: { a: AlumnoProgreso }) {
   }
   const nombre = (a.nombre || '').split(' ')[0]
   const wa = (a.telefono || '').replace(/[^\d]/g, '')
-  const textoWa = `Hola ${nombre}, aquí tienes tu enlace para poner tu contraseña y entrar en la escuela (vale 7 días): ${enlace}`
+  const textoWa = `Hola ${nombre}, aquí tienes tu enlace para poner tu contraseña y entrar en la escuela (vale 15 días): ${enlace}`
   if (!abierto) {
     return (
       <button onClick={() => setAbierto(true)} className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#025dc7] hover:underline">
@@ -234,7 +234,7 @@ export function EnlaceContrasena({ a }: { a: AlumnoProgreso }) {
   return (
     <div className="rounded-lg border border-[#E2E8F4] bg-white p-3 space-y-2">
       <p className="text-[12.5px] text-[#374151] leading-snug">
-        Un enlace nuevo para que ponga su contraseña y entre (vale 7 días). Sirve si no la puso nunca, si le caducó el del
+        Un enlace nuevo para que ponga su contraseña y entre (vale 15 días). Sirve si no la puso nunca, si le caducó el del
         correo o si la ha olvidado.
       </p>
       <div className="flex flex-wrap gap-2">

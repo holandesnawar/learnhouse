@@ -32,21 +32,49 @@ export interface Caja {
   h: number
 }
 
-/** El hueco que ocupa un texto, en píxeles del lienzo (con su relleno si es una nota). */
-export function cajaDeTexto(ctx: CanvasRenderingContext2D, t: TrazoTexto, ancho: number, alto: number, l: Letras): Caja {
+let medidor: CanvasRenderingContext2D | null | undefined
+
+/** Un lienzo de 1 × 1 SOLO para medir letras (23/11/2026). Medir no depende
+ *  del tamaño del lienzo, y uno diminuto lo da siempre el navegador. Antes se
+ *  medía en el lienzo grande de la página, y Safari, cuando la página tiene
+ *  demasiada memoria de lienzos (zoom, la sala al doble de nitidez), deja de
+ *  dar su contexto: `getContext` devuelve null, la pizarra fallaba al elegir
+ *  o escribir un texto y se llevaba la sala (y la llamada) por delante. */
+export function ctxParaMedir(): CanvasRenderingContext2D | null {
+  if (medidor) return medidor
+  try {
+    const c = document.createElement('canvas')
+    c.width = 1
+    c.height = 1
+    medidor = c.getContext('2d')
+  } catch {
+    medidor = null
+  }
+  return medidor || null
+}
+
+/** El hueco que ocupa un texto, en píxeles del lienzo (con su relleno si es una nota).
+ *  Sin contexto para medir, una estimación (nunca falla). */
+export function cajaDeTexto(ctx: CanvasRenderingContext2D | null, t: TrazoTexto, ancho: number, alto: number, l: Letras): Caja {
   const { font, px } = letraDe(t, ancho, l)
-  ctx.save()
-  ctx.font = font
   const lineas = lineasDe(t.texto)
-  const w = Math.max(px * 0.6, ...lineas.map((s) => ctx.measureText(s || ' ').width))
-  ctx.restore()
+  const medir = ctx || ctxParaMedir()
+  let w = px * 0.6
+  if (medir) {
+    medir.save()
+    medir.font = font
+    for (const s of lineas) w = Math.max(w, medir.measureText(s || ' ').width)
+    medir.restore()
+  } else {
+    for (const s of lineas) w = Math.max(w, (s || ' ').length * px * 0.55)
+  }
   const h = lineas.length * px * INTERLINEADO
   const m = t.estilo === 'nota' ? px * 0.55 : 0
   return { x: t.x * ancho - m, y: t.y * alto - m, w: w + m * 2 + (t.estilo === 'nota' ? px * 0.25 : 0), h: h + m * 2 }
 }
 
 function pintarLinea(ctx: CanvasRenderingContext2D, t: TrazoLinea, ancho: number, alto: number) {
-  const p = t.p
+  const p = Array.isArray(t.p) ? t.p : []
   if (p.length < 2) return
   ctx.save()
   ctx.strokeStyle = t.color
@@ -103,13 +131,26 @@ function pintarTexto(ctx: CanvasRenderingContext2D, t: TrazoTexto, ancho: number
 /** Pinta todos los trazos (menos `salvo`, el texto que se está escribiendo). */
 export function pintarTrazos(ctx: CanvasRenderingContext2D, trazos: Trazo[], ancho: number, alto: number, l: Letras, salvo = -1) {
   // El rotulador, debajo: si no, taparía lo escrito a lápiz encima.
-  trazos.forEach((t, i) => {
-    if (i !== salvo && t.t === 'rotulador') pintarLinea(ctx, t, ancho, alto)
+  // Un trazo raro (guardado a medias, de otra versión) no puede tirar la
+  // pizarra: se salta ese y se pintan los demás (23/11/2026).
+  const uno = (fn: () => void) => {
+    try {
+      fn()
+    } catch {
+      try {
+        ctx.restore()
+      } catch {
+        /* nada que deshacer */
+      }
+    }
+  }
+  ;(trazos || []).forEach((t, i) => {
+    if (t && i !== salvo && t.t === 'rotulador') uno(() => pintarLinea(ctx, t, ancho, alto))
   })
-  trazos.forEach((t, i) => {
-    if (i === salvo) return
-    if (t.t === 'lapiz') pintarLinea(ctx, t, ancho, alto)
-    else if (t.t === 'texto') pintarTexto(ctx, t, ancho, alto, l)
+  ;(trazos || []).forEach((t, i) => {
+    if (!t || i === salvo) return
+    if (t.t === 'lapiz') uno(() => pintarLinea(ctx, t, ancho, alto))
+    else if (t.t === 'texto') uno(() => pintarTexto(ctx, t, ancho, alto, l))
   })
 }
 

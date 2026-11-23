@@ -465,6 +465,24 @@ class SendResetCodeRequest(BaseModel):
     org_id: int
 
 
+@router.get(
+    "/reset_password/estado",
+    tags=["users"],
+    summary="Estado del enlace de crear contraseña",
+)
+async def api_estado_enlace(
+    email: EmailStr = Query(...),
+    org_id: int = Query(...),
+    code: str = Query(..., max_length=64),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Si el enlace de «crea tu contraseña» sirve, ya se usó (y entonces la
+    pantalla dice «ya tienes contraseña: entra») o no vale (23/11/2026)."""
+    from src.services.users.password_reset import estado_enlace
+
+    return await estado_enlace(db_session, str(email), org_id, code)
+
+
 @router.post(
     "/reset_password/change_password",
     tags=["users"],

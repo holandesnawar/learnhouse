@@ -5,7 +5,7 @@ alumnos, por ejemplo entró una nueva pero le caducó el link… no lo podemos
 hacer nosotros algo manual, así no le pido a este alumno».
 
 Es el MISMO enlace que el del correo de bienvenida tras pagar
-(`/auth/crear-cuenta?email=…&resetCode=…`, 7 días): un código nuevo guardado en
+(`/auth/crear-cuenta?email=…&resetCode=…`, 15 días): un código nuevo guardado en
 Redis con las dos claves (`payments._store_reset_code`). Vale igual para quien
 nunca puso contraseña y para quien ya tenía cuenta y la ha olvidado: la
 pantalla pone la contraseña que escriba y entra sola.
@@ -79,7 +79,7 @@ async def dar_enlace(org_id: int, user_id: int, enviar: bool, db_session: AsyncS
         "email": email,
         "nombre": f"{user.first_name or ''} {user.last_name or ''}".strip(),
         "enlace": enlace,
-        "dias": 7,
+        "dias": 15,
         "correo_enviado": enviado,
         "motivo": motivo,
     }

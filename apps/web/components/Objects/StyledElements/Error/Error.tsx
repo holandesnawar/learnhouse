@@ -9,7 +9,7 @@ import React from 'react'
 // any page wrapper, so it inherits the platform layout (sidebar stays put).
 // Copy is Spanish + neutral so it works whether the error is "couldn't fetch
 // the org", "the api timed out", or a one-off 500.
-function ErrorUI(params: { message?: string; submessage?: string }) {
+function ErrorUI(params: { message?: string; submessage?: string; reset?: () => void }) {
   const router = useRouter()
   const [retrying, setRetrying] = React.useState(false)
 
@@ -23,7 +23,25 @@ function ErrorUI(params: { message?: string; submessage?: string }) {
   // recharge silently instead of dumping the user on the error screen. An
   // anti-loop guard in sessionStorage means that if it STILL fails within
   // 30s we stop auto-retrying and show the real error + buttons.
+  //
+  // 23/11/2026 ("no quiero más esta pantalla tan rápido"): antes de recargar
+  // la página entera se prueba a volver a pintarla sin recargar (`reset` de
+  // Next), que es casi instantáneo y no pierde nada. Solo si vuelve a fallar
+  // en 20 s se recarga, y solo si falla otra vez se enseña este aviso.
   React.useEffect(() => {
+    try {
+      const SUAVE = 'nawar_soft_retry_ts'
+      const ahora = Date.now()
+      const ultimoSuave = Number(sessionStorage.getItem(SUAVE) || '0')
+      if (params.reset && ahora - ultimoSuave > 20000) {
+        sessionStorage.setItem(SUAVE, String(ahora))
+        setRetrying(true)
+        const t = setTimeout(() => params.reset?.(), 500)
+        return () => clearTimeout(t)
+      }
+    } catch {
+      /* sin sessionStorage: se sigue con la recarga de siempre */
+    }
     try {
       const KEY = 'nawar_auto_retry_ts'
       const now = Date.now()
@@ -38,6 +56,14 @@ function ErrorUI(params: { message?: string; submessage?: string }) {
       /* sessionStorage unavailable — just show the error UI */
     }
   }, [])
+
+  // Red de seguridad: si «Reconectando…» se queda puesto (el reintento no
+  // ha llegado a desmontar esta pantalla), a los 6 s se enseñan los botones.
+  React.useEffect(() => {
+    if (!retrying) return
+    const t = setTimeout(() => setRetrying(false), 6000)
+    return () => clearTimeout(t)
+  }, [retrying])
 
   if (retrying) {
     return (

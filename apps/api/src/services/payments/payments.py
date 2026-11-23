@@ -1143,7 +1143,7 @@ async def dar_de_alta_a_mano(
 
     Hace exactamente lo mismo que el webhook, pero a mano: crea la cuenta si no
     existe, la engancha a la escuela como alumna, guarda el código de alta en
-    Redis (las dos claves, 7 días) y manda el correo de "crea tu contraseña".
+    Redis (las dos claves, 15 días) y manda el correo de "crea tu contraseña".
 
     Se puede repetir sin miedo: si la cuenta ya existe se reaprovecha y lo único
     que hace es mandar otra vez el correo con un código nuevo. Eso es justo lo
@@ -1562,7 +1562,10 @@ async def _al_programa_nuevo(org_id: int, user_id: int, db_session: AsyncSession
 # como alumno es un cartel rojo diciéndole que el enlace ha caducado.
 # Una semana cubre el fin de semana, las vacaciones y al que deja el correo
 # para el domingo.
-_TTL_ALTA_TRAS_PAGAR = 7 * 24 * 60 * 60
+#: El enlace de «crea tu contraseña» tras pagar (o desde el panel) vale 15 días
+#: (23/11/2026; antes 7). Y no se gasta al usarlo: ver `password_reset.py`,
+#: «el enlace de alta».
+_TTL_ALTA_TRAS_PAGAR = 15 * 24 * 60 * 60
 
 
 def _store_reset_code(user: User, org_uuid: str = "") -> Optional[str]:
@@ -1591,7 +1594,7 @@ def _store_reset_code(user: User, org_uuid: str = "") -> Optional[str]:
     obj = {
         "reset_code": code,
         "reset_code_expires": int(datetime.now().timestamp()) + ttl,
-        "reset_code_type": "password_reset",
+        "reset_code_type": "alta",
         "created_at": datetime.now().isoformat(),
         "created_by": user.user_uuid,
     }

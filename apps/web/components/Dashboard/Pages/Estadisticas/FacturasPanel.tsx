@@ -307,7 +307,7 @@ export default function FacturasPanel() {
         {altaEnlace && (
           <div className="mt-3 rounded-lg border border-[#DDE6F5] bg-white px-3 py-2.5">
             <p className="text-[12.5px] font-semibold text-[#0a1656]">
-              Su enlace para crear la contraseña (vale 7 días):
+              Su enlace para crear la contraseña (vale 15 días):
             </p>
             <p className="mt-1 text-[12px] text-[#5A6480] break-all leading-relaxed">
               {altaEnlace}
