@@ -55,6 +55,12 @@ class PlanPagos(SQLModel, table=True):
     # (un aviso por factura, no uno por cada reintento de Stripe).
     fallo: str = Field(default="", max_length=400)
     fallo_avisado: str = Field(default="", max_length=80)
+    # La factura que está sin pagar y desde cuándo (23/11/2026, la regla de
+    # los plazos sin pagar: services/payments/pausa.py). JSON:
+    # {"desde", "factura", "cents", "url", "avisada"}. Vacío = no debe nada.
+    impago: str = Field(default="{}")
+    # «No pausar a esta persona»: un acuerdo a mano con el equipo.
+    sin_pausa: bool = False
     creado_por: str = Field(default="", max_length=120)
     created_at: str = Field(default="")
     updated_at: str = Field(default="")

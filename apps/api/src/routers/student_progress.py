@@ -283,6 +283,38 @@ async def api_insignias(
     return await mis_insignias(current_user.id, db_session)
 
 
+@router.get(
+    "/acceso",
+    summary="Si mi acceso a la formación y a las clases está en pausa por un pago a plazos, y cómo pagarlo.",
+)
+async def api_acceso(
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    # La regla de los plazos sin pagar (services/payments/pausa.py). Con la
+    # regla apagada contesta siempre {"pausado": false} sin tocar los planes.
+    from src.services.payments.pausa import acceso_de
+
+    if not getattr(current_user, "id", None):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return await acceso_de(current_user, db_session)
+
+
+@router.post(
+    "/acceso/comprobar",
+    summary="«Ya he pagado»: se le pregunta a Stripe por MI plan (como mucho cada 30 s).",
+)
+async def api_acceso_comprobar(
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.payments.pausa import comprobar_mi_pago
+
+    if not getattr(current_user, "id", None):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return await comprobar_mi_pago(current_user, db_session)
+
+
 @router.get("/plan", summary="Mi objetivo y mis días de estudio, y cómo va esta semana.")
 async def api_plan(
     current_user: PublicUser = Depends(get_current_user),

@@ -104,6 +104,27 @@ _CATALOG: Dict[str, Dict] = {
             preview=True,
         ),
     },
+    "acceso_en_pausa_alumno": {
+        "name": "Acceso en pausa por un pago a plazos",
+        "when": (
+            "Solo con la regla de los plazos sin pagar ENCENDIDA (Panel → Pagos "
+            "a plazos; nace apagada): cuando una cuota lleva sin pagar los días "
+            "de la regla y el acceso a la formación y a las clases queda en "
+            "pausa. Uno por pago, con el botón para pagarlo. Al equipo le llega "
+            "su aviso aparte."
+        ),
+        "build": lambda to, name: E.send_acceso_en_pausa_alumno_email(
+            to,
+            {
+                "nombre": name,
+                "numero": 2,
+                "cuotas": 3,
+                "importe_cents": 23000,
+                "pagar_url": "https://invoice.stripe.com/i/ejemplo",
+            },
+            preview=True,
+        ),
+    },
     "certificate_ready": {
         "name": "Certificado listo",
         "when": "Cuando el alumno completa la formación entera.",

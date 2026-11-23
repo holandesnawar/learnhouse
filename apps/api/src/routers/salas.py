@@ -49,6 +49,12 @@ async def _curso(request: Request, course_uuid: str, current_user, db_session: A
         context=AccessContext.DASHBOARD, raise_on_deny=False,
     )
     if not decision.allowed:
+        # La regla de los plazos sin pagar (pausa.py): en pausa no se entra
+        # tampoco como invitado de la clase del otro grupo.
+        from src.services.payments.pausa import MOTIVO
+
+        if decision.reason == MOTIVO:
+            raise HTTPException(status_code=403, detail=MOTIVO)
         # Una semana en la clase del otro grupo (08/11/2026,
         # services/tareas/cambio_semana.py): ese día puede entrar en su sala.
         from src.services.panel.tandas import hoy_nl

@@ -290,6 +290,12 @@ def _iso(ts: Any) -> str:
         return ""
 
 
+def _primer_intento(inv: Any) -> str:
+    """Cuándo se intentó cobrar esa factura por primera vez: Stripe la cobra al
+    emitirla (`finalized_at`); si no viene, cuando se creó."""
+    return _iso(_v(_v(inv, "status_transitions"), "finalized_at")) or _iso(_v(inv, "created")) or _ahora()
+
+
 def texto_fallo(numero: int, total: int, cents: int, siguiente_intento: Any) -> str:
     euros = f"{cents / 100:.2f}".replace(".", ",").replace(",00", "")
     base = f"No se pudo cobrar el pago {numero} de {total} ({euros} €)."
@@ -323,6 +329,8 @@ def resumen(plan: PlanPagos) -> dict:
         "completado_at": plan.completado_at,
         "sincronizado_at": plan.sincronizado_at,
         "pagos": [{**p, "numero": i + 1} for i, p in enumerate(pagos)],
+        # La regla de los plazos sin pagar (pausa.py): «no pausar a esta persona».
+        "sin_pausa": bool(plan.sin_pausa),
     }
 
 
@@ -360,7 +368,16 @@ async def plan_de(email: str, db_session: AsyncSession) -> Optional[dict]:
     if not filas:
         return None
     elegido = next((p for p in filas if p.estado in VIVOS), filas[0])
-    return resumen(elegido)
+    salida = resumen(elegido)
+    try:
+        from src.services.payments import pausa as PA
+
+        _regla, pausas = await PA.para_el_panel([elegido], db_session)
+        salida["pausa"] = pausas.get(int(elegido.id or 0))
+        salida["regla"] = _regla
+    except Exception:  # noqa: BLE001 — la ficha no se cae por esto
+        logger.exception("No se pudo calcular la pausa del plan %s", elegido.id)
+    return salida
 
 
 async def listar_planes(db_session: AsyncSession) -> dict:
@@ -377,6 +394,9 @@ async def listar_planes(db_session: AsyncSession) -> dict:
         (await db_session.execute(select(PlanPagos))).scalars().all(),
         key=lambda p: (orden.get(p.estado, 9), p.proximo_cobro or "9999", -(p.id or 0)),
     )
+    from src.services.payments import pausa as PA
+
+    regla, pausas = await PA.para_el_panel(list(filas), db_session)
     planes = []
     for p in filas:
         r = resumen(p)
@@ -384,6 +404,8 @@ async def listar_planes(db_session: AsyncSession) -> dict:
         planes.append(
             {
                 **r,
+                # La regla de los plazos sin pagar (23/11/2026, pausa.py).
+                "pausa": pausas.get(int(p.id or 0)),
                 "email": email,
                 "nombre": f"{p.first_name} {p.last_name}".strip(),
                 "telefono": p.phone,
@@ -397,6 +419,14 @@ async def listar_planes(db_session: AsyncSession) -> dict:
     vivos = [x for x in planes if x["estado"] in VIVOS and not x["fuera_de_metricas"]]
     return {
         "planes": planes,
+        # Apagada de serie. `afectaria` = a quién pausaría hoy (encendida o no).
+        "regla": {
+            **regla,
+            "dias_min": PA.DIAS_MIN,
+            "dias_max": PA.DIAS_MAX,
+            "afectaria": sum(1 for x in planes if (x.get("pausa") or {}).get("cumple")),
+            "en_pausa": sum(1 for x in planes if (x.get("pausa") or {}).get("en_pausa")),
+        },
         "totales": {
             "vivos": len(vivos),
             "fallidos": sum(1 for x in vivos if x["estado"] == "fallido"),
@@ -694,6 +724,12 @@ async def _guardar(plan: PlanPagos, db_session: AsyncSession) -> None:
             matricula.updated_at = datetime.now().isoformat()
             db_session.add(matricula)
     await db_session.commit()
+    try:
+        from src.services.payments.pausa import olvidar
+
+        olvidar()
+    except Exception:  # noqa: BLE001
+        pass
 
 
 async def registrar_primer_pago(obj: dict, enrollment, db_session: AsyncSession) -> Optional[PlanPagos]:
@@ -762,6 +798,8 @@ async def registrar_primer_pago(obj: dict, enrollment, db_session: AsyncSession)
 async def atender_factura(inv: dict, pagada: bool, db_session: AsyncSession) -> dict:
     """Avisos `invoice.paid` / `invoice.payment_failed` (si están activados en
     Stripe). Las facturas que no son de un plan se ignoran."""
+    from src.services.payments import pausa as PA
+
     plan = await _plan_por_suscripcion(suscripcion_de_factura(inv), db_session)
     if plan is None:
         return {"detail": "factura sin plan de pagos"}
@@ -773,10 +811,20 @@ async def atender_factura(inv: dict, pagada: bool, db_session: AsyncSession) -> 
         plan.facturas = json.dumps(anotar_cobro(facturas, factura, cobrado, fecha))
         plan.fallo = ""
         plan.estado = estado_del_plan(pagadas=cifras(leer_facturas(plan.facturas))[0], cuotas=plan.cuotas)
+        # Si era la que se debía, ya no se debe (pausa.py): vuelve el acceso.
+        if PA.leer_impago(plan.impago)["factura"] in ("", factura):
+            plan.impago = PA.sin_impago()
     elif factura not in facturas:
         numero = len(facturas) + 1
         plan.fallo = texto_fallo(numero, plan.cuotas, int(inv.get("amount_due") or plan.cuota_cents), inv.get("next_payment_attempt"))
         plan.estado = "fallido"
+        # Desde cuándo se debe: el PRIMER intento de esa factura (cuando se
+        # emitió), no este reintento. Si ya se debía otra más antigua, manda esa.
+        if not PA.leer_impago(plan.impago)["desde"] or PA.leer_impago(plan.impago)["factura"] == factura:
+            plan.impago = PA.con_impago(
+                plan.impago, factura, _primer_intento(inv),
+                int(inv.get("amount_due") or plan.cuota_cents), str(inv.get("hosted_invoice_url") or ""),
+            )
         if plan.fallo_avisado != factura:
             await _avisar_fallo(plan, numero, db_session, inv)
             plan.fallo_avisado = factura
@@ -796,9 +844,20 @@ async def _avisar_fallo(plan: PlanPagos, numero: int, db_session: AsyncSession, 
         nombre = f"{plan.first_name} {plan.last_name}".strip()
         enviados = 0
         alumno_avisado = False
+        # Con la regla de los plazos ENCENDIDA (pausa.py), el correo dice
+        # cuántos días tiene. Apagada, el correo es el de siempre.
+        dias_pausa = 0
+        try:
+            from src.services.payments import pausa as PA
+
+            r = await PA.regla(db_session)
+            dias_pausa = r["dias"] if r["activa"] and not plan.sin_pausa else 0
+        except Exception:  # noqa: BLE001
+            dias_pausa = 0
         if plan.email:
             try:
                 await en_hilo(send_plazo_fallido_alumno_email, plan.email, {
+                    "dias_pausa": dias_pausa,
                     "nombre": nombre,
                     "numero": numero,
                     "cuotas": plan.cuotas,
@@ -815,6 +874,7 @@ async def _avisar_fallo(plan: PlanPagos, numero: int, db_session: AsyncSession, 
         for destino in await emails_de_administradores(db_session):
             try:
                 await en_hilo(send_plazo_fallido_email, destino, {**resumen(plan), "email": plan.email,
+                                                   "dias_pausa": dias_pausa,
                                                    "nombre": nombre, "alumno_avisado": alumno_avisado,
                                                    "telefono": plan.phone, "numero": numero, "fallo": plan.fallo})
                 enviados += 1
@@ -829,15 +889,21 @@ async def _avisar_fallo(plan: PlanPagos, numero: int, db_session: AsyncSession, 
 # ── preguntarle a Stripe (tarea diaria y botón «Comprobar ahora») ─────────
 
 
-async def sincronizar(plan: PlanPagos, db_session: AsyncSession) -> dict:
+async def sincronizar(plan: PlanPagos, db_session: AsyncSession, avisar: bool = True) -> dict:
     """Pone el plan al día con lo que dice Stripe. Hay que haber llamado a
-    `_usar_stripe()`."""
+    `_usar_stripe()`. Con `avisar=False` (lo usa la regla de los plazos sin
+    pagar, pausa.py) no manda el correo de «cobro fallido» ni toca su marca:
+    eso sigue siendo cosa de la tarea diaria y del panel, como siempre."""
     import stripe
 
     sub = await asyncio.to_thread(stripe.Subscription.retrieve, plan.stripe_subscription_id)
     facturas = leer_facturas(plan.facturas)
     fallidas = []
     lista = await asyncio.to_thread(stripe.Invoice.list, subscription=plan.stripe_subscription_id, limit=24)
+    # Las que se deben y aún se pueden pagar (pausa.py): abiertas con algún
+    # intento, y las que Stripe dio por incobrables (su página de pago sigue
+    # valiendo). Las anuladas (void) no cuentan: no se pueden pagar.
+    sin_pagar = []
     for inv in _lista(lista):
         estado = _v(inv, "status", "")
         if estado == "paid" and int(_v(inv, "amount_paid", 0) or 0) > 0:
@@ -845,6 +911,9 @@ async def sincronizar(plan: PlanPagos, db_session: AsyncSession) -> dict:
             facturas = anotar_cobro(facturas, _id(inv), int(_v(inv, "amount_paid", 0)), pagada_el)
         elif estado == "open" and int(_v(inv, "attempt_count", 0) or 0) > 0:
             fallidas.append(inv)
+            sin_pagar.append(inv)
+        elif estado == "uncollectible" and int(_v(inv, "amount_due", 0) or 0) > 0:
+            sin_pagar.append(inv)
     plan.facturas = json.dumps(facturas)
     pagadas = len(facturas)
 
@@ -862,11 +931,27 @@ async def sincronizar(plan: PlanPagos, db_session: AsyncSession) -> dict:
         cents = int(_v(ultima, "amount_due", 0) or plan.cuota_cents)
         plan.fallo = texto_fallo(pagadas + 1, plan.cuotas, cents, _v(ultima, "next_payment_attempt") if ultima else None)
         clave = _id(ultima) if ultima else f"sub:{estado_stripe}"
-        if plan.fallo_avisado != clave:
+        if avisar and plan.fallo_avisado != clave:
             await _avisar_fallo(plan, pagadas + 1, db_session, ultima)
             plan.fallo_avisado = clave
     else:
         plan.fallo = ""
+
+    # La factura que se debe y desde cuándo, para la regla de los plazos sin
+    # pagar (pausa.py). La más antigua manda. No se mira POR QUÉ se canceló la
+    # suscripción (Stripe da el mismo motivo si la cancela el equipo que si se
+    # acaba el calendario del plan): mientras haya una factura que se puede
+    # pagar, se debe. Para perdonarla: anularla en Stripe o «No pausar».
+    from src.services.payments import pausa as PA
+
+    if sin_pagar and plan.estado in PA.CON_DEUDA:
+        vieja = min(sin_pagar, key=lambda i: int(_v(i, "created", 0) or 0))
+        plan.impago = PA.con_impago(
+            plan.impago, _id(vieja), _primer_intento(vieja),
+            int(_v(vieja, "amount_due", 0) or plan.cuota_cents), str(_v(vieja, "hosted_invoice_url", "") or ""),
+        )
+    else:
+        plan.impago = PA.sin_impago()
 
     if plan.estado in VIVOS:
         try:

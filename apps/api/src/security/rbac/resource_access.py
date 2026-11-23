@@ -148,6 +148,30 @@ class ResourceAccessChecker:
         if isinstance(self.current_user, APITokenUser):
             return await self._check_api_token_access(resource_uuid, action, config)
 
+        # La regla de los plazos sin pagar (23/11/2026,
+        # services/payments/pausa.py). Nace APAGADA: entonces esto es mirar
+        # un diccionario en memoria y seguir. Encendida, a quien lleva N días
+        # con una cuota sin pagar se le cierran la formación y las clases en
+        # directo (todo cuelga de un curso y pasa por aquí) hasta que paga.
+        # Nunca al equipo ni a los administradores, y ante cualquier fallo
+        # se deja entrar (`pausa_de` no lanza).
+        if config.resource_type == "courses" and isinstance(self.current_user, PublicUser):
+            if not hasattr(self, "_pausa_plazos"):
+                from src.services.payments import pausa as _pausa
+
+                self._pausa_plazos = await _pausa.pausa_de(self.current_user, self.db_session)
+            if self._pausa_plazos:
+                from src.services.payments.pausa import MOTIVO
+
+                return AccessDecision(
+                    allowed=False,
+                    reason=MOTIVO,
+                    resource_uuid=resource_uuid,
+                    user_id=self.current_user.id,
+                    action=action.value,
+                    context=context.value,
+                )
+
         # Route to appropriate check based on action
         if action == AccessAction.READ:
             return await self._check_read_access(resource_uuid, context, config)

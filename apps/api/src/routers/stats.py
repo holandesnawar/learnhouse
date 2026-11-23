@@ -436,4 +436,49 @@ async def api_comprobar_plazos_todos(
 
     await _admin_org(request, org_id, current_user, db_session)
     resultado = await sincronizar_planes(db_session)
+    # Con la regla de los plazos sin pagar ENCENDIDA, también los cancelados
+    # que aún deben una factura (pausa.py). Apagada, lo de siempre.
+    from src.services.payments import pausa as PA
+
+    if (await PA.regla(db_session))["activa"]:
+        resultado["errores"] = int(resultado.get("errores") or 0) + await PA.poner_al_dia_cancelados(db_session)
     return {"resultado": resultado, **(await listar_planes(db_session))}
+
+
+@router.put(
+    "/org/{org_id}/plazos/regla",
+    summary="La regla de los plazos sin pagar: encenderla, apagarla o cambiar los días. Nace apagada.",
+)
+async def api_plazos_regla(
+    request: Request,
+    org_id: int,
+    datos: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.payments import pausa as PA
+    from src.services.payments.plazos import listar_planes
+
+    await _admin_org(request, org_id, current_user, db_session)
+    await PA.guardar_regla(org_id, datos or {}, db_session)
+    return await listar_planes(db_session)
+
+
+@router.put(
+    "/org/{org_id}/plazos/{plan_id}/sin-pausa",
+    summary="«No pausar a esta persona»: ponerlo o quitarlo en un plan.",
+)
+async def api_plazos_sin_pausa(
+    request: Request,
+    org_id: int,
+    plan_id: int,
+    datos: dict,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.payments import pausa as PA
+    from src.services.payments.plazos import listar_planes
+
+    await _admin_org(request, org_id, current_user, db_session)
+    await PA.cambiar_exencion(plan_id, bool((datos or {}).get("sin_pausa")), db_session)
+    return await listar_planes(db_session)
