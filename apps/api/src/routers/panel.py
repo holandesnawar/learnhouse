@@ -579,6 +579,31 @@ async def api_alumnos(
     return await listar_alumnos(org_id, db_session)
 
 
+@router.get(
+    "/org/{org_id}/alumno",
+    summary="Cómo va UN alumno (su fila de Progreso y su camino), sin dinero: la ficha del alumno para closers.",
+)
+async def api_alumno_de_la_ficha(
+    request: Request,
+    org_id: int,
+    email: str,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """`/alumnos` y `/camino` son de administradores y devuelven a todos. Esta
+    es para la ficha que abre un closer (23/11/2026): una persona, con la
+    puerta de contactos y «Qué ven los closers» (la misma comprobación que
+    `/cliente`), y sin ningún dato de dinero."""
+    from src.services.panel.alcance import filtro_de
+    from src.services.panel.alumnos import alumno_de_la_ficha
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    filtro = await filtro_de(current_user.id, org_id, db_session)
+    if filtro and not filtro.ve_correo(email):
+        raise HTTPException(status_code=403, detail="Esta persona la lleva otro closer")
+    return await alumno_de_la_ficha(org_id, email, db_session)
+
+
 @router.post(
     "/org/{org_id}/alumnos/{user_id}/whatsapp",
     summary="Apuntar que se le ha escrito por WhatsApp a un alumno que no avanza (administradores).",
