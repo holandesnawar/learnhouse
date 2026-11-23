@@ -710,7 +710,11 @@ async def semanas_para_alumno(
         s["abierta"] = abierta(s["fecha"], hoy)
         s["ocultas"] = 0
         s["clases"] = [
-            {"activity_uuid": c["activity_uuid"], "nombre": c["nombre"], "tipo": c["tipo"], "hecha": c["id"] in hechas}
+            {
+                "activity_uuid": c["activity_uuid"], "nombre": c["nombre"], "tipo": c["tipo"], "hecha": c["id"] in hechas,
+                # Las grabaciones, con su vídeo: se ven en su propia página (23/11/2026).
+                **({"video": c.get("video")} if c["tipo"] == "grabacion" else {}),
+            }
             for c in clases.get(s["chapter_uuid"], [])
         ]
         e = _entrega_dict(suyas.get(s["id"]))
@@ -726,6 +730,7 @@ async def semanas_para_alumno(
             {
                 "id": c["id"], "activity_uuid": c["activity_uuid"], "nombre": c["nombre"], "tipo": c["tipo"],
                 "hecha": c["id"] in hechas, "fecha": c["fecha"], "tema": c["tema"], "profe": c["profe"],
+                **({"video": c.get("video")} if c["tipo"] == "grabacion" else {}),
             }
             for c in sueltas
         ],
