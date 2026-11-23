@@ -209,6 +209,86 @@ def _misma_contrasena_reciente(user: User, new_password: str, ahora: datetime | 
         return False
 
 
+# ── El enlace de alta (23/11/2026) ─────────────────────────────────────────
+# El enlace de «crea tu contraseña» que llega tras pagar (o que se da desde
+# el panel) lleva `reset_code_type = "alta"` (payments._store_reset_code) y
+# vale 15 días. A diferencia del de «¿olvidaste tu contraseña?», NO se gasta
+# al usarlo: se apunta cuándo se usó y sigue valiendo hasta que caduca.
+#
+# Por qué (usuario, 23/11): "aunque no inicie sesión la contraseña ya está
+# creada; ahora, si no inician sesión, dice que no es válido y obliga a crear
+# contraseña nueva". El alumno creaba su contraseña, no entraba (o se le
+# cerraba la pestaña), volvía a pulsar el botón del correo y le salía
+# «caducado». Ahora la pantalla pregunta antes por el enlace (`estado_enlace`)
+# y, si ya se usó, le dice «ya tienes contraseña: entra», con la opción de
+# poner otra con el mismo enlace si no la recuerda.
+
+
+def es_de_alta(obj: dict) -> bool:
+    return isinstance(obj, dict) and obj.get("reset_code_type") == "alta"
+
+
+def _tras_usar(r, reset_key: str, obj: dict) -> None:
+    """Un código de alta se marca como usado y sigue vivo hasta caducar; los
+    demás se borran (un solo uso)."""
+    if es_de_alta(obj):
+        obj = dict(obj)
+        obj["usado_at"] = datetime.now(timezone.utc).isoformat()
+        try:
+            r.set(reset_key, json.dumps(obj), keepttl=True)
+            return
+        except Exception:  # noqa: BLE001
+            logging.exception("No se pudo marcar el enlace de alta como usado")
+    r.delete(reset_key)
+
+
+def estado_de_codigo(obj: dict | None, ahora: datetime | None = None) -> dict:
+    """Puro: qué decir de un enlace. `obj` = lo guardado en Redis (o None)."""
+    ahora_ts = int((ahora or datetime.now()).timestamp())
+    if not obj:
+        return {"estado": "no_valido"}
+    try:
+        caduca = int(obj.get("reset_code_expires") or 0)
+    except (TypeError, ValueError):
+        caduca = 0
+    if caduca and caduca < ahora_ts:
+        return {"estado": "caducado"}
+    fuera = {"caduca": datetime.fromtimestamp(caduca, timezone.utc).isoformat()} if caduca else {}
+    if obj.get("usado_at"):
+        return {"estado": "usado", "usado_at": obj.get("usado_at"), **fuera}
+    return {"estado": "valido", **fuera}
+
+
+async def estado_enlace(db_session: AsyncSession, email: str, org_id: int, reset_code: str) -> dict:
+    """`GET /users/reset_password/estado`: si el enlace de crear contraseña
+    sirve, ya se usó o no vale. Mismo mensaje para «no existe esa cuenta» y
+    «ese código no existe»: no deja averiguar quién tiene cuenta."""
+    if not reset_code or not reset_code.isalnum() or len(reset_code) > 64:
+        return {"estado": "no_valido"}
+    org = (await db_session.execute(select(Organization).where(Organization.id == org_id))).scalars().first()
+    user = (await db_session.execute(select(User).where(User.email == email))).scalars().first()
+    if not org or not user:
+        return {"estado": "no_valido"}
+    try:
+        r = _get_redis_connection()
+        valor = r.get(f"pwd_reset:user:{user.user_uuid}:org:{org.org_uuid}:code:{reset_code}")
+        if valor is None:
+            valor = r.get(f"pwd_reset:user:{user.user_uuid}:platform:code:{reset_code}")
+    except HTTPException:
+        raise
+    except Exception:  # noqa: BLE001
+        logging.exception("No se pudo leer el estado del enlace")
+        # Sin Redis no se sabe: que la pantalla deje intentarlo.
+        return {"estado": "desconocido"}
+    if valor is None:
+        return {"estado": "no_valido"}
+    try:
+        obj = json.loads(valor)
+    except Exception:  # noqa: BLE001
+        return {"estado": "no_valido"}
+    return estado_de_codigo(obj)
+
+
 async def change_password_with_reset_code(
     request: Request,
     db_session: AsyncSession,
@@ -335,8 +415,8 @@ async def change_password_with_reset_code(
     await db_session.commit()
     await db_session.refresh(user)
 
-    # Delete reset code (one-time use)
-    r.delete(reset_key)
+    # Un solo uso, salvo el enlace de alta (vale 15 días: ver arriba).
+    _tras_usar(r, reset_key, reset_code_object)
 
     logging.info(f"Password successfully changed for user: {user.user_uuid}")
     return "Tu contraseña se ha cambiado correctamente"
@@ -496,7 +576,7 @@ async def change_password_with_reset_code_platform(
     await db_session.commit()
     await db_session.refresh(user)
 
-    r.delete(reset_key)
+    _tras_usar(r, reset_key, reset_code_object)
 
     logging.info(f"Password successfully changed for user: {user.user_uuid}")
     return "Tu contraseña se ha cambiado correctamente"

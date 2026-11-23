@@ -636,7 +636,7 @@ class CorreoAcceso(BaseModel):
 
 @router.post(
     "/org/{org_id}/alumnos/{user_id}/enlace-contrasena",
-    summary="Un enlace nuevo de «crear contraseña» para un alumno (7 días), y si se pide, el correo (administradores).",
+    summary="Un enlace nuevo de «crear contraseña» para un alumno (15 días), y si se pide, el correo (administradores).",
 )
 async def api_enlace_contrasena(
     request: Request,

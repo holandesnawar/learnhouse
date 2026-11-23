@@ -31,13 +31,24 @@ interface Props {
 
 interface State {
   failed: boolean
+  /** La escuela se actualizó mientras esta página estaba abierta: la pieza que
+   *  pide ya no existe. «Reintentar» no sirve; hace falta recargar. */
+  version?: boolean
+}
+
+/** ¿Es el fallo de «después de un despliegue»? (ChunkLoadError de Next/webpack,
+ *  o el import dinámico que no encuentra su archivo). */
+export function esVersionNueva(error: unknown): boolean {
+  const e = (error ?? {}) as { name?: unknown; message?: unknown }
+  const texto = `${typeof e.name === 'string' ? e.name : ''} ${typeof e.message === 'string' ? e.message : ''}`
+  return /ChunkLoadError|Loading chunk|Loading CSS chunk|Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i.test(texto)
 }
 
 export default class SafeArea extends React.Component<Props, State> {
   state: State = { failed: false }
 
-  static getDerivedStateFromError(): State {
-    return { failed: true }
+  static getDerivedStateFromError(error: unknown): State {
+    return { failed: true, version: esVersionNueva(error) }
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
@@ -49,7 +60,24 @@ export default class SafeArea extends React.Component<Props, State> {
   render() {
     if (!this.state.failed) return this.props.children
 
-    if (this.props.fallback !== undefined) return this.props.fallback
+    if (this.props.fallback !== undefined && !this.state.version) return this.props.fallback
+
+    if (this.state.version) {
+      return (
+        <div className="rounded-2xl border border-[#DDE6F5] bg-white p-5 text-center">
+          <p className="text-[13px] text-[#5A6480]">
+            La escuela se ha actualizado mientras tenías esta página abierta
+            {this.props.nombre ? ` (${this.props.nombre})` : ''}. Recarga la página para verla.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#DDE6F5] hover:border-[#4da3ff] text-[#025dc7] text-[12px] font-semibold transition-colors"
+          >
+            <RefreshCcw size={13} /> Recargar
+          </button>
+        </div>
+      )
+    }
 
     return (
       <div className="rounded-2xl border border-[#DDE6F5] bg-white p-5 text-center">

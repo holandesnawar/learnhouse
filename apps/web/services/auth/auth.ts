@@ -112,6 +112,23 @@ export async function resetPassword(
   }
 }
 
+/** Si el enlace de «crea tu contraseña» sirve, ya se usó o ya no vale
+ *  (23/11/2026). Ante cualquier fallo, «desconocido»: la pantalla deja probar. */
+export async function estadoEnlaceAlta(
+  email: string,
+  org_id: number,
+  code: string
+): Promise<{ estado: 'valido' | 'usado' | 'caducado' | 'no_valido' | 'desconocido'; usado_at?: string; caduca?: string }> {
+  try {
+    const q = new URLSearchParams({ email, org_id: String(org_id), code })
+    const r = await fetch(`${getAPIUrl()}users/reset_password/estado?${q}`, { cache: 'no-store' })
+    if (!r.ok) return { estado: 'desconocido' }
+    return await r.json()
+  } catch {
+    return { estado: 'desconocido' }
+  }
+}
+
 export async function logout(): Promise<any> {
   // Request Config
 

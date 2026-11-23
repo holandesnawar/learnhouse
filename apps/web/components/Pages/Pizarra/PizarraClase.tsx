@@ -78,7 +78,7 @@ import { subirArchivoProfe } from '@services/tareas/tareas'
 import { VisorPresentacionClase } from '@components/Pages/Clases/pasosSemana'
 import ListaPresentaciones from '@components/Pages/Presentaciones/ListaPresentaciones'
 import { cuandoFue } from '@/lib/nawar/presentaciones'
-import { cajaDeTexto, letrasDeLaEscuela, pintarEnBlanco, pintarTrazos, type Letras } from './dibujo'
+import { cajaDeTexto, ctxParaMedir, letrasDeLaEscuela, pintarEnBlanco, pintarTrazos, type Letras } from './dibujo'
 
 /**
  * La pizarra de clase (10/11/2026): el profe abre aquí la presentación de la
@@ -116,7 +116,9 @@ const ZOOM_MAX = 5
 const RESERVA_ABAJO = 76
 // En pantallas estrechas, las páginas y el zoom suben arriba: la página, debajo.
 const reservaArriba = (ancho: number) => (ancho < 560 ? 104 : ancho < 860 ? 56 : 0)
-const MAX_PX = 4200
+// 3200 (23/11/2026; antes 4200): dos lienzos de 4200 px de una página A4 son
+// ~280 MB y Safari se quedaba sin memoria de lienzos en mitad de la clase.
+const MAX_PX = 3200
 
 /**
  * La pizarra metida en la sala (12/11/2026: "con una pantalla no sirve"). La
@@ -404,7 +406,9 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       const lienzo = document.createElement('canvas')
       lienzo.width = Math.round(ancho)
       lienzo.height = Math.round((ancho * t.h) / t.w)
-      const ctx = lienzo.getContext('2d')!
+      const ctx = lienzo.getContext('2d')
+      // Safari sin memoria para más lienzos: un error que se recoge, no un fallo de React.
+      if (!ctx) throw new Error('El navegador no ha dejado pintar la página (sin memoria para lienzos)')
       ctx.fillStyle = BLANCO
       ctx.fillRect(0, 0, lienzo.width, lienzo.height)
       const pdf = pdfRef.current
@@ -562,7 +566,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
         if (!vivo) return
         lienzo.width = c.width
         lienzo.height = c.height
-        lienzo.getContext('2d')!.drawImage(c, 0, 0)
+        lienzo.getContext('2d')?.drawImage(c, 0, 0)
         c.width = 0
       })
       .catch(() => undefined)
@@ -581,10 +585,15 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     const c = notasRef.current
     const pg = docRef.current.paginas[idxRef.current]
     if (!c || !pg) return
-    const ctx = c.getContext('2d')!
-    ctx.clearRect(0, 0, c.width, c.height)
-    pintarTrazos(ctx, pg.trazos, c.width, c.height, letras(), editRef.current?.i ?? -1)
-    if (vivoRef.current) pintarTrazos(ctx, [vivoRef.current], c.width, c.height, letras())
+    const ctx = c.getContext('2d')
+    if (!ctx) return
+    try {
+      ctx.clearRect(0, 0, c.width, c.height)
+      pintarTrazos(ctx, pg.trazos, c.width, c.height, letras(), editRef.current?.i ?? -1)
+      if (vivoRef.current) pintarTrazos(ctx, [vivoRef.current], c.width, c.height, letras())
+    } catch {
+      /* se repinta en el siguiente cambio; nunca tira la pizarra */
+    }
   }, [])
 
   useEffect(() => {
@@ -610,9 +619,11 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     const c = document.createElement('canvas')
     c.width = 1280
     c.height = 720
-    const ctx = c.getContext('2d')!
-    ctx.fillStyle = BLANCO
-    ctx.fillRect(0, 0, c.width, c.height)
+    const ctx = c.getContext('2d')
+    if (ctx) {
+      ctx.fillStyle = BLANCO
+      ctx.fillRect(0, 0, c.width, c.height)
+    }
     salidaRef.current = c
     avisarLienzo(c)
     // Para las pruebas en local (no en producción).
@@ -641,7 +652,8 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
         out.width = r.W
         out.height = r.H
       }
-      const ctx = out.getContext('2d')!
+      const ctx = out.getContext('2d')
+      if (!ctx) return
       ctx.fillStyle = BLANCO
       ctx.fillRect(0, 0, out.width, out.height)
       const pg = docRef.current.paginas[idxRef.current]
@@ -852,7 +864,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     const c = notasRef.current
     const trazos = docRef.current.paginas[idxRef.current]?.trazos || []
     if (!c) return -1
-    const ctx = c.getContext('2d')!
+    const ctx = ctxParaMedir()
     for (let i = trazos.length - 1; i >= 0; i--) {
       const t = trazos[i]
       if (t.t !== 'texto') continue
@@ -872,7 +884,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       const c = notasRef.current
       const trazos = docRef.current.paginas[idxRef.current]?.trazos || []
       if (!c || !c.width) return -1
-      const ctx = c.getContext('2d')!
+      const ctx = ctxParaMedir()
       const caja = (t: TrazoTexto) => {
         const k = cajaDeTexto(ctx, t, c.width, c.height, letras())
         return { x: k.x / c.width, y: k.y / c.height, w: k.w / c.width, h: k.h / c.height }
@@ -1055,7 +1067,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     const c = notasRef.current
     if (!t || !c || !c.width) return null
     if (t.t === 'texto') {
-      const k = cajaDeTexto(c.getContext('2d')!, t, c.width, c.height, letras())
+      const k = cajaDeTexto(ctxParaMedir(), t, c.width, c.height, letras())
       return { x: k.x / c.width, y: k.y / c.height, w: k.w / c.width, h: k.h / c.height }
     }
     return cajaDeLinea(t, c.height / c.width)
@@ -1355,7 +1367,9 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       const pg = paginas[n]
       const t = tamDe(pg)
       const c = await pintarPagina(pg, t.w >= t.h ? 1920 : 1500)
-      pintarTrazos(c.getContext('2d')!, pg.trazos, c.width, c.height, letras())
+      const ctxPdf = c.getContext('2d')
+      if (!ctxPdf) throw new Error('El navegador no ha dejado montar el PDF. Cierra otras pestañas y vuelve a intentarlo.')
+      pintarTrazos(ctxPdf, pg.trazos, c.width, c.height, letras())
       const imagen = c.toDataURL('image/jpeg', 0.86)
       c.width = 0
       const giro = t.w > t.h ? 'l' : 'p'

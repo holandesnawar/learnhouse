@@ -6,7 +6,7 @@ import { AlertTriangle, ArrowRight, CheckCircle, Eye, EyeOff, X } from 'lucide-r
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useFormik } from 'formik'
-import { resetPassword } from '@services/auth/auth'
+import { estadoEnlaceAlta, resetPassword } from '@services/auth/auth'
 import { useTranslation } from 'react-i18next'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import AuthShell from '@components/Auth/AuthShell'
@@ -68,6 +68,28 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
   // bloquea mientras envía y, al acabar, se entra solo en la escuela.
   const enviando = React.useRef(false)
   const [hecho, setHecho] = React.useState(false)
+  // ¿El enlace sirve? (23/11/2026) Vale 15 días y no se gasta al usarlo: si
+  // ya puso su contraseña, se le dice «entra con ella» en vez de «caducado».
+  const [enlace, setEnlace] = React.useState<'cargando' | 'valido' | 'usado' | 'no_vale'>('cargando')
+  const [ponerOtra, setPonerOtra] = React.useState(false)
+  React.useEffect(() => {
+    if (!email || !reset_code || !org?.id) {
+      setEnlace('valido')
+      return
+    }
+    let vivo = true
+    estadoEnlaceAlta(email, org.id, reset_code).then((r) => {
+      if (!vivo) return
+      if (r.estado === 'usado') setEnlace('usado')
+      else if (r.estado === 'caducado' || r.estado === 'no_valido') setEnlace('no_vale')
+      else setEnlace('valido')
+    })
+    return () => {
+      vivo = false
+    }
+  }, [email, reset_code, org?.id])
+  const yaTiene = !hecho && !ponerOtra && (enlace === 'usado' || enlace === 'no_vale')
+  const conCorreo = (ruta: string) => (email ? `${ruta}?email=${encodeURIComponent(email)}` : ruta)
 
   const formik = useFormik({
     initialValues: {
@@ -183,15 +205,47 @@ function CrearCuentaClient({ org }: CrearCuentaClientProps) {
                 backgroundClip: 'text',
               }}
             >
-              Crea tu
+              {yaTiene ? 'Entra en la' : 'Crea tu'}
             </span>{' '}
-            <span style={{ color: '#4da3ff' }}>cuenta</span>
+            <span style={{ color: '#4da3ff' }}>{yaTiene ? 'escuela' : 'cuenta'}</span>
           </h1>
           <p className="text-center text-[15px] text-white/70 mt-2 mb-7">
-            Pon una contraseña para entrar a la escuela.
+            {yaTiene ? 'Con tu correo y tu contraseña.' : 'Pon una contraseña para entrar a la escuela.'}
           </p>
 
-          {hecho ? (
+          {!hecho && !ponerOtra && (enlace === 'usado' || enlace === 'no_vale') ? (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <CheckCircle size={40} className="text-[#4da3ff]" />
+              <p className="text-[16px] font-semibold text-white">
+                {enlace === 'usado' ? 'Ya creaste tu contraseña' : 'Este enlace ya no vale'}
+              </p>
+              <p className="text-[14.5px] text-white/75 leading-relaxed">
+                {enlace === 'usado'
+                  ? 'Entra con tu correo y la contraseña que pusiste.'
+                  : 'Si ya creaste tu contraseña, entra con ella. Si no la recuerdas, te mandamos un enlace nuevo.'}
+              </p>
+              <Link
+                href={conCorreo('/login')}
+                className="w-full inline-flex items-center justify-center gap-2.5 bg-[#4da3ff] hover:bg-[#5eb4ff] text-[#0a1656] font-bold py-3.5 rounded-xl transition-colors text-[15px]"
+              >
+                Entrar a la escuela
+                <ArrowRight size={15} strokeWidth={2.5} />
+              </Link>
+              {enlace === 'usado' ? (
+                <button
+                  type="button"
+                  onClick={() => setPonerOtra(true)}
+                  className="text-[13.5px] text-white/70 underline hover:text-white"
+                >
+                  ¿No la recuerdas? Pon una nueva con este enlace
+                </button>
+              ) : (
+                <Link href={conCorreo('/forgot')} className="text-[13.5px] text-white/70 underline hover:text-white">
+                  Pedir un enlace nuevo
+                </Link>
+              )}
+            </div>
+          ) : hecho ? (
             <div className="flex flex-col items-center gap-4 text-center">
               <CheckCircle size={40} className="text-[#4da3ff]" />
               <p className="text-[15px] text-white/85">

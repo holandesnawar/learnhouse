@@ -775,6 +775,33 @@ async def mark_read(
     return {"read_at": now}
 
 
+async def _sin_leer_equipo(org_id: int, db_session: AsyncSession) -> tuple[int, int]:
+    """(mensajes sin leer por el equipo, hilos) de toda la escuela.
+
+    Una sola consulta (23/11/2026): antes era una por hilo de toda la
+    escuela, cada minuto y por cada pestaña del equipo. Misma cuenta que
+    `_unread_for_staff`: mensajes del alumno posteriores a lo que leyó el
+    equipo."""
+    from sqlalchemy import func
+
+    n_hilos = (
+        await db_session.execute(select(func.count()).select_from(DirectThread).where(DirectThread.org_id == org_id))
+    ).scalar() or 0
+    total = (
+        await db_session.execute(
+            select(func.count())
+            .select_from(DirectMessage)
+            .join(DirectThread, DirectThread.id == DirectMessage.thread_id)  # type: ignore[arg-type]
+            .where(
+                DirectThread.org_id == org_id,
+                DirectMessage.author_id == DirectThread.student_id,
+                func.coalesce(DirectMessage.created_at, "") > func.coalesce(DirectThread.staff_read_at, ""),
+            )
+        )
+    ).scalar() or 0
+    return int(total), int(n_hilos)
+
+
 async def unread_total(
     current_user: PublicUser | AnonymousUser, db_session: AsyncSession
 ) -> dict:
@@ -788,15 +815,8 @@ async def unread_total(
         thread = await get_or_create_thread(org_id, user_id, db_session)
         return {"unread": await _unread_for_student(thread, db_session)}
 
-    threads = (
-        await db_session.execute(
-            select(DirectThread).where(DirectThread.org_id == org_id)
-        )
-    ).scalars().all()
-    total = 0
-    for t in threads:
-        total += await _unread_for_staff(t, db_session)
-    return {"unread": total, "threads": len(threads)}
+    total, n_hilos = await _sin_leer_equipo(org_id, db_session)
+    return {"unread": total, "threads": n_hilos}
 
 
 ####################################################

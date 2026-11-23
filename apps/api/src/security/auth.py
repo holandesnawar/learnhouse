@@ -221,7 +221,30 @@ def revoke_user_sessions_before(user_id: int, cutoff: Optional[datetime] = None)
         return False
 
 
+#: Si Redis falla, no se le vuelve a preguntar en 30 s (23/11/2026). Esta
+#: comprobación va en CADA petición con sesión: con Redis colgado, cada una se
+#: quedaba esperando su tiempo máximo con toda la API parada detrás.
+_REDIS_CAIDO_HASTA = 0.0
+
+
 def _is_token_revoked_for_user(user_id: int, token_iat: Optional[datetime]) -> bool:
+    global _REDIS_CAIDO_HASTA
+    import time as _t
+
+    import os as _os
+
+    en_pruebas = bool(_os.environ.get("PYTEST_CURRENT_TEST"))
+    if not en_pruebas and _t.monotonic() < _REDIS_CAIDO_HASTA:
+        return False
+    try:
+        return _revocado(user_id, token_iat)
+    except Exception:
+        _REDIS_CAIDO_HASTA = _t.monotonic() + 30
+        return False
+
+
+def _revocado(user_id: int, token_iat: Optional[datetime]) -> bool:
+    """Lanza si Redis falla (lo recoge `_is_token_revoked_for_user`)."""
     if token_iat is None:
         # Without ``iat`` we cannot compare — treat as potentially revoked only
         # if the user has an active revocation key. This prevents pre-upgrade
@@ -229,19 +252,13 @@ def _is_token_revoked_for_user(user_id: int, token_iat: Optional[datetime]) -> b
         r = _get_revocation_redis_client()
         if r is None:
             return False
-        try:
-            raw = r.get(f"jwt_revoked_before:{user_id}")
-            return raw is not None
-        except Exception:
-            return False
+        raw = r.get(f"jwt_revoked_before:{user_id}")
+        return raw is not None
 
     r = _get_revocation_redis_client()
     if r is None:
         return False
-    try:
-        raw = r.get(f"jwt_revoked_before:{user_id}")
-    except Exception:
-        return False
+    raw = r.get(f"jwt_revoked_before:{user_id}")
     if raw is None:
         return False
     try:

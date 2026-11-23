@@ -9,6 +9,8 @@ lo escribe una persona y vive en `school_manual_entry`.
 
 from __future__ import annotations
 
+import asyncio
+
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -835,7 +837,7 @@ async def school_stats(org_id: int, db_session: AsyncSession) -> dict:
         out["support"] = None
 
     try:
-        out["refunds"] = _refunds_block()
+        out["refunds"] = await asyncio.to_thread(_refunds_block)  # Stripe es síncrono: en un hilo, que no pare la escuela
     except Exception:
         logger.exception("Estadísticas: fallo leyendo Stripe")
         out["refunds"] = None

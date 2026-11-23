@@ -1,6 +1,7 @@
 'use client'
 
 import ErrorUI from '@components/Objects/StyledElements/Error/Error'
+import { esVersionNueva } from '@components/Objects/StyledElements/Error/SafeArea'
 import { useEffect } from 'react'
 import { avisarPantallaRota } from '@/lib/nawar/avisarFallo'
 
@@ -24,5 +25,5 @@ export default function Error({
     }
   }, [error])
 
-  return <ErrorUI />
+  return <ErrorUI reset={esVersionNueva(error) ? undefined : reset} />
 }

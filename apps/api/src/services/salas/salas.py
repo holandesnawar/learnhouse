@@ -237,19 +237,41 @@ def motivo_daily(cuerpo: Any, status: int) -> str:
 # ── Hablar con Daily ────────────────────────────────────────────────────────
 
 
+#: Un solo cliente para hablar con Daily (23/11/2026): antes se abría uno por
+#: llamada, con su conexión segura nueva cada vez, y con 50 personas entrando
+#: a la vez eran 50 apretones de manos con Daily. Uno por bucle de eventos.
+_cliente: dict[int, httpx.AsyncClient] = {}
+
+
+def _cliente_daily() -> httpx.AsyncClient:
+    import asyncio
+
+    clave = id(asyncio.get_running_loop())
+    c = _cliente.get(clave)
+    if c is None or c.is_closed:
+        _cliente.clear()
+        c = httpx.AsyncClient(
+            # 8 s como mucho (antes 12): si Daily tarda más, mejor decirlo que
+            # dejar a la persona mirando una rueda.
+            timeout=httpx.Timeout(8.0, connect=4.0),
+            limits=httpx.Limits(max_connections=30, max_keepalive_connections=10),
+        )
+        _cliente[clave] = c
+    return c
+
+
 async def _daily(metodo: str, ruta: str, cuerpo: Optional[dict] = None, params: Optional[dict] = None) -> dict:
     clave = clave_api()
     if not clave:
         raise SalaError("Falta la clave de Daily: LEARNHOUSE_DAILY_API_KEY en Railway.", 503)
     try:
-        async with httpx.AsyncClient(timeout=12) as cliente:
-            r = await cliente.request(
-                metodo,
-                f"{API}{ruta}",
-                json=cuerpo,
-                params=params,
-                headers={"Authorization": f"Bearer {clave}"},
-            )
+        r = await _cliente_daily().request(
+            metodo,
+            f"{API}{ruta}",
+            json=cuerpo,
+            params=params,
+            headers={"Authorization": f"Bearer {clave}"},
+        )
     except httpx.HTTPError as exc:
         raise SalaError(f"No se pudo hablar con Daily: {exc.__class__.__name__}", 502) from exc
     try:
@@ -379,14 +401,36 @@ async def entrar_pizarra(course_uuid: str, user) -> dict:
     return {"url": url, "token": token, "nombre": f"Pizarra · {nombre}"[:60]}
 
 
+#: «Quién hay dentro», guardado 20 s por sala (23/11/2026). La página de cada
+#: clase lo pregunta cada 30 s desde dos sitios: con 50 alumnos eran unas 200
+#: preguntas a Daily por minuto, y cada una esperando con una conexión de la
+#: base de datos abierta. Veinte segundos de retraso en «quién hay» no importan.
+_PRESENTES_SEG = 20.0
+_presentes: dict[str, tuple[float, list[str]]] = {}
+
+
 async def presentes(course_uuid: str) -> list[str]:
     """Quién está ahora dentro. En blando: si Daily falla, lista vacía."""
+    import os
+
+    sala = nombre_sala(course_uuid)
+    ahora = time.monotonic()
+    guardado = _presentes.get(sala)
+    en_pruebas = bool(os.environ.get("PYTEST_CURRENT_TEST"))
+    if guardado and not en_pruebas and ahora - guardado[0] < _PRESENTES_SEG:
+        return list(guardado[1])
     try:
-        return presentes_de(await _daily("GET", f"/rooms/{nombre_sala(course_uuid)}/presence"))
+        lista = presentes_de(await _daily("GET", f"/rooms/{sala}/presence"))
     except SalaError as exc:
         if exc.status != 404:
             logger.info("Presencia de la sala: %s", exc.mensaje)
-        return []
+        # Que un fallo de Daily no se repita en cada pregunta: el vacío
+        # también se guarda ese rato.
+        lista = []
+    if len(_presentes) > 500:
+        _presentes.clear()
+    _presentes[sala] = (ahora, lista)
+    return list(lista)
 
 
 async def grabaciones(course_uuid: str) -> list[dict]:

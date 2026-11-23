@@ -101,10 +101,15 @@ async def api_sala(
     equipo, admin = await _roles(current_user, curso.org_id, db_session, curso.course_uuid)
     ajustes = await salas.config_de(curso.org_id, curso.course_uuid, db_session)
     con_clave = bool(salas.clave_api())
-    dentro = await salas.presentes(curso.course_uuid) if ajustes["activo"] and con_clave else []
+    course_uuid_, nombre = curso.course_uuid, curso.name
+    # La conexión a la base de datos se devuelve ANTES de preguntar a Daily
+    # (23/11/2026): si Daily tarda, que no se queden las conexiones ocupadas
+    # esperando y el resto de la escuela en cola.
+    await db_session.close()
+    dentro = await salas.presentes(course_uuid_) if ajustes["activo"] and con_clave else []
     return {
         **ajustes,
-        "curso": curso.name,
+        "curso": nombre,
         "con_clave": con_clave,
         "presentes": dentro,
         "equipo": equipo,
@@ -152,13 +157,15 @@ async def api_entrar(
     ajustes = await salas.config_de(curso.org_id, curso.course_uuid, db_session)
     if not ajustes["activo"]:
         raise HTTPException(status_code=409, detail="La sala de este curso no está abierta")
+    course_uuid_, nombre = curso.course_uuid, curso.name
+    await db_session.close()  # ver api_sala: no esperar a Daily con la conexión ocupada
     try:
-        datos = await salas.entrar(curso.course_uuid, current_user, equipo, ajustes["grabar"])
+        datos = await salas.entrar(course_uuid_, current_user, equipo, ajustes["grabar"])
     except salas.SalaError as exc:
         raise _error(exc) from exc
     # `grabar` es siempre verdad desde el 02/11: cualquiera que entra arranca
     # la grabación, sin botón ni aviso en la sala.
-    return {**datos, "curso": curso.name, "grabar": ajustes["grabar"]}
+    return {**datos, "curso": nombre, "grabar": ajustes["grabar"]}
 
 
 @router.post(

@@ -28,8 +28,14 @@ def _build_pool() -> Optional[redis.ConnectionPool]:
         return redis.ConnectionPool.from_url(
             conn_string,
             max_connections=20,
-            socket_connect_timeout=2,
-            socket_timeout=5,
+            # Cortos a propósito (23/11/2026; antes 2 s y 5 s). Este cliente es
+            # SÍNCRONO y se usa dentro de rutas async: mientras espera, se para
+            # TODA la API. Redis está en la red interna de Railway y contesta en
+            # milisegundos; si no contesta en 1 s es que está caído, y todo lo
+            # que lo usa ya sigue sin él (falla en abierto).
+            socket_connect_timeout=0.5,
+            socket_timeout=1.0,
+            health_check_interval=30,
         )
     except Exception:
         logger.debug("Redis pool creation failed — cache disabled", exc_info=True)
