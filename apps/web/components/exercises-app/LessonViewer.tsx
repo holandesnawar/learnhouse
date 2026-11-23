@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from 'react';
 import Link from 'next/link';
 import type { Lesson, CourseModule, VocabularyItem, PhraseItem, ExerciseItem, Dialogue, SummaryBlock, SprekenBlock } from '@/lib/exercises-app/types';
 import {
@@ -23,6 +23,7 @@ import { barajar, barajarSinCoincidir, barajarSinResolver } from '@/lib/exercise
 import { markLessonCompletedRemote, patchStudentProgress, listLessonCompletions } from '@services/student/progress';
 import { audioListo, precargarVoz, siguientes } from '@/lib/nawar/vozPrecarga';
 import { confirmar } from '@lib/nawar/confirmar'
+import AvisarFallo, { ContextoFallo } from './AvisarFallo';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPERS
@@ -3269,7 +3270,40 @@ function ListenTranslateExercise({ exercise, onAnswer }: { exercise: ExerciseIte
   );
 }
 
+/**
+ * Un ejercicio y, debajo, «¿Ves un fallo? Avísanos» (23/11/2026). Es el único
+ * sitio por el que pasan TODOS los ejercicios (los de Oefeningen, las
+ * preguntas de Lezen y de Luisteren y Spreken), así que el enlace va aquí y no
+ * en cada tipo. Se queda con lo último que contestó el alumno para mandarlo
+ * con el aviso.
+ */
 function ExerciseStep({
+  exercise,
+  onAnswer,
+  initialAnswer,
+}: {
+  exercise: ExerciseItem;
+  onAnswer: (correct: boolean, answer: string) => void;
+  initialAnswer?: string;
+}) {
+  // Con el id: algunas secciones reutilizan este componente para el ejercicio
+  // siguiente, y la respuesta de uno no es la del otro.
+  const [contestado, setContestado] = useState<{ id: string; respuesta: string } | null>(null);
+  const id = exercise?.id;
+  const alContestar = useCallback((correct: boolean, answer: string) => {
+    if (id) setContestado({ id, respuesta: answer });
+    onAnswer(correct, answer);
+  }, [onAnswer, id]);
+  if (!exercise) return null;
+  return (
+    <>
+      <ExerciseBody exercise={exercise} onAnswer={alContestar} initialAnswer={initialAnswer} />
+      <AvisarFallo key={exercise.id} exercise={exercise} respuesta={contestado?.id === exercise.id ? contestado.respuesta : initialAnswer} />
+    </>
+  );
+}
+
+function ExerciseBody({
   exercise,
   onAnswer,
   initialAnswer,
@@ -4963,6 +4997,19 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
   // Modo repaso (desde "Mi progreso"): ?repaso=1 ejecuta solo los fallos.
   const [reviewMode, setReviewMode] = useState(false);
 
+  // Dónde está el alumno, para «¿Ves un fallo? Avísanos» de cada ejercicio.
+  const dondeDelFallo = useMemo(
+    () => ({
+      lessonId: lesson?.id || '',
+      leccion: lesson?.title || '',
+      modulo: module?.title || '',
+      seccion: (forcedSection || activeSection || '') as string,
+      courseUuid: courseLocation?.courseUuid,
+      activityUuid: courseLocation?.activityUuid,
+    }),
+    [lesson?.id, lesson?.title, module?.title, forcedSection, activeSection, courseLocation?.courseUuid, courseLocation?.activityUuid],
+  );
+
   // ── Tiempo invertido en la lección ─────────────────────────────────────
   // Acumula segundos SOLO mientras la pestaña está visible. Se vuelca al
   // backend (lesson_completion.time_seconds, que suma incrementos) al terminar
@@ -5261,6 +5308,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
       activityUuid={courseLocation?.activityUuid}
       nombre={lesson?.title || ''}
     >
+    <ContextoFallo.Provider value={dondeDelFallo}>
       {/* ── Header ── In a course the activity page already shows the lesson
            name, so we drop the big banner-like title + extra padding and keep
            only the "back to parts" link (whole-lesson mode). ── */}
@@ -5463,6 +5511,7 @@ export default function LessonViewer({ lesson, module, prevLesson: _prev, nextLe
          </div>
         </div>
       </div>
+    </ContextoFallo.Provider>
     </ProveedorResaltado>
   );
 }

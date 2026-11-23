@@ -85,6 +85,7 @@ import {
   Lightbulb,
   VideoCamera,
   Pulse,
+  Flag,
 } from '@phosphor-icons/react'
 
 export type Item = {
@@ -208,6 +209,8 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
       { href: '/dash/courses', label: 'Cursos', icon: I(BookOpen), claves: 'formacion clases modulos' },
       // El tablero de los profes (04/11), el mismo que ven ellos en la escuela.
       { href: '/dash/estadisticas?tab=profes', label: 'Clases de los profes', icon: I(ChalkboardTeacher), claves: 'profesores masterclass spreekclub presentacion grabacion' },
+      // «¿Ves un fallo? Avísanos» de cada ejercicio (23/11/2026).
+      { href: '/dash/estadisticas?tab=fallos', label: 'Fallos avisados', icon: I(Flag), claves: 'errores ejercicios leccion alumnos avisan corregir courseData' },
       { href: '/dash/workflows', label: 'Automatizaciones', icon: I(Lightning), claves: 'workflows' },
     ],
   },

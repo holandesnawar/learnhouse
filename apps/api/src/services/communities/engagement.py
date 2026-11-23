@@ -956,6 +956,14 @@ async def _tareas_items(user_id: int, org_ids: List[int], db_session: AsyncSessi
         admin = superadmin or await is_org_admin(user_id, org_id, db_session)
         if admin or await is_org_staff(user_id, org_id, db_session):
             out.extend(await avisos_equipo(org_id, admin, db_session, user_id))
+            # «N avisos de fallos en ejercicios» (23/11/2026), a los administradores.
+            if admin:
+                try:
+                    from src.services.ejercicios.avisos import para_la_campana
+
+                    out.extend(await para_la_campana(org_id, db_session))
+                except Exception:  # noqa: BLE001
+                    await db_session.rollback()
             # El mensaje del administrador para el profe de esa clase (09/11/2026).
             if not admin:
                 try:

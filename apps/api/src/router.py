@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo, estudio, reto, pizarra, resenas, grabaciones, estado, lecturas, produccion
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo, estudio, reto, pizarra, resenas, grabaciones, estado, lecturas, produccion, fallos
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -517,6 +517,15 @@ v1_router.include_router(
     lecturas.router,
     prefix="/lecturas",
     tags=["lecturas"],
+)
+
+# «¿Ves un fallo? Avísanos» (23/11/2026): lo que un alumno avisa de un
+# ejercicio. Avisar, quien esté dentro; verlo, el equipo; cerrarlo,
+# administradores (comprobado en cada ruta). Ver `src/routers/fallos.py`.
+v1_router.include_router(
+    fallos.router,
+    prefix="/fallos",
+    tags=["fallos"],
 )
 
 # Webs: enlaces cortos y redirecciones de holandesnawar.com, editables desde
