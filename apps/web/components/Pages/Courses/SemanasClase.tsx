@@ -745,6 +745,10 @@ export default function SemanasClase({
     !!sem.notas_clase ||
     !!sem.grabacion_sala ||
     (sem.clases || []).some((c) => c.tipo === 'grabacion')
+  const proximaOculta: Semana | null =
+    !equipo && sencilla
+      ? [semanaActual, semanaProxima].find((sem): sem is Semana => !!sem && !seVe(sem) && !!sem.fecha && sem.fecha >= hoy) || null
+      : null
   const mesDe = (l: (typeof lineas)[number]) => {
     const f = 'semana' in l ? l.semana.fecha : l.suelta.fecha
     return (f || '').slice(0, 7)
@@ -810,6 +814,30 @@ export default function SemanasClase({
 
       {semanaActual && seVe(semanaActual) ? bloque('Esta semana', semanaActual) : null}
       {semanaProxima && seVe(semanaProxima) ? bloque(semanaActual && seVe(semanaActual) ? 'La semana que viene' : t('Próxima clase'), semanaProxima) : null}
+      {/* La Masterclass y el Spreek Club esconden la sesión hasta que se da
+          (arriba, `seVe`), y con ella se iba el «¿Vienes?», que solo salía en
+          el Inicio (23/11/2026, la cuenta de pruebas de Belén). Ahora la
+          próxima sesión escondida sale en una línea: día, tema y «¿Vienes?»,
+          sin la presentación ni nada más de dentro. */}
+      {proximaOculta ? (
+        <section className="mt-6 rounded-2xl border border-[#E4E8F2] bg-white px-5 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <p className="text-[12.5px] font-semibold text-[#0b2da0]">
+              <span className="uppercase tracking-[0.08em]">{t('Próxima clase')}</span>
+              <span className="text-[#8A91AD] font-medium"> · {diaCorto(proximaOculta.fecha)}</span>
+            </p>
+            {proximaOculta.tema ? (
+              <h2 className="mt-1 text-[19px] font-bold text-[#0B1033] leading-tight" style={POPPINS}>
+                {proximaOculta.tema}
+              </h2>
+            ) : null}
+          </div>
+          <div className="shrink-0 flex items-center gap-3">
+            <span className="text-[13px] text-[#6B7393]">¿Vienes?</span>
+            <Vienes semana={proximaOculta} courseUuid={courseUuid} segmento textos={['Asistiré', 'No puedo']} />
+          </div>
+        </section>
+      ) : null}
       {anterioresBloque}
       {equipo ? plegables('Más adelante', masAdelante) : null}
 
