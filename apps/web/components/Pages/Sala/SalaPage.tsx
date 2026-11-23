@@ -85,6 +85,7 @@ import EtiquetaCurso from '@components/Pages/Courses/EtiquetaCurso'
 import { ajustesDirecto } from '@/lib/nawar/cursos'
 import { textosDeClase } from '@/lib/nawar/palabraClase'
 import { useCursosEnDirecto } from '@/hooks/queries/useCursosEnDirecto'
+import SafeArea from '@components/Objects/StyledElements/Error/SafeArea'
 
 // La pizarra solo se carga si el profe la abre (pdf.js pesa).
 const PizarraClase = dynamic(() => import('@components/Pages/Pizarra/PizarraClase'), { ssr: false })
@@ -961,6 +962,11 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
                       </div>
                     )}
                     <div className="min-h-0 flex-1">
+                      {/* Cortafuegos (23/11/2026): si la pizarra se rompe, se
+                          rompe SOLO la pizarra. Sin esto, React tiraba la página
+                          entera de la sala, la llamada se cortaba y el profe
+                          salía de la clase («lo expulsa al escribir»). */}
+                      <SafeArea nombre="la pizarra" key={`zona-${semanaId}`}>
                       <PizarraClase
                         key={semanaId}
                         semanaId={String(semanaId)}
@@ -976,6 +982,7 @@ export default function SalaPage({ courseUuid }: { courseUuid: string }) {
                           },
                         }}
                       />
+                      </SafeArea>
                     </div>
                   </div>
                 )}
