@@ -237,6 +237,8 @@ def _carta_layout(title: str, body_content: str) -> str:
         a {{ text-decoration: none; }}
         @media (prefers-color-scheme: dark) {{
             .carta p {{ color: #e6e8ef !important; }}
+            .carta p.carta-rotulo {{ color: #9aa3b5 !important; }}
+            .carta a.carta-enlace {{ color: #7db9ff !important; }}
             .carta-pie p, .carta-pie a {{ color: #9aa3b5 !important; }}
         }}
     </style>
@@ -630,48 +632,129 @@ def send_payment_welcome_email(
     )
 
 
+ESTILO_RESUMEN_ROTULO = "margin: 26px 0 6px 0; font-size: 13px; line-height: 1.4; color: #5b6478; font-weight: 600;"
+ESTILO_RESUMEN_LINEA = "margin: 0 0 8px 0; font-size: 16px; line-height: 1.6; color: #1f2430; font-weight: 400;"
+ESTILO_RESUMEN_ENLACE = "color: #025dc7; font-weight: 600; text-decoration: underline;"
+
+
+def _resumen_enlace(texto: str, url: str) -> str:
+    if not url:
+        return ""
+    return f' <a href="{html.escape(url, quote=True)}" class="carta-enlace" style="{ESTILO_RESUMEN_ENLACE}">{html.escape(texto)}</a>'
+
+
+def cuerpo_del_resumen(resumen: dict, hoy=None) -> str:
+    """Las partes del resumen semanal, en HTML. Solo salen las que traen algo.
+    Todo lo que viene de la escuela (temas, nombres de clases) va escapado."""
+    from src.services.notifications.resumen_semanal import cuando_cae, dia_corto
+
+    def rotulo(texto: str) -> str:
+        return f'<p class="carta-rotulo" style="{ESTILO_RESUMEN_ROTULO}">{html.escape(texto)}</p>'
+
+    def linea(contenido: str) -> str:
+        return f'<p style="{ESTILO_RESUMEN_LINEA}">{contenido}</p>'
+
+    partes: list[str] = []
+
+    clases = resumen.get("clases") or []
+    if clases:
+        partes.append(rotulo("En directo esta semana"))
+        for c in clases:
+            cuando = cuando_cae(c.get("fecha") or "", hoy) if hoy else f"el {dia_corto(c.get('fecha') or '')}"
+            hora = f" a las {html.escape(c['hora'])}" if c.get("hora") else ""
+            tema = f" Tema: {html.escape(c['tema'])}." if c.get("tema") else ""
+            palabra = html.escape(c.get("palabra") or "clase")
+            partes.append(
+                linea(
+                    f"<strong>{html.escape(c.get('curso') or '')}</strong>: tienes {palabra} {html.escape(cuando)}{hora}.{tema}"
+                    + _resumen_enlace("Ver la " + (c.get("palabra") or "clase"), c.get("url") or "")
+                )
+            )
+
+    f = resumen.get("formacion")
+    if f:
+        toca = f.get("toca") or {}
+        partes.append(rotulo("Tu formación"))
+        partes.append(linea(html.escape(f.get("texto") or "")))
+        if toca.get("clase"):
+            antes = "Dejaste a medias" if toca.get("a_medias") else "Te toca"
+            modulo = f" ({html.escape(toca['modulo'])})" if toca.get("modulo") else ""
+            partes.append(linea(f"{antes}: <strong>{html.escape(toca['clase'])}</strong>{modulo}."))
+        if f.get("url"):
+            partes.append(
+                f'<p style="margin: 14px 0 6px 0;"><a href="{html.escape(f["url"], quote=True)}" class="brand-btn" '
+                f'style="{STYLES["button"]}">{html.escape(txt("weekly_digest", "boton"))}</a></p>'
+            )
+
+    tareas = resumen.get("tareas") or []
+    corregidas = resumen.get("corregidas") or []
+    if tareas or corregidas:
+        partes.append(rotulo("Tu tarea"))
+        for c in corregidas:
+            de = f" de «{html.escape(c['tema'])}»" if c.get("tema") else ""
+            quien = f"{html.escape(c['por'])} ha corregido tu tarea{de}." if c.get("por") else f"Tu tarea{de} ya está corregida."
+            partes.append(linea(quien + _resumen_enlace("Ver la corrección", c.get("url") or "")))
+        for t in tareas:
+            de = f" de «{html.escape(t['tema'])}»" if t.get("tema") else ""
+            hasta = f" Tienes hasta el {html.escape(t['hasta'])}." if t.get("hasta") else ""
+            partes.append(linea(f"Te queda por entregar la tarea{de}.{hasta}" + _resumen_enlace("Hacer la tarea", t.get("url") or "")))
+
+    lectura = resumen.get("lectura")
+    if lectura and lectura.get("titulo"):
+        partes.append(rotulo("Lectura de la semana"))
+        partes.append(linea(f"«{html.escape(lectura['titulo'])}»." + _resumen_enlace("Leerla", lectura.get("url") or "")))
+
+    return "\n".join(partes)
+
+
 def send_weekly_digest_email(
     email: EmailStr,
     name: str = "alumno/a",
-    lessons_done: int = 3,
-    progress_pct: int = 45,
-    next_lesson: str = "1.4 Lezen — Anna & Marco",
+    resumen: Optional[dict] = None,
+    baja_url: str = "",
+    hoy=None,
     preview: bool = False,
 ):
-    """Lunes por la mañana: resumen de la semana del alumno."""
-    safe_name = html.escape(name)
-    safe_next = html.escape(next_lesson)
-    heading = txt("weekly_digest", "titulo", nombre=safe_name)
+    """El resumen semanal del alumno (lunes por la mañana).
 
-    body_content = f"""
-        <h1 style="{STYLES['h1']}">{heading}</h1>
-        {parrafos(txt("weekly_digest", "cuerpo", nombre=name), STYLES['p'])}
-        <ul style="padding: 0; margin: 0 0 24px 0; list-style: none; text-align: left;">
-            <li style="margin: 0 0 8px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
-                ✅ <strong>{lessons_done} lecciones</strong> completadas
-            </li>
-            <li style="margin: 0 0 8px 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
-                🎯 Vas por el <strong>{progress_pct}%</strong> del Module 1
-            </li>
-            <li style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.78); line-height: 1.6;">
-                📌 Te toca <strong>{safe_next}</strong>
-            </li>
-        </ul>
-        {parrafos(txt("weekly_digest", "cierre", nombre=name), STYLES['p'])}
-        <a href="{RUTA_FORMACION_URL}" class="brand-btn" style="{STYLES['button']}">
-            {html.escape(txt("weekly_digest", "boton"))}
-        </a>
+    `resumen` es lo que arma `services/notifications/resumen_semanal.py` con
+    los datos de ESE alumno: sus clases en directo de la semana, cómo va en la
+    formación y qué le toca, su tarea y la lectura. Sin él, un ejemplo creíble
+    (para el catálogo de correos). `baja_url`: su enlace para no recibirlo más.
+    Es una carta: letra grande, sin banner, y se contesta a info@.
     """
+    if resumen is None:
+        from src.services.notifications.resumen_semanal import resumen_de_ejemplo
+
+        resumen = resumen_de_ejemplo(hoy)
+    nombre = name if name and name != "alumno/a" else (resumen.get("nombre") or "alumno/a")
+    heading = txt("weekly_digest", "titulo", nombre=html.escape(nombre))
+    pie = html.escape(txt("weekly_digest", "pie"))
+    baja = (
+        f' <a href="{html.escape(baja_url, quote=True)}" style="color: #8a90a0; text-decoration: underline;">No quiero recibir este resumen</a>.'
+        if baja_url
+        else ""
+    )
+
+    body_content = "\n".join(
+        p
+        for p in [
+            f'<p style="margin: 0 0 12px 0; font-size: 21px; line-height: 1.3; color: #0a1656; font-weight: 600;">{heading}</p>',
+            parrafos(txt("weekly_digest", "cuerpo", nombre=nombre), ESTILO_CARTA_P.replace("0 0 18px 0", "0 0 4px 0")),
+            cuerpo_del_resumen(resumen, hoy),
+            '<div style="height: 26px; line-height: 26px; font-size: 0;">&nbsp;</div>',
+            parrafos(txt("weekly_digest", "cierre", nombre=nombre), ESTILO_CARTA_P),
+            f'<p class="carta-rotulo" style="margin: 8px 0 0 0; font-size: 12px; line-height: 1.6; color: #8a90a0;">{pie}{baja}</p>',
+        ]
+        if p
+    )
 
     return send_email(
         dry_run=preview,
         to=email,
-        subject=txt("weekly_digest", "asunto", nombre=name),
-        body=_email_layout(
-            title=heading,
-            body_content=body_content,
-            footer_note="Recibes este resumen cada lunes para no perderte nada de tu formación.",
-        ),
+        subject=txt("weekly_digest", "asunto", nombre=nombre),
+        body=_carta_layout(title=heading, body_content=body_content),
+        reply_to=SUPPORT_EMAIL,
     )
 
 

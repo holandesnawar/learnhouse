@@ -684,6 +684,13 @@ export default function FichaAlumno({
                     ? `${haceDias(alumno.ultimo_recordatorio.sent_at)}${alumno.ultimo_recordatorio.por ? `, por ${alumno.ultimo_recordatorio.por}` : ''}`
                     : 'Ninguno todavía'}
                 </Prop>
+                <Prop t="Resumen semanal">
+                  {alumno.resumen?.baja
+                    ? 'Se dio de baja: no lo recibe'
+                    : alumno.resumen?.ultimo
+                      ? `El último, ${haceDias(alumno.resumen.ultimo)}`
+                      : 'Aún no ha recibido ninguno'}
+                </Prop>
               </Props>
               <Sec titulo="Por módulo" extra={<span className="text-[#8A93A3]">{alumno.por_avance ? 'Se abren por avance: 80 % del anterior' : 'Por las fechas de la primera convocatoria'}</span>}>
                 {modulos}

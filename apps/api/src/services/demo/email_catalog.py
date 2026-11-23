@@ -123,7 +123,7 @@ _CATALOG: Dict[str, Dict] = {
     },
     "weekly_digest": {
         "name": "Resumen semanal",
-        "when": "Plantilla lista, todavía sin disparador automático.",
+        "when": "Los lunes por la mañana, a cada alumno con lo suyo de esa semana. Apagado de serie: se enciende en Correos y avisos → Resumen semanal.",
         "build": lambda to, name: E.send_weekly_digest_email(
             email=to, name=name, preview=True
         ),

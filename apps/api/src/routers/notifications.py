@@ -230,3 +230,126 @@ async def api_llamadas_grabadas(
 
     return await clasificar(datos.llamadas, db_session)
 
+
+
+# ── El resumen semanal (23/11/2026, services/notifications/resumen_semanal.py) ──
+
+
+@router.post(
+    "/resumen-semanal",
+    summary="Manda a cada alumno su resumen de la semana. La llama una tarea los lunes.",
+)
+async def api_resumen_semanal(
+    request: Request,
+    org_id: int = 1,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Misma puerta que `/drip-diario` (secreto compartido). Apagado en Correos
+    y avisos (de serie), no manda nada y solo dice a cuántos les tocaría. Uno
+    por alumno y semana aunque se llame dos veces. Solo cifras en la respuesta."""
+    esperado = (os.environ.get("LEARNHOUSE_CRON_TOKEN") or "").strip()
+    if not esperado:
+        raise HTTPException(status_code=503, detail="Cron token not configured")
+    recibido = (request.headers.get(CABECERA_SECRETO) or "").strip()
+    if not recibido or not _mismo_secreto(recibido, esperado):
+        raise HTTPException(status_code=401, detail="Bad cron token")
+    from src.services.notifications.resumen_semanal import enviar_semana
+
+    resultado = await enviar_semana(org_id, db_session)
+    logger.info("Resumen semanal: %s", resultado)
+    return resultado
+
+
+def _pagina_resumen(titulo: str, texto: str, boton: str = "", accion: str = "", enlace: str = ""):
+    """Una página suelta con la marca, para el enlace «No quiero recibir este
+    resumen». `accion` = a dónde manda el botón por POST (la baja no se hace
+    con solo ABRIR el enlace: los filtros de correo abren los enlaces solos y
+    darían de baja a quien no lo ha pedido). `enlace` = un enlace normal."""
+    import html as _html
+
+    from fastapi.responses import HTMLResponse
+
+    estilo = (
+        "display:inline-block;margin-top:22px;padding:13px 26px;background:#4da3ff;color:#0a1656;"
+        "border:0;border-radius:10px;font:700 16px Inter,-apple-system,Segoe UI,Roboto,Arial,sans-serif;"
+        "text-decoration:none;cursor:pointer"
+    )
+    pieza = ""
+    if boton and accion:
+        pieza = f'<form method="post" action="{_html.escape(accion, quote=True)}" style="margin:0"><button type="submit" style="{estilo}">{_html.escape(boton)}</button></form>'
+    elif boton and enlace:
+        pieza = f'<a href="{_html.escape(enlace, quote=True)}" style="{estilo}">{_html.escape(boton)}</a>'
+    return HTMLResponse(
+        f"""<!doctype html><html lang="es" translate="no"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>{_html.escape(titulo)} · Holandés Nawar</title></head>
+<body style="margin:0;background:#F0F5FF;font-family:Inter,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#171a2e">
+<main style="max-width:520px;margin:12vh auto;padding:32px 24px;background:#fff;border-radius:16px;border:1px solid #DDE6F5">
+<h1 style="margin:0 0 12px;font-size:24px;color:#1D0084">{_html.escape(titulo)}</h1>
+<p style="margin:0;font-size:16px;line-height:1.6">{_html.escape(texto)}</p>{pieza}
+</main></body></html>"""
+    )
+
+
+def _enlace_malo():
+    return _pagina_resumen(
+        "Este enlace no vale",
+        "El enlace está mal copiado o ha caducado. Escríbenos a info@holandesnawar.com y lo quitamos nosotros.",
+    )
+
+
+@router.get(
+    "/resumen-semanal/baja/{token}",
+    summary="«No quiero recibir este resumen»: la página del enlace del correo.",
+    include_in_schema=False,
+)
+async def api_resumen_baja_ver(token: str, db_session: AsyncSession = Depends(get_db_session)):
+    from src.services.notifications import resumen_semanal as R
+
+    user_id = R.leer_token(token)
+    if not user_id:
+        return _enlace_malo()
+    aqui = f"/api/v1/notifications/resumen-semanal/baja/{token}"
+    if await R.esta_de_baja(user_id, db_session):
+        return _pagina_resumen(
+            "Ya no recibes el resumen semanal",
+            "No te mandaremos más el resumen de los lunes. Lo demás de la escuela sigue igual. Si cambias de idea, puedes volver a recibirlo.",
+            "Quiero volver a recibirlo",
+            accion=f"{aqui}?volver=1",
+        )
+    return _pagina_resumen(
+        "¿Dejar de recibir el resumen semanal?",
+        "Es el correo de los lunes con tus clases de la semana y por dónde vas en la formación. Si lo quitas, lo demás de la escuela sigue igual.",
+        "Sí, no quiero recibirlo",
+        accion=aqui,
+    )
+
+
+@router.post(
+    "/resumen-semanal/baja/{token}",
+    summary="Da de baja (o vuelve a apuntar) a esa persona del resumen semanal.",
+    include_in_schema=False,
+)
+async def api_resumen_baja(token: str, volver: int = 0, db_session: AsyncSession = Depends(get_db_session)):
+    from src.services.notifications import resumen_semanal as R
+    from src.services.users.emails import ACADEMY_URL
+
+    user_id = R.leer_token(token)
+    if not user_id:
+        return _enlace_malo()
+    aqui = f"/api/v1/notifications/resumen-semanal/baja/{token}"
+    if volver:
+        await R.volver_a_apuntar(user_id, db_session)
+        return _pagina_resumen(
+            "Hecho: vuelves a recibirlo",
+            "Te llegará el resumen los lunes, como antes.",
+            "Entrar a la escuela",
+            enlace=ACADEMY_URL,
+        )
+    await R.dar_de_baja(user_id, db_session)
+    return _pagina_resumen(
+        "Hecho: ya no recibes el resumen semanal",
+        "No te mandaremos más el resumen de los lunes. Lo demás de la escuela sigue igual. Si ha sido sin querer, puedes volver a recibirlo.",
+        "Quiero volver a recibirlo",
+        accion=f"{aqui}?volver=1",
+    )
