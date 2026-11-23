@@ -73,17 +73,22 @@ CAMPOS: Dict[str, Dict[str, Campo]] = {
         "pie": Campo("Nota del pie", "Te avisamos cada vez que abres un módulo nuevo.", []),
     },
     "weekly_digest": {
-        "asunto": Campo("Asunto", "Tu semana en Holandés Nawar", ["nombre"]),
-        "titulo": Campo("Título dentro del correo", "Tu semana en Holandés Nawar", ["nombre"]),
+        "asunto": Campo("Asunto", "Tu semana en la escuela", ["nombre"]),
+        "titulo": Campo("Título dentro del correo", "Tu semana en la escuela", ["nombre"]),
         "cuerpo": Campo(
             "Texto de arriba",
-            "Hola {nombre}, esto es lo que ha pasado esta semana en la escuela:",
+            "Hola {nombre}, esto es lo que tienes esta semana:",
             ["nombre"],
             largo=True,
         ),
-        "cierre": Campo("Texto de debajo del resumen", "Vamos a por la siguiente.", ["nombre"], largo=True),
-        "boton": Campo("Texto del botón", "Continuar mi formación", []),
-        "pie": Campo("Nota del pie", "Recibes este resumen cada lunes.", []),
+        "cierre": Campo(
+            "Texto de debajo del resumen",
+            "Que tengas buena semana.\nEl equipo de Holandés Nawar",
+            ["nombre"],
+            largo=True,
+        ),
+        "boton": Campo("Texto del botón (lleva a la clase que le toca)", "Seguir donde lo dejé", []),
+        "pie": Campo("Nota del pie", "Recibes este resumen los lunes porque eres alumno de la escuela.", []),
     },
     "class_scheduled": {
         "asunto": Campo("Asunto", "{titulo} — {cuando}", ["titulo", "cuando", "nombre"]),

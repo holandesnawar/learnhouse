@@ -4,11 +4,12 @@ import AvisosComposer from './AvisosComposer'
 import EmailCatalog from './EmailCatalog'
 import SeedCommunity from './SeedCommunity'
 import RecordatorioAuto, { RecordatorioDelPlan } from './RecordatorioAuto'
+import ResumenSemanal from './ResumenSemanal'
 import CorreoReserva from './CorreoReserva'
 import EbookBlackFriday from './EbookBlackFriday'
 import CorreosPanel from '../Panel/CorreosPanel'
 import CabeceraPagina from '../Panel/Cabecera'
-import { Mail, PenLine, Inbox, Sparkles, BellRing, CalendarCheck, BookOpen, Users } from 'lucide-react'
+import { Mail, PenLine, Inbox, Sparkles, BellRing, CalendarCheck, CalendarDays, BookOpen, Users } from 'lucide-react'
 
 /**
  * La pantalla de Avisos tiene tres caras:
@@ -16,6 +17,8 @@ import { Mail, PenLine, Inbox, Sparkles, BellRing, CalendarCheck, BookOpen, User
  *  - Correos automáticos: los que la escuela manda sola, para verlos por dentro.
  *  - 1 semana sin entrar: el recordatorio que sale solo (con su interruptor,
  *    apagado de serie) y su texto, que se edita aquí.
+ *  - Resumen semanal (23/11/2026): el correo de los lunes a cada alumno con lo
+ *    suyo de esa semana, con su interruptor (apagado de serie).
  *  - Al reservar: el correo de Rida a quien reserva su llamada en Calendly.
  *  - Ebook Black Friday: el ebook a 1 €, su PDF y su campaña de correos.
  *  - Arranque: sembrar la comunidad antes de que entren los primeros alumnos.
@@ -24,12 +27,12 @@ import { Mail, PenLine, Inbox, Sparkles, BellRing, CalendarCheck, BookOpen, User
  *    lo mismo, «Correos» y «Avisos y correos»; ahora es una, «Correos y avisos».
  */
 export default function AvisosTabs() {
-  const [tab, setTab] = useState<'escribir' | 'campana' | 'automaticos' | 'semana' | 'reserva' | 'ebook' | 'arranque'>('escribir')
+  const [tab, setTab] = useState<'escribir' | 'campana' | 'automaticos' | 'semana' | 'resumen' | 'reserva' | 'ebook' | 'arranque'>('escribir')
   // Se puede entrar directo a una pestaña con ?tab= (tras pintar, para que el
   // servidor y el navegador empiecen igual).
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('tab')
-    if (t === 'ebook' || t === 'reserva' || t === 'semana' || t === 'automaticos' || t === 'campana') setTab(t)
+    if (t === 'ebook' || t === 'reserva' || t === 'semana' || t === 'resumen' || t === 'automaticos' || t === 'campana') setTab(t)
   }, [])
 
   const tabClass = (active: boolean) =>
@@ -66,6 +69,10 @@ export default function AvisosTabs() {
           <BellRing size={16} />
           1 semana sin entrar
         </button>
+        <button className={tabClass(tab === 'resumen')} onClick={() => setTab('resumen')}>
+          <CalendarDays size={16} />
+          Resumen semanal
+        </button>
         <button className={tabClass(tab === 'reserva')} onClick={() => setTab('reserva')}>
           <CalendarCheck size={16} />
           Al reservar
@@ -91,6 +98,8 @@ export default function AvisosTabs() {
           <RecordatorioDelPlan />
           <RecordatorioAuto />
         </div>
+      ) : tab === 'resumen' ? (
+        <ResumenSemanal />
       ) : tab === 'reserva' ? (
         <CorreoReserva />
       ) : tab === 'ebook' ? (

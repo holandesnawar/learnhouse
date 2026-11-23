@@ -1,0 +1,46 @@
+# El resumen semanal de cada alumno.
+#
+# Los lunes por la mañana la escuela le manda a cada alumno un correo con lo
+# suyo de esa semana: sus clases en directo, por dónde va en la formación y a
+# qué clase le toca volver, su tarea y la lectura. APAGADO de serie: se
+# enciende en Correos y avisos → Resumen semanal; apagado, esta tarea solo
+# dice a cuántos les tocaría. Uno por alumno y semana aunque se lance dos
+# veces. Ver apps/api/src/services/notifications/resumen_semanal.py.
+#
+# El registro de este repositorio es público: la escuela solo contesta cifras.
+name: Resumen semanal de los alumnos
+
+on:
+  schedule:
+    # Lunes, 08:23 en Países Bajos en invierno (09:23 en verano). Fuera de la
+    # hora en punto: GitHub retrasa lo que cae en :00.
+    - cron: '23 7 * * 1'
+    # Segunda vuelta, tres horas después: por si la primera no salió o algún
+    # correo falló. A quien ya lo tiene no se le repite.
+    - cron: '23 10 * * 1'
+  workflow_dispatch:
+
+jobs:
+  resumen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pedirle a la escuela que mande los resúmenes
+        run: |
+          set -euo pipefail
+          # La escuela manda una tanda cada vez y dice cuántos quedan.
+          for vuelta in 1 2 3 4 5 6; do
+            respuesta=$(curl -sS --max-time 300 -w '\n%{http_code}' -X POST \
+              -H "X-Cron-Token: ${{ secrets.SCHOOL_CRON_TOKEN }}" \
+              "${{ secrets.SCHOOL_URL }}/api/v1/notifications/resumen-semanal")
+            cuerpo=$(echo "$respuesta" | head -n -1)
+            codigo=$(echo "$respuesta" | tail -n 1)
+            echo "Vuelta $vuelta: $cuerpo"
+            if [ "$codigo" != "200" ]; then
+              echo "La escuela respondió $codigo" >&2
+              exit 1
+            fi
+            quedan=$(echo "$cuerpo" | jq -r '.quedan // 0')
+            if [ "$quedan" = "0" ]; then
+              break
+            fi
+          done

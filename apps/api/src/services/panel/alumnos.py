@@ -352,11 +352,20 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession, solo: Optional[i
 
     # Último recordatorio mandado a cada uno, para no repetir sin darse cuenta.
     ultimos: dict[int, dict] = {}
+    resumenes: dict[int, dict] = {}
     for r in (
         await db_session.execute(
             select(StudentReminder).where(StudentReminder.user_id.in_(ids)).order_by(StudentReminder.id)  # type: ignore[attr-defined]
         )
     ).scalars().all():
+        # El resumen semanal guarda aquí sus marcas (enviado / no lo quiere):
+        # no es un recordatorio del equipo y no cuenta como «le recordaste».
+        if r.tipo == "resumen":
+            resumenes.setdefault(int(r.user_id), {"baja": False, "ultimo": ""})["ultimo"] = r.sent_at
+            continue
+        if r.tipo == "resumen-baja":
+            resumenes.setdefault(int(r.user_id), {"baja": False, "ultimo": ""})["baja"] = True
+            continue
         ultimos[int(r.user_id)] = {"sent_at": r.sent_at, "tipo": r.tipo, "por": r.sent_by}
     # El WhatsApp de la matrícula, para escribirle con un toque.
     telefonos: dict[str, str] = {}
@@ -387,6 +396,8 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession, solo: Optional[i
         lecturas_org, de_lecturas = [], {}
     for a in alumnos:
         a["ultimo_recordatorio"] = ultimos.get(a["user_id"])
+        # El resumen semanal: si se dio de baja y cuándo recibió el último.
+        a["resumen"] = resumenes.get(a["user_id"]) or {"baja": False, "ultimo": ""}
         a["lecturas"] = R.para_progreso(de_lecturas.get(a["user_id"]), lecturas_org) if lecturas_org else []
         a["telefono"] = telefonos.get(a["email"], "")
         a["plan"] = planes.get(a["user_id"])
