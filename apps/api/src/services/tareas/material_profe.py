@@ -332,7 +332,6 @@ async def avisos_de_mensajes(org_id: int, user_id: int, db_session) -> list[dict
     from src.db.tareas import TareaSemana
     from src.db.users import User
     from src.services.panel.tandas import hoy_nl
-    from src.services.salas import salas as S
 
     yo = (await db_session.execute(select(User).where(User.id == user_id))).scalars().first()
     if not yo or not (yo.first_name or "").strip():
@@ -360,9 +359,15 @@ async def avisos_de_mensajes(org_id: int, user_id: int, db_session) -> list[dict
         quien = m.get("profe") or ""
         if not quien:
             if s.course_uuid not in recuadros:
+                # El «La da» de la clase vive en el recuadro de la sala
+                # (`salas[uuid].banner`). Antes se buscaba en `config_de`, que
+                # solo devuelve si la sala está encendida: salía siempre vacío
+                # y el aviso no llegaba a quien da la clase entera (23/11/2026).
                 try:
-                    cfg = await S.config_de(org_id, s.course_uuid, db_session)
-                    recuadros[s.course_uuid] = str((cfg.get("banner") or {}).get("teacher") or "")
+                    from src.services.tareas import tareas as T
+
+                    cfg = await T._config(org_id, db_session)
+                    recuadros[s.course_uuid] = str((T._ajustes_sala(cfg, s.course_uuid).get("banner") or {}).get("teacher") or "")
                 except Exception:  # noqa: BLE001
                     recuadros[s.course_uuid] = ""
             quien = recuadros[s.course_uuid]

@@ -125,3 +125,27 @@ def test_los_avisos_de_asignacion_van_uno_por_clase():
     assert [a["title"] for a in varias] == ["Te han asignado: Spreekclub", "Te han asignado: Masterclass"]
     assert varias[0]["excerpt"] == "2 fechas; la primera, el viernes 27 nov"
     assert varias[1]["excerpt"] == "jueves 26 nov"
+
+
+async def test_el_mensaje_llega_a_quien_da_la_clase_entera(db, monkeypatch):
+    """23/11/2026: el «La da» de la clase está en el recuadro de la sala; antes
+    se buscaba donde no estaba y el aviso solo llegaba si se ponía en la semana."""
+    import json
+
+    from src.db.tareas import TareaSemana
+    from src.db.users import User
+    from src.services.panel import tandas
+    from src.services.tareas import tareas as T
+
+    monkeypatch.setattr(tandas, "hoy_nl", lambda: "2026-11-23")
+
+    async def config(org_id, db_session):
+        return {"salas": {"aaa": {"banner": {"teacher": "Luna Zegers"}}}}
+
+    monkeypatch.setattr(T, "_config", config)
+    db.add(User(id=5, username="luna", first_name="Luna", last_name="Zegers", email="luna@x.nl", user_uuid="u5"))
+    mensaje = {"mensaje": {"texto": "Trae el vídeo", "por": "Rida", "at": "2026-11-22T10:00:00+00:00"}}
+    db.add(TareaSemana(org_id=1, course_uuid="course_aaa", chapter_id=1, fecha="2026-11-26", tema="Mijn huis", material_profe=json.dumps(mensaje)))
+    await db.commit()
+    avisos = await MP.avisos_de_mensajes(1, 5, db)
+    assert [a["title"] for a in avisos] == ["Rida te ha dejado un mensaje"]
