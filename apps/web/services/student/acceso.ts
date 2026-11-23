@@ -49,5 +49,5 @@ export function rutaEnPausa(partes: string[]): boolean {
 
 export function eurosDe(cents: number | undefined): string {
   const n = (cents || 0) / 100
-  return `${n.toLocaleString('es-ES', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })} €`
+  return `${n.toLocaleString('es-ES', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}\u00a0€`
 }
