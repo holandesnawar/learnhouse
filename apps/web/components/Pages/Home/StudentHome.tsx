@@ -25,6 +25,7 @@ import { LecturaEnInicio } from '@components/Pages/Recursos/LecturaSemanal'
 import { InsigniaNueva } from '@components/Pages/Insignias/Insignias'
 import UltimaConsulta from '@components/Pages/Home/UltimaConsulta'
 import { PlanEnInicio, PlanLateral } from '@components/Pages/Plan/PlanEstudio'
+import { AvisoPausa } from '@components/Pages/Acceso/AccesoPausa'
 
 // Las tarjetas que dependen del temario (courseData, ~350KB de fuente) se
 // cargan en un chunk aparte: el Inicio pinta antes y el temario llega detrás.
@@ -150,6 +151,9 @@ export default function StudentHome({ orgslug }: { orgslug: string }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
         <div className="min-w-0 space-y-6">
+          <SafeArea nombre="Acceso en pausa" fallback={null}>
+            <AvisoPausa orgslug={orgslug} />
+          </SafeArea>
           <SafeArea nombre="Insignia nueva" fallback={null}>
             <InsigniaNueva orgslug={orgslug} />
           </SafeArea>
