@@ -5,8 +5,12 @@
  * en torno a venderle: qué toca hacer ahora, las notas, en qué etapa está,
  * quién la lleva, de dónde vino y qué nos contó.
  *
- * Solo la ven los administradores (ver `Ficha.tsx`). Hace lo mismo que la
- * ficha de siempre (`FichaCliente.tsx`), recolocado:
+ * La ven los administradores y, desde el 23/11/2026, los closers (ver
+ * `Ficha.tsx`). Con `admin={false}` (closer) no salen borrar, quitar de los
+ * números ni «Borrar su rastro»: sus rutas son solo de administradores. Lo
+ * demás es igual; systeme.io y el total de una señal ya los decide el
+ * servidor y `ReservaPlaza`. Hace lo mismo que la ficha de siempre
+ * (`FichaCliente.tsx`), recolocado:
  * - Cabecera: WhatsApp, Agendar llamada, Enlace de pago (pago único o Klarna,
  *   plazos, otro importe y la señal) y «⋯» (llamar, correo, editar, mandar a
  *   Llamadas, borrar o quitar de los números).
@@ -96,9 +100,11 @@ export interface PropsFicha {
   /** Solo si quien abre la ficha trae su propio «borrar» (Contactos). */
   onQuitar?: () => void
   quitarEtiqueta?: string
+  /** `false` = la mira un closer: sin lo que es solo de administradores. */
+  admin: boolean
 }
 
-export default function FichaLead({ ficha, setFicha, cargar, onClose, onCambio, onCambioFecha, onQuitar, quitarEtiqueta = 'Borrar' }: PropsFicha) {
+export default function FichaLead({ ficha, setFicha, cargar, onClose, onCambio, onCambioFecha, onQuitar, quitarEtiqueta = 'Borrar', admin }: PropsFicha) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const token = session?.data?.tokens?.access_token
@@ -297,6 +303,26 @@ export default function FichaLead({ ficha, setFicha, cargar, onClose, onCambio, 
   const nPend = tareasPendientes(ficha)
   const conIntentos = ficha.intentos && (t.etapa === 'contactado' || ficha.intentos.nivel > 0)
   const atajos = ['Va a pagar', 'Lo piensa', 'No contesta']
+  // Borrar y quitar de los números: administradores, o la pantalla de fuera
+  // si trae su propio «quitar» (hoy solo se lo pasa a administradores). La
+  // misma regla que la ficha de siempre.
+  const puedeQuitar = admin || Boolean(onQuitar)
+  // Con una señal ya cobrada, la plaza va a la vista en el Resumen (como en la
+  // ficha de siempre) y no escondida en el desplegable.
+  const conSenal = ficha.reserva?.estado === 'abierta'
+  const plaza = (
+    <ReservaPlaza
+      email={ficha.email}
+      nombre={ficha.nombre}
+      telefono={ficha.telefono}
+      reserva={ficha.reserva}
+      esAlumno={false}
+      onCambio={(r) => {
+        setFicha({ ...ficha, reserva: r })
+        onCambio?.()
+      }}
+    />
+  )
 
   const acciones = (
     <>
@@ -322,19 +348,11 @@ export default function FichaLead({ ficha, setFicha, cargar, onClose, onCambio, 
       >
         <div className="p-2.5 space-y-3">
           <EnlacePago email={ficha.email} nombre={ficha.nombre} telefono={ficha.telefono} />
-          <div className="pt-3 border-t border-[#F0F1F5]">
-            <ReservaPlaza
-              email={ficha.email}
-              nombre={ficha.nombre}
-              telefono={ficha.telefono}
-              reserva={ficha.reserva}
-              esAlumno={false}
-              onCambio={(r) => {
-                setFicha({ ...ficha, reserva: r })
-                onCambio?.()
-              }}
-            />
-          </div>
+          {conSenal ? (
+            <p className="pt-3 border-t border-[#F0F1F5] text-[12.5px] text-[#8A93A3]">Ya tiene una plaza reservada con señal: el enlace por lo que falta está en el Resumen.</p>
+          ) : (
+            <div className="pt-3 border-t border-[#F0F1F5]">{plaza}</div>
+          )}
         </div>
       </Desplegable>
       <MenuMas onAbierto={setMenu}>
@@ -360,8 +378,8 @@ export default function FichaLead({ ficha, setFicha, cargar, onClose, onCambio, 
                 Mandar a Llamadas
               </Opcion>
             )}
-            <div className="my-1 border-t border-[#F0F1F5]" />
-            {ficha.fuera_de_metricas ? (
+            {puedeQuitar ? <div className="my-1 border-t border-[#F0F1F5]" /> : null}
+            {!puedeQuitar ? null : ficha.fuera_de_metricas ? (
               <>
                 <Opcion
                   onClick={() => {
@@ -585,6 +603,7 @@ export default function FichaLead({ ficha, setFicha, cargar, onClose, onCambio, 
                 />
               </div>
             ) : null}
+            {conSenal ? <Sec titulo="Plaza reservada con señal">{plaza}</Sec> : null}
             {ficha.pagos.length ? (
               <Sec titulo="Lo que ha pagado" extra={<span className="font-semibold tabular-nums">{euros(ficha.total_pagado_cents)}</span>}>
                 <ul>

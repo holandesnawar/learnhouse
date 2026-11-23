@@ -128,8 +128,9 @@ export function ModulosPorAvance({
   onDeshacer,
 }: {
   a: AlumnoProgreso
-  onAbrir: (m: AperturaModulo) => void
-  onDeshacer: (m: AperturaModulo) => void
+  /** Sin ellos (la ficha en modo closer) no salen «Abrir ya» ni «Deshacer»: abrir módulos a mano es solo de administradores. */
+  onAbrir?: (m: AperturaModulo) => void
+  onDeshacer?: (m: AperturaModulo) => void
 }) {
   return (
     <ul className="space-y-3">
@@ -158,14 +159,14 @@ export function ModulosPorAvance({
                 {m.hechas}/{m.total}
               </span>
             </div>
-            {estado || !m.abierto || m.como === 'mano' ? (
+            {estado || (!m.abierto && onAbrir) || (m.como === 'mano' && onDeshacer) ? (
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 pl-[18px]">
                 {estado ? <span className="text-[#6B7280]">{estado}</span> : null}
-                {!m.abierto ? (
+                {!m.abierto && onAbrir ? (
                   <button onClick={() => onAbrir(m)} className="font-medium text-[#025dc7] hover:underline">
                     Abrir ya
                   </button>
-                ) : m.como === 'mano' ? (
+                ) : m.abierto && m.como === 'mano' && onDeshacer ? (
                   <button onClick={() => onDeshacer(m)} className="font-medium text-[#6B7280] hover:text-gray-900 hover:underline">
                     Deshacer
                   </button>

@@ -7,13 +7,22 @@
  * otra; ahora está todo junto y es un lío».
  * - Un ADMINISTRADOR ve las fichas nuevas: `FichaLead` si aún no ha pagado y
  *   `FichaAlumno` si ya es alumno.
- * - Los CLOSERS (y el resto del equipo) siguen con las de siempre, sin tocar:
- *   `FichaCliente` y la ficha de alumno de Progreso. Es semana de Black
- *   Friday: se les cambia cuando el usuario lo diga.
+ * - Los CLOSERS, desde el 23/11/2026, también («fichas también»), en «modo
+ *   closer» (`admin={false}`): la misma ficha sin lo que es solo de
+ *   administradores. Del lead: sin borrar ni quitar de los números (salvo que
+ *   la pantalla de fuera traiga su propio «quitar») y sin systeme.io (el
+ *   servidor no se lo manda). Del alumno: sin vendido / por cobrar ni
+ *   comisión (el servidor tampoco se los manda), sin «Acceso» (contraseña,
+ *   correo, ver como), sin «Mandar recordatorio» y sin abrir módulos a mano.
+ *   Su fila de Progreso y su camino los pide por `getAlumnoDeFicha`, UNA
+ *   persona y sin dinero: `getAlumnosProgreso` y `getCamino` son solo de
+ *   administradores y a un closer le dan 403.
+ * - El resto del equipo (profes: no tienen panel) sigue con las de siempre.
  *
  * Dos puertas: `Ficha` por correo (Matrículas, Contactos, Llamadas, Tareas,
  * Clientes, el inicio…) y `FichaDeAlumno` por su cuenta (Progreso, Usuarios,
- * Seguimiento, Camino).
+ * Seguimiento, Camino). `FichaDeAlumno` solo cambia para administradores: las
+ * pantallas que la abren son de administradores o de profes.
  */
 
 import React, { useCallback, useEffect, useState } from 'react'
@@ -21,7 +30,7 @@ import dynamic from 'next/dynamic'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
-import { getAlumnosProgreso, getCamino, getFichaCliente, type AlumnoCamino, type AlumnoProgreso, type FichaCliente as DatosFicha } from '@services/panel/panel'
+import { getAlumnoDeFicha, getAlumnosProgreso, getCamino, getFichaCliente, type AlumnoCamino, type AlumnoProgreso, type FichaCliente as DatosFicha } from '@services/panel/panel'
 import type { VolverALlamar } from '@services/stats/contactos'
 import FichaCliente from './FichaCliente'
 import FichaLead from './FichaLead'
@@ -43,19 +52,37 @@ export interface PropsDeFicha {
   quitarEtiqueta?: string
 }
 
+/**
+ * VUELTA ATRÁS. Con `false`, los closers vuelven a la ficha de siempre
+ * (`FichaCliente`), tal cual estaba antes del 23/11/2026, sin tocar nada más.
+ * Los administradores no cambian con esto.
+ */
+export const FICHAS_NUEVAS_PARA_CLOSERS = true
+
 export default function Ficha(props: PropsDeFicha) {
-  const { isAdmin } = useAdminStatus()
-  if (!isAdmin) return <FichaCliente {...props} />
-  return <FichaNueva {...props} />
+  const { isAdmin, isCloser } = useAdminStatus()
+  if (isAdmin) return <FichaNueva {...props} admin />
+  if (isCloser && FICHAS_NUEVAS_PARA_CLOSERS) return <FichaNueva {...props} admin={false} />
+  return <FichaCliente {...props} />
 }
 
 export function FichaDeAlumno({ userId, nombre, onClose }: { userId: number; nombre?: string; onClose: () => void }) {
   const { isAdmin } = useAdminStatus()
   if (!isAdmin) return <FichaAlumnoDeSiempre userId={userId} nombre={nombre} onClose={onClose} />
-  return <FichaNueva email="" userId={userId} nombre={nombre} onClose={onClose} />
+  return <FichaNueva email="" userId={userId} nombre={nombre} onClose={onClose} admin />
 }
 
-function FichaNueva({ email: emailInicial, userId, nombre, onClose, onCambio, onCambioFecha, onQuitar, quitarEtiqueta }: PropsDeFicha & { userId?: number; nombre?: string }) {
+function FichaNueva({
+  email: emailInicial,
+  userId,
+  nombre,
+  onClose,
+  onCambio,
+  onCambioFecha,
+  onQuitar,
+  quitarEtiqueta,
+  admin,
+}: PropsDeFicha & { userId?: number; nombre?: string; admin: boolean }) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const token = session?.data?.tokens?.access_token
@@ -80,6 +107,21 @@ function FichaNueva({ email: emailInicial, userId, nombre, onClose, onCambio, on
       } else if (userId) {
         // Abierta por su cuenta: sin rastro de venta, la ficha del alumno sale igual.
         setEstado('sin')
+      } else if (!admin) {
+        // Modo closer. Sin rastro de venta, pero puede ser un alumno al que se
+        // le dio la cuenta a mano: se pregunta por ESA persona (la lista entera
+        // es solo de administradores). Si el closer no la ve, el servidor da
+        // 403 y sale el motivo de la ficha.
+        const uno = await getAlumnoDeFicha(org.id, correo, token)
+        if (uno.ok && uno.datos?.alumno) {
+          setAlumnos([uno.datos.alumno])
+          setCamino(uno.datos.camino ? [uno.datos.camino] : null)
+          setCuenta(uno.datos.alumno.user_id)
+          setEstado('sin')
+        } else {
+          setError(r.error || 'No se ha podido cargar')
+          setEstado('error')
+        }
       } else {
         // Sin rastro de venta con ese correo, pero puede ser un alumno (una
         // cuenta dada a mano, o que entra con otro correo): se busca en Progreso.
@@ -96,15 +138,24 @@ function FichaNueva({ email: emailInicial, userId, nombre, onClose, onCambio, on
         }
       }
     },
-    [org?.id, token, userId]
+    [org?.id, token, userId, admin]
   )
 
   const leerAlumnos = useCallback(async () => {
     if (!org?.id || !token) return
+    if (!admin) {
+      // Modo closer: solo esta persona, y sin dinero. Si falla, la ficha sale
+      // igual con lo que trae `/cliente` (su avance por módulos y sus pagos).
+      if (!email) return
+      const uno = await getAlumnoDeFicha(org.id, email, token)
+      setAlumnos(uno.ok && uno.datos?.alumno ? [uno.datos.alumno] : [])
+      setCamino(uno.ok && uno.datos?.camino ? [uno.datos.camino] : null)
+      return
+    }
     const r = await getAlumnosProgreso(org.id, token)
     setAlumnos(r.ok && r.datos ? r.datos.alumnos : [])
     getCamino(org.id, token).then((c) => setCamino(c.ok && c.datos ? c.datos.alumnos : null))
-  }, [org?.id, token])
+  }, [org?.id, token, admin, email])
 
   // Por correo: la ficha. Por su cuenta: primero quién es, y de ahí su correo.
   useEffect(() => {
@@ -172,13 +223,25 @@ function FichaNueva({ email: emailInicial, userId, nombre, onClose, onCambio, on
         email={email}
         onClose={onClose}
         onCambio={onCambio}
+        onCambioFecha={onCambioFecha}
         onQuitar={onQuitar}
         quitarEtiqueta={quitarEtiqueta}
+        admin={admin}
       />
     )
   }
   if (!ficha) return null
   return (
-    <FichaLead ficha={ficha} setFicha={setFicha} cargar={cargar} onClose={onClose} onCambio={onCambio} onCambioFecha={onCambioFecha} onQuitar={onQuitar} quitarEtiqueta={quitarEtiqueta} />
+    <FichaLead
+      ficha={ficha}
+      setFicha={setFicha}
+      cargar={cargar}
+      onClose={onClose}
+      onCambio={onCambio}
+      onCambioFecha={onCambioFecha}
+      onQuitar={onQuitar}
+      quitarEtiqueta={quitarEtiqueta}
+      admin={admin}
+    />
   )
 }

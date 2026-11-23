@@ -634,6 +634,14 @@ export const enviarRecordatorio = (
 export const getAlumnosProgreso = (orgId: number, t: string) =>
   pedir<{ alumnos: AlumnoProgreso[]; total_clases: number }>(`panel/org/${orgId}/alumnos`, 'GET', null, t)
 
+/**
+ * Cómo va UN alumno (su fila de Progreso y su camino), SIN dinero: lo que
+ * pide la ficha del alumno cuando quien mira es un closer. La lista entera
+ * (`getAlumnosProgreso`, `getCamino`) sigue siendo solo de administradores.
+ */
+export const getAlumnoDeFicha = (orgId: number, email: string, t: string) =>
+  pedir<{ alumno: AlumnoProgreso | null; camino: AlumnoCamino | null }>(`panel/org/${orgId}/alumno?email=${encodeURIComponent(email)}`, 'GET', null, t)
+
 /** «Sí, se lo he mandado»: apunta el WhatsApp a un alumno que no avanza. */
 export interface EnlaceContrasena {
   ok: boolean

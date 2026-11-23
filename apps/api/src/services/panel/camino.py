@@ -28,7 +28,7 @@ semanas y dice por qué falta lo otro. Caché de 5 min por sala.
 import logging
 import time
 from datetime import date, timedelta
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -214,22 +214,21 @@ async def _cursos_con_sala(org_id: int, db_session: AsyncSession) -> list[dict]:
 # ── La tabla ────────────────────────────────────────────────────────────────
 
 
-async def camino(org_id: int, db_session: AsyncSession) -> dict:
+async def camino(org_id: int, db_session: AsyncSession, solo: Optional[int] = None) -> dict:
+    """El camino de todos los alumnos. Con `solo` (el id de una cuenta), solo
+    el suyo (la ficha del alumno que ve un closer, 23/11/2026)."""
     from src.services.contactos.metricas import ids_excluidos
     from src.services.panel.testers import ids_testers
 
     fuera = await ids_excluidos(db_session) | await ids_testers(org_id, db_session)
-    filas = [
-        (m, u)
-        for m, u in (
-            await db_session.execute(
-                select(UserOrganization, User)
-                .join(User, User.id == UserOrganization.user_id)
-                .where(UserOrganization.org_id == org_id, UserOrganization.role_id == ROL_ALUMNO)
-            )
-        ).all()
-        if m.user_id not in fuera
-    ]
+    consulta = (
+        select(UserOrganization, User)
+        .join(User, User.id == UserOrganization.user_id)
+        .where(UserOrganization.org_id == org_id, UserOrganization.role_id == ROL_ALUMNO)
+    )
+    if solo is not None:
+        consulta = consulta.where(UserOrganization.user_id == int(solo))
+    filas = [(m, u) for m, u in (await db_session.execute(consulta)).all() if m.user_id not in fuera]
     ids = [int(m.user_id) for m, _ in filas]
 
     grupos: dict[int, list[str]] = {}

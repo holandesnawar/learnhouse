@@ -213,24 +213,24 @@ async def apuntar_whatsapp(org_id: int, user_id: int, por: str, db_session: Asyn
     return {"sent_at": fila.sent_at, "tipo": fila.tipo, "por": fila.sent_by}
 
 
-async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
+async def listar_alumnos(org_id: int, db_session: AsyncSession, solo: Optional[int] = None) -> dict:
+    """La lista de Progreso. Con `solo` (el id de una cuenta), solo esa fila:
+    la misma, calculada igual (la ficha del alumno que ve un closer,
+    `alumno_de_la_ficha`)."""
     from src.services.contactos.metricas import ids_excluidos
 
     from src.services.panel.testers import ids_testers
 
     # Fuera de los números (pruebas) y las cuentas del grupo Testers.
     fuera = await ids_excluidos(db_session) | await ids_testers(org_id, db_session)
-    filas = [
-        (m, u)
-        for m, u in (
-            await db_session.execute(
-                select(UserOrganization, User)
-                .join(User, User.id == UserOrganization.user_id)
-                .where(UserOrganization.org_id == org_id, UserOrganization.role_id == STUDENT_ROLE_ID)
-            )
-        ).all()
-        if m.user_id not in fuera
-    ]
+    consulta = (
+        select(UserOrganization, User)
+        .join(User, User.id == UserOrganization.user_id)
+        .where(UserOrganization.org_id == org_id, UserOrganization.role_id == STUDENT_ROLE_ID)
+    )
+    if solo is not None:
+        consulta = consulta.where(UserOrganization.user_id == int(solo))
+    filas = [(m, u) for m, u in (await db_session.execute(consulta)).all() if m.user_id not in fuera]
     ids = [int(m.user_id) for m, _ in filas]
     if not ids:
         return {"alumnos": [], "total_clases": 0}
@@ -395,3 +395,62 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession) -> dict:
     # Lo más reciente arriba; quien no ha entrado nunca, al final.
     alumnos.sort(key=lambda a: _clave(a["ultima_entrada"]) if a["ultima_entrada"] else "", reverse=True)
     return {"alumnos": alumnos, "total_clases": len(clases)}
+
+
+# ── La ficha del alumno para quien no es administrador (23/11/2026) ─────────
+
+#: Lo que nunca sale de aquí: dinero. La fila de Progreso y la del camino no
+#: llevan ninguno hoy; esto lo asegura si alguien añade uno mañana.
+_PALABRAS_DE_DINERO = {
+    "cents", "importe", "pago", "pagos", "pagado", "cobrado", "cobro", "vendido", "venta",
+    "comision", "precio", "factura", "facturas", "cuota", "cuotas",
+}
+
+
+def _es_de_dinero(clave) -> bool:
+    return bool(set(str(clave).lower().split("_")) & _PALABRAS_DE_DINERO)
+
+
+def sin_dinero(dato):
+    """Quita cualquier campo de dinero de una fila (y de lo que lleve dentro). Pura.
+
+    `plan` es el plan de ESTUDIO del alumno (su objetivo y sus días), no un
+    plan de pagos: se queda."""
+    if isinstance(dato, dict):
+        return {
+            k: sin_dinero(v)
+            for k, v in dato.items()
+            if not _es_de_dinero(k)
+        }
+    if isinstance(dato, list):
+        return [sin_dinero(x) for x in dato]
+    return dato
+
+
+async def alumno_de_la_ficha(org_id: int, email: str, db_session: AsyncSession) -> dict:
+    """La fila de Progreso y la del camino de UNA persona, por su correo.
+
+    Para la ficha del alumno que abre un closer: `/alumnos` y `/camino` son de
+    administradores y devuelven a todos; esto, solo a quien se pregunta y sin
+    dinero. `alumno` y `camino` van a None si no tiene cuenta de alumno con
+    ese correo, está en Testers o fuera de los números (igual que no saldría
+    en Progreso). El camino va en blando: si Daily falla, la ficha sale igual."""
+    clave = (email or "").strip().lower()
+    vacio = {"alumno": None, "camino": None}
+    if not clave:
+        return vacio
+    uid = (await db_session.execute(select(User.id).where(func.lower(User.email) == clave))).scalars().first()
+    if not uid:
+        return vacio
+    filas = (await listar_alumnos(org_id, db_session, solo=int(uid)))["alumnos"]
+    if not filas:
+        return vacio
+    camino = None
+    try:
+        from src.services.panel.camino import camino as leer_camino
+
+        suyo = (await leer_camino(org_id, db_session, solo=int(uid)))["alumnos"]
+        camino = suyo[0] if suyo else None
+    except Exception:  # noqa: BLE001 — un extra: sin él, la ficha sale igual
+        camino = None
+    return {"alumno": sin_dinero(filas[0]), "camino": sin_dinero(camino) if camino else None}
