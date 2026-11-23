@@ -37,6 +37,7 @@ import toast from 'react-hot-toast'
 import UtmNotepad from './UtmNotepad'
 import PaginasPanel from '../Estadisticas/PaginasPanel'
 import AnaliticaPanel from '../Panel/AnaliticaPanel'
+import { confirmar } from '@lib/nawar/confirmar'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
 const INPUT =
@@ -147,7 +148,7 @@ function Enlaces() {
   }
 
   const quitar = async (l: WebLink) => {
-    if (!window.confirm(`¿Borrar «/${l.slug}»? Quien tenga ese enlace verá un 404.`)) return
+    if (!(await confirmar(`¿Borrar «/${l.slug}»? Quien tenga ese enlace verá un 404.`, { boton: 'Borrar', peligro: true }))) return
     try {
       await borrarEnlace(org.id, l.id, accessToken)
       await cargar()

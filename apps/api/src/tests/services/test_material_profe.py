@@ -80,3 +80,48 @@ def test_el_mensaje_es_para_quien_da_la_clase():
     assert not MP.es_para("Paul", "Luna")
     assert not MP.es_para("", "Luna")
     assert not MP.es_para("Paul", "")
+
+
+def test_al_asignar_una_clase_se_apunta_cuando():
+    """23/11/2026: la campana avisa al profe cuando le asignan una clase."""
+    m = MP.con_profe(MP.leer(""), "  Luna   Zegers ", "Rida Nawar")
+    assert m["profe"] == "Luna Zegers" and m["profe_at"] and m["profe_por"] == "Rida Nawar"
+    # Lo guardado se lee igual, y guardar el MISMO nombre no avisa otra vez.
+    import json
+
+    leido = MP.leer(json.dumps(m))
+    assert leido["profe_at"] == m["profe_at"]
+    otra = MP.con_profe({**leido, "profe_at": "2026-11-01T10:00:00+00:00"}, "luna zegers", "Rida Nawar")
+    assert otra["profe_at"] == "2026-11-01T10:00:00+00:00"
+    # Cambiar de persona, sí; quitarla, borra la marca.
+    assert MP.con_profe(otra, "Paul", "Rida")["profe_at"] != "2026-11-01T10:00:00+00:00"
+    vacia = MP.con_profe(otra, "", "Rida")
+    assert vacia["profe"] == "" and "profe_at" not in vacia
+    assert "profe_at" not in MP.leer(json.dumps(vacia))
+
+
+def test_los_avisos_de_asignacion_van_uno_por_clase():
+    una = MP.agrupar_asignaciones(
+        [{"semana_id": 7, "curso": "Masterclass", "fecha": "2026-11-26", "tema": "De tijd", "at": "2026-11-23T09:00:00+00:00"}]
+    )
+    assert una == [
+        {
+            "id": "clase-asignada:7:2026-11-23T09:00:00+00:00",
+            "kind": "clase",
+            "title": "Te han asignado: Masterclass",
+            "excerpt": "jueves 26 nov · De tijd",
+            "url": "/equipo?vista=calendario",
+            "date": "2026-11-23T09:00:00+00:00",
+        }
+    ]
+    # Ocho fechas seguidas de la misma clase: una línea, no ocho.
+    varias = MP.agrupar_asignaciones(
+        [
+            {"semana_id": 9, "curso": "Spreekclub", "fecha": "2026-12-04", "tema": "", "at": "2026-11-23T09:00:01+00:00"},
+            {"semana_id": 8, "curso": "Spreekclub", "fecha": "2026-11-27", "tema": "", "at": "2026-11-23T09:00:00+00:00"},
+            {"semana_id": 7, "curso": "Masterclass", "fecha": "2026-11-26", "tema": "", "at": "2026-11-22T09:00:00+00:00"},
+        ]
+    )
+    assert [a["title"] for a in varias] == ["Te han asignado: Spreekclub", "Te han asignado: Masterclass"]
+    assert varias[0]["excerpt"] == "2 fechas; la primera, el viernes 27 nov"
+    assert varias[1]["excerpt"] == "jueves 26 nov"

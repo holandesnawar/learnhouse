@@ -964,6 +964,13 @@ async def _tareas_items(user_id: int, org_ids: List[int], db_session: AsyncSessi
                     out.extend(await avisos_de_mensajes(org_id, user_id, db_session))
                 except Exception:  # noqa: BLE001
                     pass
+                # «Te han asignado: Masterclass · jueves 26 nov» (23/11/2026).
+                try:
+                    from src.services.tareas.material_profe import avisos_de_asignacion
+
+                    out.extend(await avisos_de_asignacion(org_id, user_id, db_session))
+                except Exception:  # noqa: BLE001
+                    pass
         # Reseñas en vídeo (10/11/2026): al alumno invitado y, al
         # administrador, las que quedan por revisar. En blando.
         try:

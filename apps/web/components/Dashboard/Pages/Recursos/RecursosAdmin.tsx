@@ -38,6 +38,7 @@ import {
 } from '@services/recursos/recursos'
 import { getUserGroups } from '@services/usergroups/usergroups'
 import IconoRecurso from '@components/Pages/Recursos/IconoRecurso'
+import { confirmar } from '@lib/nawar/confirmar'
 
 const CARD = 'rounded-2xl border border-[#DDE6F5] bg-white p-3.5 sm:p-5'
 const INPUT =
@@ -238,7 +239,7 @@ function CarpetaAdmin({
   }
 
   const borrar = async () => {
-    if (!window.confirm(`¿Borrar la carpeta «${carpeta.name}» con todo lo que tiene?`)) return
+    if (!(await confirmar(`¿Borrar la carpeta «${carpeta.name}» con todo lo que tiene?`, { boton: 'Borrar', peligro: true }))) return
     setOcupado(true)
     try {
       await borrarCarpeta(org.id, carpeta.id, accessToken)
@@ -277,7 +278,7 @@ function CarpetaAdmin({
   }
 
   const quitar = async (id: number, t: string) => {
-    if (!window.confirm(`¿Quitar «${t}»?`)) return
+    if (!(await confirmar(`¿Quitar «${t}»?`, { boton: 'Quitar', peligro: true }))) return
     try {
       await borrarItem(org.id, id, accessToken)
       await onCambio()

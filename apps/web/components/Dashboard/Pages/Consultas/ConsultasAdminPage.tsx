@@ -29,6 +29,7 @@ import {
   formatConsultaDate, htmlToText, listConsultasAsStaff,
   type ConsultaAdmin, type StatusFilter,
 } from '@/lib/consultas/consultas'
+import { confirmar } from '@lib/nawar/confirmar'
 
 const TABS: { id: StatusFilter; label: string }[] = [
   { id: 'pending', label: 'Pendientes' },
@@ -158,7 +159,7 @@ export default function ConsultasAdminPage() {
 
   async function borrar() {
     if (!selected || !orgId) return
-    if (!window.confirm('¿Borrar esta consulta? No se puede deshacer.')) return
+    if (!(await confirmar('¿Borrar esta consulta? No se puede deshacer.', { boton: 'Borrar', peligro: true }))) return
     try {
       await deleteConsultaAsAdmin(orgId, selected.id, accessToken)
       setItems((prev) => prev.filter((c) => c.id !== selected.id))

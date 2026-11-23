@@ -472,7 +472,7 @@ async def api_quien_profe(
     s, admin = await _semana_equipo(semana_id, current_user, db_session)
     if not admin:
         raise HTTPException(status_code=403, detail="Solo un administrador decide quién da la clase")
-    return await MP.guardar(s, MP.con_profe(MP.leer(s.material_profe), data.profe), db_session)
+    return await MP.guardar(s, MP.con_profe(MP.leer(s.material_profe), data.profe, _nombre(current_user)), db_session)
 
 
 @router.put("/semana/{semana_id}/profe/mensaje", summary="El mensaje del administrador para el profe (solo administradores).")

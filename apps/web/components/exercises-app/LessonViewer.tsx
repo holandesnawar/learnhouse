@@ -22,6 +22,7 @@ import { aciertaEnEspanol, aciertaEscrito } from '@/lib/exercises-app/answerChec
 import { barajar, barajarSinCoincidir, barajarSinResolver } from '@/lib/exercises-app/barajar';
 import { markLessonCompletedRemote, patchStudentProgress, listLessonCompletions } from '@services/student/progress';
 import { audioListo, precargarVoz, siguientes } from '@/lib/nawar/vozPrecarga';
+import { confirmar } from '@lib/nawar/confirmar'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPERS
@@ -1299,8 +1300,10 @@ function VocabPracticeSection({
     }
   }
 
-  function handleReset(confirm = true) {
-    if (confirm && typeof window !== 'undefined' && !window.confirm('¿Borrar todas tus respuestas y empezar de cero?')) return;
+  // El «¿seguro?» lo pinta la escuela (23/11/2026): el del navegador no sale en
+  // la escuela instalada como app ni en el navegador de Instagram.
+  async function handleReset(confirm = true) {
+    if (confirm && !(await confirmar('¿Borrar todas tus respuestas y empezar de cero?', { boton: 'Borrar y empezar', peligro: true }))) return;
     // Borra TODO el cache de esta lección — respuestas, índices, step actual
     try {
       const keys: string[] = [];

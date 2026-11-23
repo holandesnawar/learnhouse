@@ -24,6 +24,7 @@ import {
   Mail,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { confirmar } from '@lib/nawar/confirmar'
 
 interface LhEvent {
   id: string
@@ -103,7 +104,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
       .filter(Boolean)
       .join(' ')
     const aQuien = ev.grupos?.length ? `a los alumnos de «${paraQuien(ev, yo?.todos).replace(/^Solo /, '')}»` : 'a TODOS los alumnos'
-    if (!soloAMi && !window.confirm(`Se enviará un email ${aQuien} con:\n\n${ev.title}\n${whenText}\n\n¿Enviar?`)) return
+    if (!soloAMi && !(await confirmar(`Se enviará un email ${aQuien} con:\n\n${ev.title}\n${whenText}\n\n¿Enviar?`, { boton: 'Enviar' }))) return
     setNotifying(ev.id)
     // Con enlace de reunión el botón entra directo a la clase; sin él, lleva
     // al evento concreto del calendario (antes caía en la portada).
