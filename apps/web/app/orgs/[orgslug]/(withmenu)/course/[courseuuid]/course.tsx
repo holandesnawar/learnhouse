@@ -396,7 +396,7 @@ const CourseClient = (props: any) => {
                     return (
                       <div className="space-y-4">
                         {conVideo ? (
-                          <VideoPortada src={videoPortada} />
+                          <VideoPortada src={videoPortada} poster={foto || undefined} />
                         ) : foto ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -425,7 +425,10 @@ const CourseClient = (props: any) => {
 
                   if (showVideo && videoPortada) {
                     return (
-                      <VideoPortada src={videoPortada}>
+                      <VideoPortada
+                        src={videoPortada}
+                        poster={course.thumbnail_image ? getCourseThumbnailMediaDirectory(org?.org_uuid, course?.course_uuid, course.thumbnail_image) : undefined}
+                      >
                         {course.thumbnail_type === 'both' && (
                           <div className="absolute top-3 right-3 z-10">
                             <div className="bg-black/20 backdrop-blur-sm rounded-lg p-1 flex space-x-1">
