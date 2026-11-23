@@ -8419,6 +8419,9 @@ regla para plazos también».
   equipo, una vez por factura, solo encendida. Fallo viejo sin tocar: un plan
   cancelado que paga por el aviso de Stripe vuelve a «activo» y la tarea diaria
   lo cancela otra vez con otro correo de cobro fallido.
+  ⚠️ `impago` es columna nueva: hasta que la tarea diaria o «Comprobar todos
+  con Stripe» la rellenen, «a quién afectaría» puede decir 0 aunque haya
+  cobros fallidos. Pulsar «Comprobar todos» ANTES de encender la regla.
 
 ### El vídeo de portada en blanco (Belén, 23/11/2026)
 Una closer veía en blanco los vídeos de portada de la Masterclass y el Spreek
