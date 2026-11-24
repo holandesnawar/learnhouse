@@ -502,6 +502,14 @@ class ComisionIn(BaseModel):
     # Lo que se le pagó al closer, en céntimos (0 = sin apuntar).
     importe_cents: int = 0
     nota: str = ""
+    # El % con el que se pagó, si salió de un botón (24/11/2026).
+    pct: Optional[float] = None
+
+
+class ComisionPctIn(BaseModel):
+    email: str
+    # 0 = el del tramo de Visión → Ajustes.
+    pct: float = 0
 
 
 class ComisionesTodasIn(BaseModel):
@@ -522,7 +530,26 @@ async def api_comision_pagada(
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
     if not await _es_admin(current_user, org_id, db_session):
         raise HTTPException(status_code=403, detail="Solo administradores")
-    r = await comisiones.marcar(data.email, data.importe_cents, _nombre(current_user), db_session, data.nota)
+    r = await comisiones.marcar(data.email, data.importe_cents, _nombre(current_user), db_session, data.nota, data.pct)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("motivo"))
+    return r
+
+
+@router.put("/org/{org_id}/comisiones/pct", summary="El % de comisión del closer de una venta: 18 % si la seteó él (administradores).")
+async def api_comision_pct(
+    request: Request,
+    org_id: int,
+    data: ComisionPctIn,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.panel import comisiones
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    r = await comisiones.elegir_pct(data.email, data.pct, db_session)
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("motivo"))
     return r

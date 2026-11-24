@@ -421,8 +421,12 @@ export interface ComisionVenta {
   pagada: { importe_cents: number; cuando: string; por: string; nota?: string } | null
   /** Sobre qué se calcula: el TOTAL de la venta (con plazos, el del plan). */
   base_cents: number
-  /** Su % del día del primer pago (Visión → Ajustes). */
+  /** El % con el que se calcula: el elegido a mano para esta venta o, si no, el del día del primer pago (Visión → Ajustes). */
   pct: number
+  /** El % se puso a mano en esta venta (p. ej. 18 % si el closer la seteó). */
+  pct_elegido?: boolean
+  /** El % de los tramos de Visión para el día del primer pago. */
+  pct_tramo?: number
   /** Lo que le toca, aproximado: ese % sobre el total de la venta. */
   estimada_cents: number
   /** Pasó por una llamada: solo esas cuentan como pendientes. */
@@ -462,8 +466,12 @@ export const getClientes = (orgId: number, t: string) =>
     t
   )
 
-export const marcarComision = (orgId: number, email: string, importe_cents: number, t: string) =>
-  pedir<{ ok: boolean }>(`panel/org/${orgId}/comisiones`, 'POST', { email, importe_cents }, t)
+export const marcarComision = (orgId: number, email: string, importe_cents: number, t: string, pct?: number | null) =>
+  pedir<{ ok: boolean }>(`panel/org/${orgId}/comisiones`, 'POST', { email, importe_cents, ...(pct ? { pct } : {}) }, t)
+
+/** El % de comisión de una venta (0 = el de los tramos de Visión). 24/11/2026. */
+export const elegirPctComision = (orgId: number, email: string, pct: number, t: string) =>
+  pedir<{ ok: boolean; pct: number }>(`panel/org/${orgId}/comisiones/pct`, 'PUT', { email, pct }, t)
 
 export const marcarComisiones = (orgId: number, emails: string[], t: string) =>
   pedir<{ ok: boolean; marcadas: number }>(`panel/org/${orgId}/comisiones/todas`, 'POST', { emails }, t)

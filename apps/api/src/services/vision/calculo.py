@@ -169,7 +169,9 @@ def dinero_de_ventas(ventas: list[dict], devoluciones_cents: int, ajustes: dict)
         fee = comision_klarna(importe, ajustes) if v.get("metodo") == "klarna" else 0
         klarna += fee
         if v.get("con_llamada", True):
-            closer += max(0, importe * queda - fee) * pct_closer(v.get("fecha") or "", ajustes.get("closer") or []) / 100
+            # El % puesto a mano en esa venta (Panel → Clientes) manda sobre el tramo.
+            pct = _num(v.get("pct_closer")) or pct_closer(v.get("fecha") or "", ajustes.get("closer") or [])
+            closer += max(0, importe * queda - fee) * pct / 100
     netas = cobrado - devol - klarna
     closer_cents = round(closer)
     return {

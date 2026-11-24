@@ -3,6 +3,8 @@
  * Se calcula sobre el TOTAL de la venta (con plazos, el total del plan) y el
  * administrador elige el % al marcarla: el importe se ajusta solo. Se guarda
  * el importe, no el %, así que el % se deduce si cuadra con uno de ellos.
+ * Desde el 24/11/2026 cada venta puede llevar además su % elegido (18 % si el
+ * closer la seteó): manda sobre el de Visión en lo pendiente (ComisionPct).
  * Ver apps/api/src/services/panel/comisiones.py.
  */
 

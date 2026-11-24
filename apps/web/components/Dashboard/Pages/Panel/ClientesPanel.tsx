@@ -35,6 +35,7 @@ import { useEquipo } from './Tareas'
 import { colorCloser } from '@/lib/nawar/colorCloser'
 import { confirmar } from '@lib/nawar/confirmar'
 import { aCaja, comisionCents, leerEuros, pctQueCuadra, textoPct } from '@lib/nawar/comision'
+import ComisionPct from './ComisionPct'
 import toast from 'react-hot-toast'
 import { Loader2, Search } from 'lucide-react'
 
@@ -127,7 +128,9 @@ export default function ClientesPanel() {
       return
     }
     setGuardando(true)
-    const r = await marcarComision(org.id, c.email, cents, accessToken)
+    const base = c.comision?.base_cents ?? 0
+    const lista = datos?.porcentajes_comision?.length ? datos.porcentajes_comision : [10, 15, 18]
+    const r = await marcarComision(org.id, c.email, cents, accessToken, pctQueCuadra(base, cents, lista))
     setGuardando(false)
     if (!r.ok) {
       toast.error(r.error || 'No se ha podido guardar')
@@ -186,7 +189,7 @@ export default function ClientesPanel() {
   const nPendientes = datos.clientes.filter((c) => c.comision && !c.comision.pagada && c.comision.con_llamada).length
   const nPagadas = datos.clientes.filter((c) => c.comision?.pagada).length
   // Los % que se pueden elegir al marcar (los de Visión → Ajustes: 10 y 15).
-  const pcts = datos.porcentajes_comision?.length ? datos.porcentajes_comision : [10, 15]
+  const pcts = datos.porcentajes_comision?.length ? datos.porcentajes_comision : [10, 15, 18]
 
   /** El punto de color del closer: el mismo que su etiqueta en el tablero. */
   const colorDe = (nombre: string) => {
@@ -205,7 +208,11 @@ export default function ClientesPanel() {
         detalle: `${pctPagada !== null ? `${textoPct(pctPagada)} · ` : ''}${fechaCorta(com.pagada.cuando)}`,
       }
     if (com.con_llamada)
-      return { tono: 'ambar', texto: `Pendiente · ≈ ${euros(com.estimada_cents)}`, detalle: com.pct ? textoPct(com.pct) : '' }
+      return {
+        tono: 'ambar',
+        texto: `Pendiente · ≈ ${euros(com.estimada_cents)}`,
+        detalle: com.pct ? `${textoPct(com.pct)}${com.pct_elegido ? ' · a mano' : ''}` : '',
+      }
     return { tono: 'gris', texto: 'Sin llamada', detalle: 'sin comisión' }
   }
 
@@ -227,8 +234,24 @@ export default function ClientesPanel() {
           Sobre el total de la venta: <span className="font-semibold text-[#0B1020] tabular-nums">{euros(base)}</span>
           {c.plazos && base > c.total_cents ? ` · a plazos, cobrado ${euros(c.total_cents)} hasta hoy` : ''}
         </span>
-        {/* Elegir el % ajusta el importe solo; también se puede escribir a mano. */}
-        <div className="flex items-center gap-1">
+        {/* El % de ESTA venta (24/11/2026): se guarda al tocarlo y lo
+            pendiente se recalcula. Solo mientras no esté pagada. */}
+        {!com.pagada ? (
+          <div className="w-full">
+            <ComisionPct
+              email={c.email}
+              com={com}
+              pcts={pcts}
+              onCambio={(p) => {
+                setImporte(aCaja(comisionCents(base, p)))
+                cargar()
+              }}
+            />
+          </div>
+        ) : null}
+        {/* Ya pagada: elegir el % ajusta el importe solo; también se puede
+            escribir a mano. Sin pagar, ya lo hace la fila de arriba. */}
+        <div className={`flex items-center gap-1 ${com.pagada ? '' : 'hidden'}`}>
           {pcts.map((p) => (
             <button key={p} onClick={() => setImporte(aCaja(comisionCents(base, p)))} className={`${filtro(pctEnCaja === p)} tabular-nums`}>
               {textoPct(p)}
@@ -305,8 +328,9 @@ export default function ClientesPanel() {
             ))}
           </div>
           <p className="text-[12.5px] text-[#8A93A3] max-w-[860px]">
-            «≈» es su % (Visión → Ajustes) sobre el total de la venta (a plazos, el total del plan aunque falten pagos), sin restar Klarna ni devoluciones. Al
-            marcar una venta eliges el % o escribes lo que le pagaste de verdad.
+            «≈» es su % sobre el total de la venta (a plazos, el total del plan aunque falten pagos), sin restar Klarna ni devoluciones. El % es el de Visión →
+            Ajustes, salvo que en esa venta pongas otro (18 % si la seteó el closer): toca la comisión de la venta y elige el %. Al marcarla pagada eliges el % o
+            escribes lo que le pagaste de verdad.
           </p>
         </Seccion>
       ) : null}

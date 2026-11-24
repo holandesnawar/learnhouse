@@ -97,6 +97,7 @@ def agrupar(
                 "fecha": (v.get("fecha") or "")[:10],
                 "metodo": "plazos" if em in con_plan else "unico",
                 "con_llamada": em in agendada,
+                **({"pct_closer": v["pct_closer"]} if v.get("pct_closer") else {}),
             }
         )
     ventas_de: dict[str, list[dict]] = defaultdict(list)
@@ -170,6 +171,17 @@ async def numeros_de_la_escuela(org_id: int, db_session: AsyncSession) -> dict:
         if em in fuera or (desde and (r.paid_at or "") < desde):
             continue
         ventas.append({"email": em, "importe_cents": int(r.amount_cents or 0), "fecha": r.paid_at or r.updated_at or r.created_at or ""})
+
+    # El % de comisión puesto a mano en cada venta (Panel → Clientes, 24/11/2026).
+    try:
+        from src.services.panel.comisiones import pcts_elegidos
+
+        elegidos = await pcts_elegidos(db_session)
+        for v in ventas:
+            if elegidos.get(v["email"]):
+                v["pct_closer"] = elegidos[v["email"]]
+    except Exception:  # noqa: BLE001
+        await db_session.rollback()
 
     con_plan: set[str] = set()
     try:
