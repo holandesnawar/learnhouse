@@ -22,6 +22,7 @@ import { aciertaEnEspanol, aciertaEscrito } from '@/lib/exercises-app/answerChec
 import { barajar, barajarSinCoincidir, barajarSinResolver } from '@/lib/exercises-app/barajar';
 import { markLessonCompletedRemote, patchStudentProgress, listLessonCompletions } from '@services/student/progress';
 import { audioListo, precargarVoz, siguientes } from '@/lib/nawar/vozPrecarga';
+import { trozosParaEscuchar } from '@/lib/nawar/escucharLectura';
 import { confirmar } from '@lib/nawar/confirmar'
 import AvisarFallo, { ContextoFallo } from './AvisarFallo';
 
@@ -3534,6 +3535,51 @@ function ResumenSection({ block, vocabItems = [], phraseItems = [], inCourse, on
    LEZEN SECTION
 ───────────────────────────────────────────────────────────────────────────── */
 
+/**
+ * «Escuchar» el texto de Lezen (24/11/2026, lo pidieron los alumnos): un enlace
+ * pequeño junto al rótulo del texto, a propósito poco llamativo (Lezen es para
+ * LEER; el audio es una ayuda). Al tocarlo sale debajo la misma barra de
+ * Luisteren (onda, ±2 s, lento/1×), con una sola voz y una pausa corta en cada
+ * salto de línea del texto (`lib/nawar/escucharLectura.ts`).
+ */
+function RotuloConEscuchar({ titulo, texto, className = '' }: { titulo: string; texto: string; className?: string }) {
+  const [abierto, setAbierto] = useState(false);
+  const lineas = useMemo(
+    () => trozosParaEscuchar(texto).map((dutch, i) => ({ id: `lezen-${i}`, speaker: 'lezen', dutch })),
+    [texto],
+  );
+  return (
+    <div className={className}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest">{titulo}</p>
+        {lineas.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setAbierto((v) => !v)}
+            aria-expanded={abierto}
+            className="shrink-0 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#6B7393] hover:text-[#025dc7] transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5L6 9H3v6h3l5 4V5z" />
+              {abierto ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 9l4 6m0-6l-4 6" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13" />
+              )}
+            </svg>
+            {abierto ? 'Ocultar audio' : 'Escuchar'}
+          </button>
+        )}
+      </div>
+      {abierto && (
+        <div className="mt-3">
+          <DialoguePlayer lines={lineas} accentColor="#4da3ff" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LezenSection({
   textNl,
   textEs,
@@ -3731,7 +3777,7 @@ function LezenSection({
           </div>
         )}
         <div className="rounded-2xl border border-[#DDE6F5] bg-white p-6">
-          <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4">Texto en neerlandés</p>
+          <RotuloConEscuchar titulo="Texto en neerlandés" texto={textNl} className="mb-4" />
           <TextoResaltable
             texto={textNl.replace(/^[ \t]+/gm, '').trim()}
             bloque="lezen_nl"
@@ -3776,6 +3822,7 @@ function LezenSection({
                dentro de otra son un incordio en el móvil. Se despliega, se
                lee bajando la página normal, y se vuelve a plegar. */
             <div className="px-3.5 pb-3.5">
+              <RotuloConEscuchar titulo="Texto" texto={textNl} className="mb-2" />
               <p className="text-[14.5px] text-gray-800 leading-relaxed whitespace-pre-line">
                 {textNl}
               </p>
@@ -3868,7 +3915,7 @@ function LezenSection({
       )}
       <div className="rounded-2xl border border-[#DDE6F5] bg-white p-6 space-y-4">
         <div>
-          <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">Texto original</p>
+          <RotuloConEscuchar titulo="Texto original" texto={textNl} className="mb-3" />
           <TextoResaltable
             texto={textNl.replace(/^[ \t]+/gm, '').trim()}
             bloque="lezen_nl"
