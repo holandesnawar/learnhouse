@@ -27,4 +27,4 @@ def test_lo_raro_no_cuenta():
 
 
 def test_texto_de_la_linea_de_tiempo():
-    assert texto_linea_de_tiempo({"intento": 2, "que": "whatsapp", "autor": "Belén", "nota": "no contesta"}) == "Belén le escribió por WhatsApp (intento 2): no contesta"
+    assert texto_linea_de_tiempo({"intento": 2, "que": "whatsapp", "autor": "Belén", "nota": "no contesta"}) == "Belén le escribió por WhatsApp (seguimiento 2): no contesta"

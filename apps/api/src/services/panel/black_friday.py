@@ -161,6 +161,31 @@ def marca(ficha: dict) -> str:
     return ""
 
 
+#: Pedir plaza = dejar sus datos para la llamada (el formulario de Black Friday
+#: o el de la web), reservar o que el equipo le agende una.
+_PIDIO_PLAZA = {"solicitud", "matricula", "cualificacion", "admision", "agendar-empezado", "reunion", "llamada-equipo"}
+
+#: Los grupos de Black Friday, del más caliente al más frío (24/11, usuario:
+#: «dividir entre quien compró ebook y pidió plaza, quien pidió plaza, y quien
+#: solo pidió ebook, ya que no son los mismos puntos calientes»).
+GRUPOS = ("ebook-plaza", "plaza", "ebook", "lista")
+
+
+def grupo(ficha: dict) -> str:
+    """Puro. El grupo de Black Friday de una persona, para la tarjeta, el
+    filtro y el orden del tablero: «ebook-plaza» (compró el ebook y pidió
+    plaza), «plaza» (pidió plaza sin el ebook), «ebook» (solo el ebook),
+    «lista» (solo desbloqueó la oferta) o "" si no pasó por Black Friday."""
+    m = marca(ficha)
+    if not m:
+        return ""
+    eventos = ficha.get("eventos") or []
+    pidio = bool(_primero(eventos, _PIDIO_PLAZA))
+    if m == "ebook":
+        return "ebook-plaza" if pidio else "ebook"
+    return "plaza" if pidio else "lista"
+
+
 def entra_por_black_friday(ficha: dict) -> bool:
     """Entra en el tablero: compró el ebook, o desbloqueó la oferta dejando su
     WhatsApp."""

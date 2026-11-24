@@ -15,6 +15,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import {
   abrirModulo,
   cambiarCorreoAlumno,
+  juntarCorreoAlumno,
   darEnlaceContrasena,
   quitarAperturaModulo,
   type AlumnoProgreso,
@@ -262,21 +263,22 @@ export function EnlaceContrasena({ a }: { a: AlumnoProgreso }) {
 /**
  * Cambiar el correo con el que entra (18/11/2026, usuario: "hay que cambiarle
  * el mail de acceso, pero ya creó cuenta… solo admin"). Su contraseña y su
- * progreso siguen igual; el pago y su ficha de Contactos se quedan con el
- * correo de antes. Servidor: services/panel/enlace_contrasena.py.
+ * progreso siguen igual. Desde el 24/11 su pago, su ficha y sus notas pasan
+ * también al correo nuevo (services/contactos/juntar_correo.py), y para quien
+ * se cambió antes está «Juntar con su correo de antes».
  */
 export function CambiarCorreo({ a }: { a: AlumnoProgreso }) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const token = session?.data?.tokens?.access_token
-  const [abierto, setAbierto] = useState(false)
+  const [abierto, setAbierto] = useState<'' | 'cambiar' | 'juntar'>('')
   const [actual, setActual] = useState(a.email)
   const [nuevo, setNuevo] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const guardar = async () => {
     if (!org?.id || !token || !nuevo.trim()) return
     const ok = await confirmar(
-      `A partir de ahora ${a.nombre || 'esta persona'} entrará con ${nuevo.trim().toLowerCase()} y su misma contraseña. Los correos de la escuela le llegarán ahí.`,
+      `A partir de ahora ${a.nombre || 'esta persona'} entrará con ${nuevo.trim().toLowerCase()} y su misma contraseña. Los correos de la escuela le llegarán ahí, y su pago, su ficha y sus notas pasan también a ese correo.`,
       { boton: 'Cambiar el correo', peligro: false },
     )
     if (!ok) return
@@ -286,34 +288,71 @@ export function CambiarCorreo({ a }: { a: AlumnoProgreso }) {
     if (!r.ok || !r.datos) return toast.error(r.error || 'No se ha podido cambiar el correo')
     setActual(r.datos.email)
     setNuevo('')
-    setAbierto(false)
+    setAbierto('')
     toast.success(`Ya entra con ${r.datos.email}. Si tenía la escuela abierta, tendrá que volver a entrar.`)
+  }
+  const juntar = async () => {
+    if (!org?.id || !token || !nuevo.trim()) return
+    const viejo = nuevo.trim().toLowerCase()
+    const ok = await confirmar(
+      `Todo lo que la escuela tiene con ${viejo} (pagos, ficha, notas, llamadas) pasa a ${actual}. Úsalo solo si ${viejo} era el correo de antes de ${a.nombre || 'esta persona'}.`,
+      { boton: 'Juntar', peligro: false },
+    )
+    if (!ok) return
+    setOcupado(true)
+    const r = await juntarCorreoAlumno(org.id, a.user_id, viejo, token)
+    setOcupado(false)
+    if (!r.ok || !r.datos) return toast.error(r.error || 'No se ha podido juntar')
+    setNuevo('')
+    setAbierto('')
+    toast.success(r.datos.movidas ? `Hecho: ya sale todo con ${actual}.` : `No había nada con ${viejo}.`)
   }
   if (!abierto) {
     return (
-      <button onClick={() => setAbierto(true)} className="block text-[12.5px] font-medium text-[#025dc7] hover:underline">
-        Cambiar el correo con el que entra{actual !== a.email ? ` (ahora ${actual})` : ''}
-      </button>
+      <div className="space-y-1">
+        <button onClick={() => setAbierto('cambiar')} className="block text-[12.5px] font-medium text-[#025dc7] hover:underline">
+          Cambiar el correo con el que entra{actual !== a.email ? ` (ahora ${actual})` : ''}
+        </button>
+        <button onClick={() => setAbierto('juntar')} className="block text-[12.5px] font-medium text-[#025dc7] hover:underline">
+          Juntar con su correo de antes
+        </button>
+      </div>
     )
   }
+  const esJuntar = abierto === 'juntar'
   return (
     <div className="rounded-lg border border-[#E2E8F4] bg-white p-3 space-y-2">
       <p className="text-[12.5px] text-[#374151] leading-snug">
-        Ahora entra con <strong>{actual}</strong>. Su contraseña, sus clases y su progreso no cambian. El pago y su ficha de Contactos se
-        quedan con el correo de antes.
+        {esJuntar ? (
+          <>
+            Si se le cambió el correo y su pago o su ficha siguen con el de antes (en Clientes sale «sin entrar»), escribe aquí el
+            correo de antes: todo pasa a <strong>{actual}</strong>.
+          </>
+        ) : (
+          <>
+            Ahora entra con <strong>{actual}</strong>. Su contraseña, sus clases y su progreso no cambian, y su pago, su ficha y sus
+            notas pasan al correo nuevo.
+          </>
+        )}
       </p>
       <div className="flex flex-wrap gap-2">
         <input
           type="email"
           value={nuevo}
           onChange={(e) => setNuevo(e.target.value)}
-          placeholder="Correo nuevo"
+          placeholder={esJuntar ? 'Su correo de antes' : 'Correo nuevo'}
           className="flex-1 min-w-[200px] h-9 rounded-md border border-[#E2E8F4] px-2.5 text-[13px]"
         />
-        <button onClick={guardar} disabled={ocupado || !nuevo.trim()} className={BOTON_PRINCIPAL}>
-          {ocupado ? <Loader2 size={14} className="animate-spin" /> : null} Guardar
+        <button onClick={esJuntar ? juntar : guardar} disabled={ocupado || !nuevo.trim()} className={BOTON_PRINCIPAL}>
+          {ocupado ? <Loader2 size={14} className="animate-spin" /> : null} {esJuntar ? 'Juntar' : 'Guardar'}
         </button>
-        <button onClick={() => setAbierto(false)} className={BOTON}>
+        <button
+          onClick={() => {
+            setAbierto('')
+            setNuevo('')
+          }}
+          className={BOTON}
+        >
           Cancelar
         </button>
       </div>
