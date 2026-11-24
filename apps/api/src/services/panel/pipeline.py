@@ -292,7 +292,7 @@ _MEDIOS = {
 #: Medios que no añaden nada.
 _MEDIOS_VACIOS = {"organic", "organico", "orgánico", "social", "referral", "none", "(none)", "web", "link"}
 #: Lo que hace el equipo o la escuela, no la persona: no dice por dónde llegó.
-_NO_DICEN_DE_DONDE = {"closer-cambiado", "datos-editados", "enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada", "whatsapp-llamada", "llamada-cambiada", "llamada-cancelada", "check-in", "correo-bf", "baja-bf", "intento-contacto"}
+_NO_DICEN_DE_DONDE = {"closer-cambiado", "correo-cambiado", "datos-editados", "enlace-pago", "llamada-equipo", "alta-manual", "pago", "senal", "correo-reserva", "llamada-confirmada", "whatsapp-llamada", "llamada-cambiada", "llamada-cancelada", "check-in", "correo-bf", "baja-bf", "intento-contacto"}
 #: Al buscar de qué web llegó, por el nombre de la dirección.
 _WEBS = (
     ("instagram", "Instagram"), ("facebook", "Facebook"), ("fb.", "Facebook"), ("tiktok", "TikTok"),
@@ -582,8 +582,9 @@ def colocar(
         ),
         "closer_id": int(guardada.get("closer_id") or 0),
         "closer": guardada.get("closer", "") if guardada.get("closer_id") else "",
-        # «ebook» o «lista» si viene de Black Friday (la tarjeta y el filtro).
-        "black_friday": bf.marca(ficha),
+        # Su grupo de Black Friday (24/11, `bf.grupo`): «ebook-plaza», «plaza»,
+        # «ebook» o «lista». La tarjeta, el filtro y el orden del tablero.
+        "black_friday": bf.grupo(ficha),
     }
 
 

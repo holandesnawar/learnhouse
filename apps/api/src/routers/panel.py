@@ -7,11 +7,14 @@ administradores, moderadores y el closer. El closer ve en el tablero lo mismo
 que en su Contactos (las matrículas) y en Tareas solo las suyas.
 """
 
-from src.services.email.utils import en_hilo
+import logging
 from typing import Optional
+
+from src.services.email.utils import en_hilo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.core.events.database import get_db_session
@@ -27,6 +30,7 @@ from src.services.panel.alumnos import listar_alumnos
 from src.services.panel.clientes import listar_clientes
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/org/{org_id}/tablero", summary="El kanban de matrículas: columnas y una tarjeta por persona.")
@@ -675,13 +679,65 @@ async def api_cambiar_correo(
     if not await _es_admin(current_user, org_id, db_session):
         raise HTTPException(status_code=403, detail="Solo administradores")
     try:
-        return await cambiar_correo(org_id, user_id, data.email, db_session)
+        r = await cambiar_correo(org_id, user_id, data.email, db_session)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    # Su pago, su ficha y sus notas van con ella al correo nuevo (24/11,
+    # contactos/juntar_correo.py). En blando: el correo ya está cambiado.
+    if r.get("cambiado"):
+        from src.services.contactos.juntar_correo import mover
+
+        try:
+            r["juntado"] = await mover(r["antes"], r["email"], db_session, por=_nombre(current_user), user_id=user_id)
+        except Exception:  # noqa: BLE001
+            logger.warning("No se pudo juntar lo del correo de antes", exc_info=True)
+    return r
+
+
+@router.post(
+    "/org/{org_id}/alumnos/{user_id}/juntar-correo",
+    summary="Pasa al correo actual de un alumno todo lo que la escuela tenía con su correo de antes (administradores).",
+)
+async def api_juntar_correo(
+    request: Request,
+    org_id: int,
+    user_id: int,
+    data: CorreoAcceso,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from sqlalchemy import func
+
+    from src.db.user_organizations import UserOrganization
+    from src.db.users import User
+    from src.services.contactos.juntar_correo import limpio, mover
+
+    await exigir_acceso(request, org_id, current_user, "contactos", db_session)
+    if not await _es_admin(current_user, org_id, db_session):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    antes = limpio(data.email)
+    if "@" not in antes:
+        raise HTTPException(status_code=400, detail="Escribe el correo de antes")
+    user = (await db_session.execute(select(User).where(User.id == user_id))).scalars().first()
+    uo = (
+        await db_session.execute(
+            select(UserOrganization).where(UserOrganization.user_id == user_id, UserOrganization.org_id == org_id)
+        )
+    ).scalars().first()
+    if user is None or uo is None:
+        raise HTTPException(status_code=404, detail="Esa cuenta no es de esta escuela")
+    ahora = limpio(user.email)
+    if antes == ahora:
+        raise HTTPException(status_code=400, detail="Ese ya es su correo de ahora")
+    # Nunca juntar a dos personas: si el correo de antes es de OTRA cuenta, no.
+    otra = (await db_session.execute(select(User.id).where(func.lower(User.email) == antes))).first()
+    if otra:
+        raise HTTPException(status_code=409, detail="Ese correo es de otra cuenta de la escuela: no se juntan")
+    return await mover(antes, ahora, db_session, por=_nombre(current_user), user_id=user_id)
 
 
 @router.get(

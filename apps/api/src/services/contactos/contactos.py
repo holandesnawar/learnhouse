@@ -75,6 +75,8 @@ NOMBRES_TIPO = {
     "intento-contacto": "El equipo intentó contactarle",
     # Un closer o un administrador cambió de quién es (22/11, panel.py → asignar).
     "closer-cambiado": "El equipo cambió su closer",
+    # El equipo le cambió el correo con el que entra (24/11, contactos/juntar_correo.py).
+    "correo-cambiado": "Su correo cambió",
     # Los tres WhatsApp de la llamada (02/11, services/contactos/whatsapp_llamada.py).
     "whatsapp-llamada": "El equipo le mandó un WhatsApp de su llamada",
     # El equipo le movió o le canceló la llamada desde la escuela (31/10,
@@ -319,6 +321,10 @@ def _que(kind: str, campos: dict) -> str:
         cuando = _dia_y_hora(extra.get("inicio") or "")
         texto = "Confirmó que viene a su llamada" + (f" del {cuando}" if cuando else "")
         return texto + (f" (lo apuntó {extra['autor']})" if extra.get("autor") else "")
+    if kind == "correo-cambiado":
+        from src.services.contactos.juntar_correo import texto_linea_de_tiempo as texto_correo
+
+        return texto_correo(extra)
     if kind == "closer-cambiado":
         from src.services.panel.pipeline import texto_cambio_closer
 
@@ -413,7 +419,7 @@ def _evento(kind: str, when: str, email: str, **campos) -> dict:
 
 #: Lo que no hace la persona sino la escuela, a diario: no cuenta como "lo
 #: último que hizo" (sigue en su línea de tiempo).
-_LOS_MANDA_LA_ESCUELA = {"correo-bf", "whatsapp-llamada", "datos-editados", "intento-contacto", "closer-cambiado"}
+_LOS_MANDA_LA_ESCUELA = {"correo-bf", "whatsapp-llamada", "datos-editados", "intento-contacto", "closer-cambiado", "correo-cambiado"}
 
 #: Datos corregidos a mano desde la ficha (06/11/2026, "modificar datos del
 #: lead, por ejemplo el teléfono si lo pusieron mal"). Es un evento más, con

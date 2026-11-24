@@ -76,7 +76,8 @@ export interface Tarjeta {
   closer_id?: number
   closer?: string
   /** Viene de Black Friday (29/10): compró el ebook o solo desbloqueó la oferta. */
-  black_friday?: '' | 'ebook' | 'lista'
+  /** Su grupo de Black Friday (24/11, services/panel/black_friday.py → grupo), del más caliente al más frío. */
+  black_friday?: '' | 'ebook-plaza' | 'plaza' | 'ebook' | 'lista'
   /** En qué intento de contacto va (08/11): 0 = ninguno apuntado, 1-3. */
   intentos?: number
 }
@@ -703,7 +704,17 @@ export const darEnlaceContrasena = (orgId: number, userId: number, enviar: boole
 
 /** Cambia el correo con el que entra un alumno (18/11/2026, solo administradores). */
 export const cambiarCorreoAlumno = (orgId: number, userId: number, email: string, t: string) =>
-  pedir<{ ok: boolean; email: string; antes: string; cambiado: boolean }>(`panel/org/${orgId}/alumnos/${userId}/correo`, 'PUT', { email }, t)
+  pedir<{ ok: boolean; email: string; antes: string; cambiado: boolean; juntado?: { movidas: number } }>(
+    `panel/org/${orgId}/alumnos/${userId}/correo`,
+    'PUT',
+    { email },
+    t,
+  )
+
+/** Pasa a su correo de ahora lo que la escuela tenía con el de antes: pagos,
+ *  ficha, notas (24/11/2026, services/contactos/juntar_correo.py). */
+export const juntarCorreoAlumno = (orgId: number, userId: number, email: string, t: string) =>
+  pedir<{ movidas: number; por_tabla: Record<string, number> }>(`panel/org/${orgId}/alumnos/${userId}/juntar-correo`, 'POST', { email }, t)
 
 export const apuntarWhatsappAlumno = (orgId: number, userId: number, t: string) =>
   pedir<{ sent_at: string; tipo: string; por: string }>(`panel/org/${orgId}/alumnos/${userId}/whatsapp`, 'POST', {}, t)

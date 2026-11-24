@@ -6,8 +6,13 @@
  * primer mensaje por WhatsApp, no responde, siguiente etapa… y si a la
  * tercera nada, descarte". Tres intentos; en cada uno se apunta la llamada y
  * el WhatsApp. Lo apuntado sale también en la línea de tiempo y en la tarjeta
- * del tablero («Intento 2 de 3»). Tras el tercero, «Descartar» (mover a
- * Descartado, como siempre). Servidor: services/panel/intentos.py.
+ * del tablero. Tras el tercero, «Descartar» (mover a Descartado, como
+ * siempre). Servidor: services/panel/intentos.py.
+ *
+ * Desde el 24/11 se llaman «seguimientos» (usuario: «no es lo mismo que no
+ * conteste a que haya sido contactado pero no vuelva a contestar»): son para
+ * quien ya habló con el equipo y ahora no responde. Quien nunca llegó a
+ * contestar va en la columna «No contesta».
  */
 import React, { useState } from 'react'
 import toast from 'react-hot-toast'
@@ -16,9 +21,9 @@ import { apuntarIntento, quitarIntento, type Intentos } from '@services/panel/pa
 import { haceCuanto } from '@/lib/nawar/haceCuanto'
 
 const TITULO: Record<number, string> = {
-  1: 'Intento 1 · llamada y primer mensaje',
-  2: 'Intento 2 · llamada y segundo mensaje',
-  3: 'Intento 3 · última llamada y último mensaje',
+  1: 'Seguimiento 1 · llamada y primer mensaje',
+  2: 'Seguimiento 2 · llamada y segundo mensaje',
+  3: 'Seguimiento 3 · última llamada y último mensaje',
 }
 
 export default function IntentosContacto({
@@ -47,7 +52,7 @@ export default function IntentosContacto({
     setOcupado(id)
     try {
       if (hecho) await quitarIntento(orgId, token, email, intento, que)
-      else await apuntarIntento(orgId, token, email, intento, que, que === 'llamada' ? 'no contesta' : '')
+      else await apuntarIntento(orgId, token, email, intento, que, que === 'llamada' ? 'no vuelve a contestar' : '')
       onCambio()
     } catch (e: any) {
       toast.error(e?.message || 'No se ha podido guardar')
@@ -59,8 +64,8 @@ export default function IntentosContacto({
   return (
     <div className="mt-3 rounded-lg border border-[#E2E8F4] bg-white">
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[#EEF1F7]">
-        <p className="text-[12.5px] font-semibold text-gray-900">Intentos de contacto</p>
-        <span className="text-[12px] text-[#6B7280]">{nivel ? `Va por el intento ${nivel} de 3` : 'Ninguno apuntado'}</span>
+        <p className="text-[12.5px] font-semibold text-gray-900">Ya hablamos, pero no vuelve a contestar</p>
+        <span className="text-[12px] text-[#6B7280]">{nivel ? `Va por el seguimiento ${nivel} de 3` : 'Ninguno apuntado'}</span>
       </div>
       <ol className="divide-y divide-[#EEF1F7]">
         {datos.intentos.map((i) => {
@@ -93,7 +98,7 @@ export default function IntentosContacto({
                       {que === 'llamada' ? <Phone size={13} className="text-gray-500 shrink-0" /> : <MessageCircle size={13} className="text-gray-500 shrink-0" />}
                       <span className="min-w-0 flex-1">
                         <span className="block font-medium text-gray-900">
-                          {que === 'llamada' ? (paso ? 'Llamado · no contesta' : 'Llamar') : paso ? 'WhatsApp enviado' : 'Escribir por WhatsApp'}
+                          {que === 'llamada' ? (paso ? 'Llamado · sin respuesta' : 'Llamar') : paso ? 'WhatsApp enviado' : 'Escribir por WhatsApp'}
                         </span>
                         {paso ? (
                           <span className="block text-[11.5px] text-[#6B7280] truncate">
@@ -113,7 +118,7 @@ export default function IntentosContacto({
       <div className="px-3 py-2.5 border-t border-[#EEF1F7] text-[12.5px] text-[#4B5563]">
         {completos >= 3 ? (
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span>Tres intentos sin respuesta.</span>
+            <span>Tres seguimientos sin respuesta.</span>
             <button
               onClick={onDescartar}
               className="h-8 px-3 rounded-md bg-[#B4413C] text-white text-[12.5px] font-semibold hover:bg-[#9c3833]"
@@ -122,7 +127,7 @@ export default function IntentosContacto({
             </button>
           </div>
         ) : nivel === 0 ? (
-          'Primero, llámale y mándale el primer mensaje.'
+          'Si nunca llegó a contestar, va en «No contesta», no aquí. Si ya hablasteis y ahora no responde: llámale y mándale el primer mensaje.'
         ) : (
           `Si no responde, siguiente paso: ${TITULO[toca].toLowerCase()}.`
         )}

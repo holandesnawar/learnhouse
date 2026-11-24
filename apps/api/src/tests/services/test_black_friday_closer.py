@@ -164,3 +164,20 @@ def test_quien_abre_el_pago_y_no_paga_entra_en_no_compradores():
     # Si se apuntó en la portada antes, cuenta lo primero.
     r = bf.resumen(_ficha(_ev("bf-lista", _dia(-4)), _ev("ebook-empezado", _dia(-2))), AHORA, _dia(-20)[:10])
     assert [c["id"] for c in r["correos"]] == ["sys-n0", "sys-n1", "sys-n3"]
+
+
+def test_los_grupos_de_black_friday():
+    """24/11: «quien compró ebook y pidió plaza, quien pidió plaza, y quien
+    solo pidió ebook» no son igual de calientes."""
+    from src.services.panel.black_friday import grupo
+
+    def f(*kinds):
+        return {"eventos": [{"kind": k, "when": "2026-11-20T10:00:00+00:00"} for k in kinds]}
+
+    assert grupo(f("ebook", "cualificacion")) == "ebook-plaza"
+    assert grupo(f("bf-lista", "ebook", "reunion")) == "ebook-plaza"
+    assert grupo(f("bf-lista", "solicitud")) == "plaza"
+    assert grupo(f("ebook")) == "ebook"
+    assert grupo(f("bf-lista")) == "lista"
+    # Quien no pasó por Black Friday no tiene grupo, aunque pidiera plaza.
+    assert grupo(f("solicitud")) == ""

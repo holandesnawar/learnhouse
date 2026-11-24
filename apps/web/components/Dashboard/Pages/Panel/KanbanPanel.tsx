@@ -131,12 +131,22 @@ const columnaDe = (t: Tarjeta): ColumnaId =>
 
 const POR_COLUMNA = 6
 
+/** Los grupos de Black Friday (24/11/2026), del más caliente al más frío:
+ *  no es lo mismo quien compró el ebook Y pidió plaza que quien solo compró. */
+const GRUPOS_BF: { id: NonNullable<Tarjeta['black_friday']>; nombre: string; corto: string }[] = [
+  { id: 'ebook-plaza', nombre: 'Ebook + pidió plaza', corto: 'ebook + pidió plaza' },
+  { id: 'plaza', nombre: 'Pidió plaza', corto: 'pidió plaza' },
+  { id: 'ebook', nombre: 'Solo ebook', corto: 'solo ebook' },
+  { id: 'lista', nombre: 'Solo desbloqueó', corto: 'solo desbloqueó la oferta' },
+]
+const ORDEN_BF: Record<string, number> = { 'ebook-plaza': 0, plaza: 1, ebook: 2, lista: 3 }
+
 /** Los niveles dentro de «Contactado» (08/11/2026): en qué intento va cada uno. */
 const NIVEL_CONTACTO: Record<number, string> = {
-  0: 'Sin intentos apuntados',
-  1: 'Intento 1 · llamada y 1.er mensaje',
-  2: 'Intento 2 · llamada y 2.º mensaje',
-  3: 'Intento 3 · última llamada',
+  0: 'Ya hablamos · sin seguimiento apuntado',
+  1: 'Seguimiento 1 · no vuelve a contestar',
+  2: 'Seguimiento 2 · no vuelve a contestar',
+  3: 'Seguimiento 3 · último intento',
 }
 
 // En Nuevo, Por llamar y No contesta, la más caliente arriba (como en Llamadas).
@@ -285,21 +295,26 @@ function TarjetaVista({
             : 'Enlace de pago enviado, sin pagar'}
         </p>
       ) : null}
-      {/* En qué intento de contacto va (08/11): «Intento 2 de 3». */}
+      {/* En qué seguimiento va (08/11): ya se habló con la persona y no
+          vuelve a contestar. No es «No contesta» (nunca contestó, 24/11). */}
       {t.etapa === 'contactado' && (t.intentos ?? 0) > 0 ? (
         <p className="mt-1">
           <span className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] px-2 py-0.5 text-[11px] font-semibold text-gray-700">
-            Intento {t.intentos} de 3{t.intentos === 3 ? ' · si no responde, descartar' : ''}
+            Sin respuesta tras hablar · {t.intentos} de 3{t.intentos === 3 ? ' · si sigue igual, descartar' : ''}
           </span>
         </p>
       ) : null}
       {t.black_friday || t.origen || t.canal || t.vio_precio || t.notas > 1 || t.tareas ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11.5px] text-gray-500">
-          {/* Black Friday (29/10): con el ebook comprado o solo con la oferta
-              desbloqueada. Lo demás (correos, páginas), en su ficha. */}
+          {/* Black Friday (29/10; por grupos desde el 24/11): compró el ebook
+              y pidió plaza, solo pidió plaza, solo el ebook o solo desbloqueó.
+              Lo demás (correos, páginas), en su ficha. */}
           {t.black_friday ? (
-            <span className="font-medium text-gray-800" title="Entró por la campaña de Black Friday">
-              Black Friday · {t.black_friday === 'ebook' ? 'ebook' : 'sin ebook'}
+            <span
+              className={`text-gray-800 ${t.black_friday === 'ebook-plaza' || t.black_friday === 'plaza' ? 'font-semibold' : 'font-medium'}`}
+              title="Entró por la campaña de Black Friday"
+            >
+              Black Friday · {GRUPOS_BF.find((g) => g.id === t.black_friday)?.corto ?? 'sin ebook'}
             </span>
           ) : null}
           {/* De dónde viene (09/10): «Anuncio Meta», «Web · inicio», «Guía»…
@@ -344,6 +359,8 @@ export default function KanbanPanel() {
   const [canal, setCanal] = useState<string>('')
   const [soloHoy, setSoloHoy] = useState(false)
   const [soloBF, setSoloBF] = useState(false)
+  // Dentro de Black Friday, un grupo (24/11): '' = todos.
+  const [grupoBF, setGrupoBF] = useState<string>('')
   // La tarjeta abierta (por su id: el correo, o «llamada:<id>» en las sueltas).
   const [abierta, setAbierta] = useState<string | null>(null)
   // Leads o Ventas, y en Ventas, solo las mías (se recuerda en el navegador;
@@ -503,12 +520,17 @@ export default function KanbanPanel() {
       (c) =>
         (!canal || c.canal === canal) &&
         (!soloHoy || tocaLlamar(c)) &&
-        (!soloBF || !!c.black_friday) &&
+        (!soloBF || (!!c.black_friday && (!grupoBF || c.black_friday === grupoBF))) &&
         (!t || c.email.includes(t) || c.nombre.toLowerCase().includes(t) || c.telefono.includes(t))
     )
-  }, [deLaMesa, q, canal, soloHoy, soloBF])
+  }, [deLaMesa, q, canal, soloHoy, soloBF, grupoBF])
   const paraHoy = useMemo(() => deLaMesa.filter((c) => tocaLlamar(c)).length, [deLaMesa])
   const deBlackFriday = useMemo(() => deLaMesa.filter((c) => !!c.black_friday).length, [deLaMesa])
+  const porGrupoBF = useMemo(() => {
+    const n: Record<string, number> = {}
+    for (const c of deLaMesa) if (c.black_friday) n[c.black_friday] = (n[c.black_friday] ?? 0) + 1
+    return n
+  }, [deLaMesa])
   const enCadaMesa = useMemo(() => {
     const n = { leads: 0, ventas: 0 }
     for (const c of datos?.tarjetas ?? []) if (!c.oculto && c.etapa !== 'alumno' && c.etapa !== 'descartado') n[mesaDe(c)]++
@@ -556,10 +578,15 @@ export default function KanbanPanel() {
       return Number.isNaN(d) ? 0 : d
     }
     for (const k of Object.keys(m)) m[k].sort((a, b) => cuando(b) - cuando(a))
-    // Nuevo y Por llamar: la más caliente arriba; dentro, la más nueva.
+    // Nuevo y Por llamar: la más caliente arriba; con la misma temperatura,
+    // Black Friday por su grupo (ebook + plaza, plaza, solo ebook, solo
+    // desbloqueó, 24/11); dentro, la más nueva.
     for (const k of A_LLAMAR)
       m[k]?.sort(
-        (a, b) => (ORDEN_TEMPERATURA[a.temperatura ?? 'frio'] ?? 2) - (ORDEN_TEMPERATURA[b.temperatura ?? 'frio'] ?? 2) || cuando(b) - cuando(a)
+        (a, b) =>
+          (ORDEN_TEMPERATURA[a.temperatura ?? 'frio'] ?? 2) - (ORDEN_TEMPERATURA[b.temperatura ?? 'frio'] ?? 2) ||
+          (ORDEN_BF[a.black_friday || ''] ?? 4) - (ORDEN_BF[b.black_friday || ''] ?? 4) ||
+          cuando(b) - cuando(a)
       )
     // Contactado, por intentos (08/11): primero quien va más avanzado (a
     // punto de descartar), y dentro, lo más nuevo arriba.
@@ -772,13 +799,27 @@ export default function KanbanPanel() {
           </button>
           {deBlackFriday || soloBF ? (
             <button
-              onClick={() => setSoloBF((v) => !v)}
+              onClick={() => {
+                setSoloBF((v) => !v)
+                setGrupoBF('')
+              }}
               className={`${filtro(soloBF)} inline-flex items-center gap-1.5`}
               title="Quien entró por la campaña de Black Friday (compró el ebook o desbloqueó la oferta dejando su WhatsApp)"
             >
               Black Friday <span className="tabular-nums opacity-80">{deBlackFriday}</span>
             </button>
           ) : null}
+          {soloBF
+            ? GRUPOS_BF.filter((g) => porGrupoBF[g.id] || grupoBF === g.id).map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => setGrupoBF((v) => (v === g.id ? '' : g.id))}
+                  className={`${filtro(grupoBF === g.id)} inline-flex items-center gap-1.5`}
+                >
+                  {g.nombre} <span className="tabular-nums opacity-80">{porGrupoBF[g.id] ?? 0}</span>
+                </button>
+              ))
+            : null}
           <button
             onClick={() => setCanal('')}
             className={filtro(!canal)}

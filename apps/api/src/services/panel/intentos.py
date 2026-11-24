@@ -22,6 +22,11 @@ Así:
   tarjeta a Descartado, como siempre). No se descarta nada solo.
 
 `resumen` es pura (con test): la usan la ficha y el tablero.
+
+Desde el 24/11 en pantalla se llaman «seguimientos» (usuario: «no es lo mismo
+que no conteste a que haya sido contactado pero no vuelva a contestar»): son
+para quien YA habló con el equipo y ahora no responde. Quien nunca llegó a
+contestar va en la columna «No contesta» (pipeline.py), que es otra cosa.
 """
 
 import json
@@ -77,10 +82,10 @@ def resumen(eventos: Iterable[dict]) -> dict:
 
 
 def texto_linea_de_tiempo(extra: dict) -> str:
-    """«Diego le llamó (intento 2): no contesta»."""
+    """«Diego le llamó (seguimiento 2): no vuelve a contestar»."""
     quien = extra.get("autor") or "El equipo"
     que = NOMBRE_QUE.get(str(extra.get("que") or ""), "intentó contactarle")
-    texto = f"{quien} {que} (intento {extra.get('intento') or '?'})"
+    texto = f"{quien} {que} (seguimiento {extra.get('intento') or '?'})"
     return texto + (f": {extra['nota']}" if extra.get("nota") else "")
 
 
