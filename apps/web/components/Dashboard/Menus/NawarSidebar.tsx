@@ -83,6 +83,7 @@ import {
   ClipboardText,
   X,
   Lightbulb,
+  BookOpenText,
   VideoCamera,
   Pulse,
   Flag,
@@ -119,8 +120,16 @@ const ESTUDIO: Item = {
   claves: 'pizarra notas ideas contenido reels carrusel blog prompts apuntes',
 }
 
+/** Los procesos del equipo, los SOP (24/11/2026): de todo el equipo, closers incluidos. */
+const PROCESOS: Item = {
+  href: '/dash/estadisticas?tab=procesos',
+  label: 'Procesos',
+  icon: I(BookOpenText),
+  claves: 'sop manual instrucciones procedimientos como se hace equipo asignar',
+}
+
 export const GRUPOS_DEL_PANEL: Grupo[] = [
-  { titulo: '', items: [INICIO, ESTUDIO] },
+  { titulo: '', items: [INICIO, ESTUDIO, PROCESOS] },
   {
     titulo: 'Vender',
     items: [
@@ -254,7 +263,7 @@ export function gruposDelCloser(veNumeros: boolean): Grupo[] {
     numeros.push({ ...por('Estadísticas'), href: '/dash/estadisticas?tab=numeros', label: 'Números', es: undefined })
   }
   return [
-    { titulo: '', items: [INICIO] },
+    { titulo: '', items: [INICIO, PROCESOS] },
     { titulo: 'Vender', items: [por('Matrículas'), por('Llamadas'), por('Contactos'), por('Tareas'), por('Material de venta'), { ...ESTUDIO, label: 'Apuntes de ventas' }] },
     { titulo: 'Números', items: numeros },
     // El closer no entra en /dash/webs: ve solo las páginas de la web, en Estadísticas.

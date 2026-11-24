@@ -58,3 +58,18 @@ class EquipoDocumento(SQLModel, table=True):
     actualizado_por: str = Field(default="", max_length=120)
     created_at: str = ""
     updated_at: str = ""
+    # Procesos del equipo (24/11/2026, `services/equipo/procesos.py`): el
+    # manual pasa a ser de TODO el equipo, closers incluidos.
+    # Para qué sirve este proceso, en una línea.
+    resumen: str = Field(default="", max_length=300)
+    # A quién se le ha asignado: JSON {user_id: cuándo se le asignó}.
+    asignados: str = Field(default="", sa_column=Column(Text, default=""))
+    # Quién lo ve: "" = todo el equipo; "asignados" = solo las personas
+    # asignadas (y los administradores).
+    visible: str = Field(default="", max_length=12)
+    # Quién lo ha leído: JSON {user_id: cuándo}. Vale si es posterior a
+    # `cambiado_at`.
+    lecturas: str = Field(default="", sa_column=Column(Text, default=""))
+    # Cuándo cambió el contenido (título o texto) por última vez: si cambia,
+    # a los asignados les vuelve a tocar leerlo. Vacío = `created_at`.
+    cambiado_at: str = Field(default="", max_length=40)
