@@ -346,6 +346,12 @@ if not is_testing:
 # así que da igual ejecutarlo mil veces o que la tabla acabe de nacer con la
 # forma nueva.
 _ADDED_COLUMNS = [
+    # Procesos del equipo (24/11/2026): el manual, para todo el equipo.
+    "ALTER TABLE IF EXISTS equipo_documento ADD COLUMN IF NOT EXISTS resumen VARCHAR(300) DEFAULT ''",
+    "ALTER TABLE IF EXISTS equipo_documento ADD COLUMN IF NOT EXISTS asignados TEXT DEFAULT ''",
+    "ALTER TABLE IF EXISTS equipo_documento ADD COLUMN IF NOT EXISTS visible VARCHAR(12) DEFAULT ''",
+    "ALTER TABLE IF EXISTS equipo_documento ADD COLUMN IF NOT EXISTS lecturas TEXT DEFAULT ''",
+    "ALTER TABLE IF EXISTS equipo_documento ADD COLUMN IF NOT EXISTS cambiado_at VARCHAR(40) DEFAULT ''",
     # Tareas del panel: «flotar» o «mover» (22/11/2026).
     "ALTER TABLE IF EXISTS panel_task ADD COLUMN IF NOT EXISTS tipo VARCHAR(10) DEFAULT ''",
     # Analítica (22/11/2026): país por la zona horaria del navegador, si ya

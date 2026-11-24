@@ -53,11 +53,13 @@ export default function SalaProfes() {
   const params = useSearchParams()
 
   const [miembros, setMiembros] = useState<Miembro[]>([])
+  const [todoElEquipo, setTodoElEquipo] = useState<Miembro[]>([])
   const [manual, setManual] = useState<DocManual[]>([])
   const [yo, setYo] = useState<{ id: number; admin: boolean; monitor?: boolean }>({ id: 0, admin: false })
   const [cargado, setCargado] = useState(false)
   const [error, setError] = useState('')
-  const [docAbrir, setDocAbrir] = useState<number | null>(null)
+  // `?doc=` lo pone el aviso de la campana («Te han asignado un proceso»).
+  const [docAbrir, setDocAbrir] = useState<number | null>(() => Number(params?.get('doc')) || null)
   const { clases, semanas, hoy, recargar } = useClasesEquipo(org, token)
 
   const monitor = !!yo.monitor
@@ -69,7 +71,8 @@ export default function SalaProfes() {
     // Qué presentación tiene cada clase y cuál abre la pizarra (22/11/2026). También el monitor.
     { id: 'presentaciones', titulo: 'Presentaciones' },
     { id: 'archivo', titulo: 'Clases dadas' },
-    ...(monitor ? [] : [{ id: 'manual' as Vista, titulo: 'Manual' }]),
+    // El manual son los procesos de todo el equipo (24/11/2026): también el monitor ve los suyos.
+    { id: 'manual' as Vista, titulo: 'Procesos' },
   ]
   const pedida = (params?.get('vista') || 'clases') as Vista
   const vista: Vista = vistas.some((v) => v.id === pedida) ? pedida : 'clases'
@@ -84,6 +87,7 @@ export default function SalaProfes() {
       .then((d) => {
         setMiembros(d.miembros)
         setManual(d.manual)
+        setTodoElEquipo(d.todo_el_equipo || d.miembros)
         setYo(d.yo)
         setCargado(true)
       })
@@ -197,7 +201,7 @@ export default function SalaProfes() {
             <ArchivoClases orgslug={orgslug} semanas={semanas} clases={clases} hoy={hoy} token={token} admin={yo.admin} nombres={nombres} recargar={recargar} />
           )
         ) : (
-          <ManualEquipo key={docAbrir ?? 'm'} orgId={org?.id} token={token} manual={manual} setManual={setManual} admin={yo.admin} abrir={docAbrir} />
+          <ManualEquipo key={docAbrir ?? 'm'} orgId={org?.id} token={token} manual={manual} setManual={setManual} admin={yo.admin} abrir={docAbrir} miembros={todoElEquipo} />
         )}
       </div>
 

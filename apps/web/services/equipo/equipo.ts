@@ -32,6 +32,18 @@ export interface TareaEquipo {
   done_at: string
 }
 
+export type LecturaProceso = '' | 'pendiente' | 'leido' | 'cambiado'
+
+export interface AsignadoProceso {
+  id: number
+  nombre: string
+  /** Solo lo recibe el administrador. */
+  estado?: LecturaProceso
+  leido_at?: string
+  asignado_at?: string
+}
+
+/** Una página del manual = un proceso del equipo (24/11/2026). */
 export interface DocManual {
   id: number
   titulo: string
@@ -42,6 +54,15 @@ export interface DocManual {
   actualizado_por: string
   created_at: string
   updated_at: string
+  resumen?: string
+  /** '' = todo el equipo · 'asignados' = solo las personas asignadas. */
+  visible?: '' | 'asignados'
+  cambiado_at?: string
+  /** Asignado a quien lo mira. */
+  mio?: boolean
+  lectura?: LecturaProceso
+  leido_at?: string
+  asignados?: AsignadoProceso[]
 }
 
 export interface SalaProfesDatos {
@@ -49,6 +70,8 @@ export interface SalaProfesDatos {
   miembros: Miembro[]
   tareas: TareaEquipo[]
   manual: DocManual[]
+  /** Todo el equipo, closers incluidos: para asignar procesos. */
+  todo_el_equipo?: Miembro[]
 }
 
 const base = () => `${getAPIUrl()}equipo`
@@ -80,7 +103,7 @@ export const cambiarTareaEquipo = (orgId: number, id: number, datos: CambioTarea
 export const borrarTareaEquipo = (orgId: number, id: number, token: string) =>
   pedir<{ ok: boolean }>(`${base()}/org/${orgId}/tareas/${id}`, token, 'DELETE')
 
-export type CambioDoc = Partial<Pick<DocManual, 'titulo' | 'seccion' | 'texto' | 'orden'>>
+export type CambioDoc = Partial<Pick<DocManual, 'titulo' | 'seccion' | 'texto' | 'orden' | 'resumen' | 'visible'>> & { asignados?: number[] }
 
 export const crearDoc = (orgId: number, datos: CambioDoc, token: string) => pedir<DocManual>(`${base()}/org/${orgId}/manual`, token, 'POST', datos)
 export const cambiarDoc = (orgId: number, id: number, datos: CambioDoc, token: string) =>
@@ -88,3 +111,15 @@ export const cambiarDoc = (orgId: number, id: number, datos: CambioDoc, token: s
 export const borrarDoc = (orgId: number, id: number, token: string) => pedir<{ ok: boolean }>(`${base()}/org/${orgId}/manual/${id}`, token, 'DELETE')
 export const plantillaManual = (orgId: number, token: string) =>
   pedir<{ manual: DocManual[] }>(`${base()}/org/${orgId}/manual/plantilla`, token, 'POST', {})
+
+// ── Procesos del equipo (24/11/2026): todo el equipo, closers incluidos ──
+
+export interface ProcesosDatos {
+  yo: { id: number; admin: boolean; closer: boolean; nombre: string }
+  miembros: Miembro[]
+  procesos: DocManual[]
+}
+
+export const getProcesos = (orgId: number, token: string) => pedir<ProcesosDatos>(`${base()}/org/${orgId}/procesos`, token)
+export const marcarLeido = (orgId: number, id: number, leido: boolean, token: string) =>
+  pedir<DocManual>(`${base()}/org/${orgId}/procesos/${id}/leido`, token, leido ? 'POST' : 'DELETE', leido ? {} : undefined)

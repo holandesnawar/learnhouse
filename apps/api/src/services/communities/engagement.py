@@ -990,6 +990,14 @@ async def _tareas_items(user_id: int, org_ids: List[int], db_session: AsyncSessi
     return out
 
 
+async def _procesos_items(user_id: int, org_ids: List[int], db_session: AsyncSession) -> List[dict]:
+    """«Te han asignado un proceso» y «Ha cambiado el proceso…»: los SOP del
+    equipo (24/11/2026, services/equipo/procesos.py). También al closer."""
+    from src.services.equipo.procesos import avisos
+
+    return await avisos(user_id, org_ids, db_session)
+
+
 async def _insignia_items(user_id: int, db_session: AsyncSession) -> List[dict]:
     """«Has superado el módulo 1»: la insignia de la formación (13/11/2026)."""
     from src.services.insignias.insignias import avisos
@@ -1051,6 +1059,7 @@ async def list_notifications(
         _tareas_items(user_id, org_ids, db_session),
         _lectura_items(org_ids, db_session),
         _insignia_items(user_id, db_session),
+        _procesos_items(user_id, org_ids, db_session),
     ):
         try:
             raw.extend(await source)
