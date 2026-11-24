@@ -8528,6 +8528,19 @@ también como primera clase de la introducción de la formación, «Welkom!».
 - ⚠️ Si el vídeo sale en negro o da 403: la biblioteca 675650 de Bunny tiene
   que tener `app.holandesnawar.com` en sus dominios permitidos.
 
+## Escuchar el texto de Lezen (24/11/2026)
+Lo pidieron los alumnos: poder escuchar la lectura de las lecciones de la
+formación. En Lezen, junto al rótulo «Texto en neerlandés» (y en «Volver a leer
+el texto» de los ejercicios y en «Texto original» de la traducción) hay un
+enlace pequeño en gris, **«Escuchar»**, a propósito poco llamativo (Lezen es
+para leer). Al tocarlo sale debajo la MISMA barra de Luisteren
+(`DialoguePlayer`: onda, ±2 s, lento/1×, de serie lento), con una sola voz (la
+de chica) y una pausa corta en cada salto de línea. `RotuloConEscuchar` en
+`LessonViewer.tsx`; el texto se parte en `lib/nawar/escucharLectura.ts` (una
+línea = un audio, las de más de 600 letras por frases; `/api/tts` no acepta más
+de 800), con test. Cada trozo se le pide a ElevenLabs una sola vez (caché en
+disco de `/api/tts`).
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.
