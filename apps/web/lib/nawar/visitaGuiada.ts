@@ -80,6 +80,8 @@ export function pasosDeLaVisita(opciones: {
   clases?: ClaseVisita[]
   /** Si la escuela es nueva para él (alumno nuevo) o solo ha cambiado (de antes). */
   nuevo?: boolean
+  /** Le espera el vídeo de bienvenida arriba del Inicio (24/11/2026). */
+  conVideo?: boolean
 }): PasoVisita[] {
   const nombre = (opciones.nombre || '').trim()
   const clases = opciones.clases || []
@@ -88,9 +90,11 @@ export function pasosDeLaVisita(opciones: {
   pasos.push({
     id: 'hola',
     titulo: nombre ? `Bienvenido/a a tu escuela, ${nombre}` : 'Bienvenido/a a tu escuela',
-    texto: opciones.nuevo
-      ? 'En un minuto te enseñamos dónde está cada cosa, para que sepas por dónde empezar.'
-      : 'Hemos renovado la escuela: está todo lo de siempre, pero más ordenado. En un minuto te enseñamos dónde está cada cosa.',
+    texto: opciones.conVideo
+      ? 'En un minuto te enseñamos dónde está cada cosa. Después, empieza por el vídeo de bienvenida que tienes arriba en el Inicio.'
+      : opciones.nuevo
+        ? 'En un minuto te enseñamos dónde está cada cosa, para que sepas por dónde empezar.'
+        : 'Hemos renovado la escuela: está todo lo de siempre, pero más ordenado. En un minuto te enseñamos dónde está cada cosa.',
     objetivo: [],
     movil: [],
   })

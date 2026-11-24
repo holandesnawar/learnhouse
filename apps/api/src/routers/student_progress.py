@@ -343,6 +343,30 @@ async def api_plan_guardar(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("/bienvenida", summary="Si al alumno le toca la tarjeta del vídeo de bienvenida en el Inicio (24/11/2026).")
+async def api_bienvenida(
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.student_progress.bienvenida import estado
+
+    if not getattr(current_user, "id", None):
+        return {"toca": False}
+    return await estado(current_user.id, db_session)
+
+
+@router.post("/bienvenida/visto", summary="«Ya lo he visto»: el vídeo de bienvenida deja de salir en el Inicio.")
+async def api_bienvenida_visto(
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    from src.services.student_progress.bienvenida import marcar_visto
+
+    if not getattr(current_user, "id", None):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return await marcar_visto(current_user.id, db_session)
+
+
 @router.get(
     "/mis-grupos",
     summary="Los grupos de usuarios de quien pregunta; al equipo, además, todos los de la escuela.",

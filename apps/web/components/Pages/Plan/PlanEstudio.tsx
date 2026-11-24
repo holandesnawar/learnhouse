@@ -16,6 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, X, Loader2, Target } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
+import { useBienvenida } from '@components/Pages/Home/VideoBienvenida'
 import { DIAS_CORTOS, diasEnTexto, getPlan, guardarPlan, type MiPlan } from '@services/student/plan'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
@@ -255,11 +256,15 @@ function Semana({ d, repartida = false }: { d: MiPlan; repartida?: boolean }) {
 export function PlanEnInicio({ soloAlumno = true }: { soloAlumno?: boolean }) {
   const { data } = usePlan()
   const [abierta, setAbierta] = useState(false)
+  // Con el vídeo de bienvenida pendiente (24/11/2026), la ventana del plan no
+  // se abre sola: primero el vídeo; la tarjeta del plan sigue ahí.
+  const { data: bienvenida } = useBienvenida()
+  const conVideo = !!bienvenida?.toca
 
   // A quien ya estaba en la escuela se le abre sola UNA vez (se recuerda en
   // este navegador); después queda la tarjeta, que no se va hasta rellenarlo.
   useEffect(() => {
-    if (!data || data.rellenado || !soloAlumno) return
+    if (!data || data.rellenado || !soloAlumno || conVideo || !bienvenida) return
     let visto = false
     try {
       visto = !!localStorage.getItem(VISTA)
@@ -274,7 +279,7 @@ export function PlanEnInicio({ soloAlumno = true }: { soloAlumno?: boolean }) {
       setAbierta(true)
     }, 1500)
     return () => clearTimeout(t)
-  }, [data, soloAlumno])
+  }, [data, soloAlumno, conVideo, bienvenida])
 
   if (!data) return null
   const ventana = abierta ? <VentanaPlan inicial={data} onCerrar={() => setAbierta(false)} /> : null

@@ -69,3 +69,10 @@ describe('visita guiada', () => {
     expect(d.left).toBe((1280 - 340) / 2)
   })
 })
+
+test('con el vídeo de bienvenida esperando, el saludo manda a él', () => {
+  const [hola] = pasosDeLaVisita({ nombre: 'Ana', nuevo: true, conVideo: true })
+  expect(hola.texto).toContain('vídeo de bienvenida')
+  const [sinVideo] = pasosDeLaVisita({ nombre: 'Ana', nuevo: true })
+  expect(sinVideo.texto).not.toContain('vídeo')
+})
