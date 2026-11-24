@@ -23,6 +23,7 @@ import { CURSO_FORMACION_UUID } from '@/lib/nawar/cursos'
 import { esCanalDePresentarse, esCanalEsencial } from '@/lib/nawar/empiezaAqui'
 import { VentanaInstalar, usePromptInstalar } from '@components/PWA/InstallAppPrompt'
 import { VentanaPlan, usePlan } from '@components/Pages/Plan/PlanEstudio'
+import { VentanaVideoBienvenida, useBienvenida } from '@components/Pages/Home/VideoBienvenida'
 
 const POPPINS = { fontFamily: 'var(--font-poppins), system-ui, sans-serif' }
 const TARJETA = 'rounded-2xl border border-[#E4E8F2] bg-white'
@@ -99,8 +100,9 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
 
   const pasos: Paso[] = useMemo(
     () => [
-      // Lleva a la formación: su módulo 0 es la introducción, que lo explica todo (08/11/2026).
-      { id: 'conoce', titulo: 'Conoce la escuela', texto: 'La introducción de la formación te explica cómo funciona todo.', href: ruta(`/course/${CURSO_FORMACION_UUID}`), boton: 'Ver la introducción', icono: <Compass size={18} /> },
+      // El vídeo de bienvenida (24/11/2026; antes «Conoce la escuela», que
+      // llevaba a la introducción de la formación, donde también está).
+      { id: 'video', titulo: 'Mira el vídeo de bienvenida', texto: 'En unos minutos te contamos cómo funciona la escuela y por dónde empezar.', href: '', boton: 'Ver el vídeo', icono: <Compass size={18} /> },
       { id: 'presentate', titulo: 'Preséntate', texto: 'Cuéntanos quién eres, dónde vives y para qué quieres el neerlandés.', href: canalHref(presentaciones), boton: 'Presentarme', icono: <Hand size={18} /> },
       { id: 'plan', titulo: 'Haz tu plan', texto: 'Dinos para qué quieres el neerlandés y qué días vas a estudiar. Son dos preguntas.', href: '', boton: 'Hacer mi plan', icono: <Target size={18} /> },
       { id: 'clase', titulo: 'Mira tu clase de esta semana', texto: 'La presentación, el día y la hora. Dinos si vienes.', href: ruta('/clases'), boton: 'Ver mi clase', icono: <Video size={18} /> },
@@ -121,7 +123,12 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
     if (await instalar()) return
     setInstalarAbierto(true)
   }
-  const hecho = (p: Paso) => (p.id === 'plan' ? !!plan?.rellenado : false) || (p.id === 'presentate' && data?.presentado) || (p.id === 'movil' && instalada) || !!hechos[p.id]
+  const { data: bienvenida } = useBienvenida()
+  const [videoAbierto, setVideoAbierto] = useState(false)
+  // El paso del vídeo se marca solo si ya lo vio (en el Inicio, aquí o en la
+  // introducción de la formación).
+  const abrirPaso = (p: Paso) => (p.id === 'plan' ? setPlanAbierto(true) : p.id === 'video' ? setVideoAbierto(true) : marcar(p.id))
+  const hecho = (p: Paso) => (p.id === 'plan' ? !!plan?.rellenado : false) || (p.id === 'video' && !!bienvenida?.visto) || (p.id === 'presentate' && data?.presentado) || (p.id === 'movil' && instalada) || !!hechos[p.id]
   const n = pasos.filter(hecho).length
   const siguiente = pasos.find((p) => !hecho(p))
   const nombre = yo?.first_name || yo?.username || ''
@@ -180,7 +187,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
             <div key={p.id} className="flex items-start gap-4 px-4 sm:px-6 py-4">
               <button
                 type="button"
-                onClick={() => (p.id === 'plan' ? setPlanAbierto(true) : p.id !== 'presentate' && marcar(p.id, !ok))}
+                onClick={() => (p.id === 'plan' ? setPlanAbierto(true) : p.id === 'video' ? setVideoAbierto(true) : p.id !== 'presentate' && marcar(p.id, !ok))}
                 aria-label={ok ? 'Hecho' : 'Marcar como hecho'}
                 className={`mt-0.5 shrink-0 w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${ok ? 'border-[#16A34A] text-[#16A34A]' : 'border-[#C9D2E6] text-[#8A91AD]'}`}
               >
@@ -192,6 +199,11 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
                 {p.id === 'plan' && !ok ? (
                   <button type="button" onClick={() => setPlanAbierto(true)} className="mt-1.5 sm:hidden inline-flex items-center gap-1 text-[14px] font-semibold text-[#0b2da0] hover:underline">
                     Hacer mi plan <ArrowRight size={14} />
+                  </button>
+                ) : null}
+                {p.id === 'video' && !ok ? (
+                  <button type="button" onClick={() => setVideoAbierto(true)} className="mt-1.5 sm:hidden inline-flex items-center gap-1 text-[14px] font-semibold text-[#0b2da0] hover:underline">
+                    Ver el vídeo <ArrowRight size={14} />
                   </button>
                 ) : null}
                 {p.id === 'movil' && !ok ? (
@@ -210,7 +222,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
                     {p.boton} <ArrowRight size={14} />
                   </Link>
                 ) : (
-                  <button type="button" onClick={() => (p.id === 'plan' ? setPlanAbierto(true) : marcar(p.id))} className="shrink-0 hidden sm:inline-flex items-center h-9 px-3.5 rounded-lg border border-[#DDE3F0] text-[13.5px] font-semibold text-[#0b2da0] hover:bg-[#F5F8FF]">
+                  <button type="button" onClick={() => abrirPaso(p)} className="shrink-0 hidden sm:inline-flex items-center h-9 px-3.5 rounded-lg border border-[#DDE3F0] text-[13.5px] font-semibold text-[#0b2da0] hover:bg-[#F5F8FF]">
                     {p.boton}
                   </button>
                 )
@@ -222,6 +234,7 @@ export default function EmpiezaAqui({ orgslug }: { orgslug: string }) {
 
       {instalarAbierto ? <VentanaInstalar onCerrar={() => setInstalarAbierto(false)} /> : null}
       {planAbierto && plan ? <VentanaPlan inicial={plan} onCerrar={() => setPlanAbierto(false)} /> : null}
+      {videoAbierto ? <VentanaVideoBienvenida onCerrar={() => setVideoAbierto(false)} /> : null}
 
       {data?.fijadas?.length ? (
         <section>

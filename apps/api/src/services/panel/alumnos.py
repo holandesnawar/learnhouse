@@ -394,7 +394,16 @@ async def listar_alumnos(org_id: int, db_session: AsyncSession, solo: Optional[i
         de_lecturas = await R.de_alumnos([a["user_id"] for a in alumnos], db_session)
     except Exception:  # noqa: BLE001 — un extra: sin él, la lista sale igual
         lecturas_org, de_lecturas = [], {}
+    try:
+        from src.services.student_progress.bienvenida import vistos_de
+
+        bienvenida = await vistos_de([a["user_id"] for a in alumnos], db_session)
+    except Exception:  # noqa: BLE001 — un extra: sin él, la lista sale igual
+        bienvenida = {}
     for a in alumnos:
+        # El vídeo de bienvenida (24/11/2026): la fecha en que lo marcó visto,
+        # "curso" si lo vio en la formación, o "" si no.
+        a["bienvenida"] = bienvenida.get(a["user_id"], "")
         a["ultimo_recordatorio"] = ultimos.get(a["user_id"])
         # El resumen semanal: si se dio de baja y cuándo recibió el último.
         a["resumen"] = resumenes.get(a["user_id"]) or {"baja": False, "ultimo": ""}

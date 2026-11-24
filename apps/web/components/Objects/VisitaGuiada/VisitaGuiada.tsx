@@ -14,6 +14,7 @@
  *   ilumina el botón del menú, que es donde está todo.
  * - Esc = saltar; flechas o Intro para moverse.
  */
+import { useBienvenida } from '@components/Pages/Home/VideoBienvenida'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -88,7 +89,10 @@ export default function VisitaGuiada({
   const tarjeta = useRef<HTMLDivElement>(null)
   const revisada = useRef(false)
 
-  const pasos = useMemo(() => pasosDeLaVisita({ nombre, clases, nuevo }), [nombre, clases, nuevo])
+  // Con el vídeo de bienvenida esperando en el Inicio, el saludo lo dice (24/11/2026).
+  const { data: bienvenida } = useBienvenida()
+  const conVideo = !!bienvenida?.toca
+  const pasos = useMemo(() => pasosDeLaVisita({ nombre, clases, nuevo, conVideo }), [nombre, clases, nuevo, conVideo])
   const actual = pasos[Math.min(paso, pasos.length - 1)]
 
   // ¿Le toca verla sola? Una vez por carga, solo alumnos y en el Inicio.

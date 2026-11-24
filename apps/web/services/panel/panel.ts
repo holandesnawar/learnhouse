@@ -497,6 +497,8 @@ export interface AlumnoProgreso {
   /** El WhatsApp que dejó al matricularse. */
   telefono?: string
   /** Su objetivo y sus días de estudio, si los ha rellenado. */
+  /** El vídeo de bienvenida (24/11/2026): fecha en que lo marcó visto, «curso» si lo vio en la formación, o vacío. */
+  bienvenida?: string
   plan?: {
     objetivo: string
     texto: string

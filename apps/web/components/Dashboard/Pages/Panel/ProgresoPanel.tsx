@@ -13,6 +13,7 @@
  * estado. De dónde sale cada dato: `apps/api/src/services/panel/alumnos.py`.
  */
 
+import { textoBienvenida } from '@/lib/nawar/bienvenida'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -85,6 +86,10 @@ export function DetalleAlumno({
         <div>
           <dt className="text-[#6B7280]">Estado</dt>
           <dd className="text-gray-900">{a.estado.texto}</dd>
+        </div>
+        <div>
+          <dt className="text-[#6B7280]">Vídeo de bienvenida</dt>
+          <dd className="text-gray-900">{textoBienvenida(a.bienvenida)}</dd>
         </div>
         <div>
           <dt className="text-[#6B7280]">Su objetivo</dt>

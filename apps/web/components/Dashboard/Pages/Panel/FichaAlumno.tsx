@@ -36,6 +36,7 @@
  * Testers o fuera de los números): cada parte dice lo que no tiene.
  */
 
+import { textoBienvenida } from '@/lib/nawar/bienvenida'
 import React, { useState } from 'react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -652,6 +653,12 @@ export default function FichaAlumno({
             >
               {modulos}
             </Sec>
+
+            {alumno ? (
+              <Sec titulo="Vídeo de bienvenida">
+                <p>{textoBienvenida(alumno.bienvenida)}</p>
+              </Sec>
+            ) : null}
 
             {alumno ? (
               <Sec titulo="Su objetivo">
