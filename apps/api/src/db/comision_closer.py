@@ -23,3 +23,7 @@ class ComisionCloser(SQLModel, table=True):
     pagada_at: str = ""
     pagada_por: str = Field(default="", max_length=120)
     nota: str = Field(default="", max_length=300)
+    # El % de comisión elegido para ESTA venta (24/11/2026: «si Belén mete a
+    # alguien seteando, 18 %»). 0 = el del tramo de Visión → Ajustes. Una fila
+    # puede tener solo el % y estar aún sin pagar (`pagada_at` vacío).
+    pct: float = 0

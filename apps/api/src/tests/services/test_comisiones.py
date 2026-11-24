@@ -38,9 +38,10 @@ def test_sobre_el_total_de_la_venta_tambien_a_plazos():
 
 
 def test_los_porcentajes_para_elegir():
-    assert K.porcentajes(TRAMOS) == [10.0, 15.0]
-    assert K.porcentajes([]) == [10.0, 15.0]
-    assert K.porcentajes([{"desde": "", "pct": 12}]) == [12.0]
+    # Los de los tramos y, siempre, el 18 % de cuando el closer la setea (24/11).
+    assert K.porcentajes(TRAMOS) == [10.0, 15.0, 18.0]
+    assert K.porcentajes([]) == [10.0, 15.0, 18.0]
+    assert K.porcentajes([{"desde": "", "pct": 12}]) == [12.0, 18.0]
 
 
 def test_resumen_por_closer_solo_con_las_de_llamada():
@@ -105,3 +106,50 @@ async def test_en_clientes(db, org):
     assert datos["comisiones"][0]["pendientes"] == 0 and datos["comisiones"][0]["pagado_cents"] == 6525
     # Sin org_id (otras llamadas internas), sin comisión.
     assert "comision" not in (await listar_clientes(db))["clientes"][0]
+
+
+def test_el_pct_elegido_manda_sobre_el_tramo():
+    """«Si Belén mete a alguien seteando, 18 %» (24/11/2026)."""
+    clientes = [
+        {"email": "set@x.com", "total_cents": 59700, "primer_pago": "2026-11-20"},
+        {"email": "nor@x.com", "total_cents": 59700, "primer_pago": "2026-11-20"},
+    ]
+    por, resumen = K.estado_de(clientes, {}, {"set@x.com", "nor@x.com"}, {"set@x.com": "Belén", "nor@x.com": "Belén"}, TRAMOS, {"set@x.com": 18})
+    assert por["set@x.com"]["pct"] == 18 and por["set@x.com"]["pct_elegido"] is True
+    assert por["set@x.com"]["estimada_cents"] == 10746  # 18 % de 597 €
+    assert por["nor@x.com"]["pct"] == 15.0 and por["nor@x.com"]["pct_elegido"] is False
+    belen = next(r for r in resumen if r["closer"] == "Belén")
+    assert belen["pendiente_cents"] == 10746 + 8955
+    assert K.pct_ok(18) == 18 and K.pct_ok(0) == 0 and K.pct_ok(80) == 0 and K.pct_ok("x") == 0
+
+
+async def test_elegir_pct_marcar_y_desmarcar(db):
+    r = await K.elegir_pct("Set@x.com", 18, db)
+    assert r["ok"] and r["pct"] == 18
+    assert await K.pcts_elegidos(db) == {"set@x.com": 18.0}
+    # Con solo el %, no cuenta como pagada.
+    assert await K.pagadas(db) == {}
+    await K.marcar("set@x.com", 10746, "Rida", db)
+    assert (await K.pagadas(db))["set@x.com"]["importe_cents"] == 10746
+    assert await K.pcts_elegidos(db) == {"set@x.com": 18.0}
+    # Quitar la marca de pagada conserva el %.
+    await K.desmarcar("set@x.com", db)
+    assert await K.pagadas(db) == {}
+    assert await K.pcts_elegidos(db) == {"set@x.com": 18.0}
+    # Volver al tramo borra la fila (no estaba pagada).
+    await K.elegir_pct("set@x.com", 0, db)
+    assert await K.pcts_elegidos(db) == {}
+    assert (await db.execute(select(ComisionCloser))).scalars().all() == []
+    # Marcar desde el botón del % lo guarda también.
+    await K.marcar("otra@x.com", 9000, "Rida", db, pct=15)
+    assert await K.pcts_elegidos(db) == {"otra@x.com": 15.0}
+    assert not (await K.elegir_pct("otra@x.com", 90, db))["ok"]
+
+
+def test_vision_usa_el_pct_de_la_venta():
+    from src.services.vision.calculo import dinero_de_ventas
+
+    ajustes = {"closer": TRAMOS}
+    base = dinero_de_ventas([{"importe_cents": 10000, "fecha": "2026-11-20", "con_llamada": True}], 0, ajustes)
+    seteo = dinero_de_ventas([{"importe_cents": 10000, "fecha": "2026-11-20", "con_llamada": True, "pct_closer": 18}], 0, ajustes)
+    assert base["closer_cents"] == 1500 and seteo["closer_cents"] == 1800

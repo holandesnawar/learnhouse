@@ -47,6 +47,7 @@ import { numeroWhatsApp } from '@/lib/nawar/telefono'
 import { colorCloser } from '@lib/nawar/colorCloser'
 import { mensajeAtascado, resumenAtasco } from '@/lib/nawar/atascados'
 import { aCaja, comisionCents, leerEuros, pctQueCuadra, textoPct } from '@lib/nawar/comision'
+import ComisionPct from './ComisionPct'
 import { CURSO_FORMACION_UUID, RUTA_FORMACION } from '@/lib/nawar/cursos'
 import { getSchoolUrl } from '@services/config/config'
 import { avisoTrasBorrar, borrarContacto, type Cita, type VolverALlamar } from '@services/stats/contactos'
@@ -124,9 +125,10 @@ function Comision({ email, com, pcts, onCambio }: { email: string; com: Comision
   const session = useLHSession() as any
   const token = session?.data?.tokens?.access_token
   const [abierta, setAbierta] = useState(false)
+  const [verPct, setVerPct] = useState(false)
   const [importe, setImporte] = useState('')
   const [ocupado, setOcupado] = useState(false)
-  const lista = pcts.length ? pcts : [10, 15]
+  const lista = pcts.length ? pcts : [10, 15, 18]
   const cents = leerEuros(importe)
   const pctCaja = cents === null ? null : pctQueCuadra(com.base_cents, cents, lista)
 
@@ -137,7 +139,7 @@ function Comision({ email, com, pcts, onCambio }: { email: string; com: Comision
   async function guardar() {
     if (cents === null) return toast.error('Escribe el importe en euros')
     setOcupado(true)
-    const r = await marcarComision(org.id, email, cents, token)
+    const r = await marcarComision(org.id, email, cents, token, pctCaja)
     setOcupado(false)
     if (!r.ok) return toast.error(r.error || 'No se ha podido guardar')
     toast.success('Comisión apuntada como pagada')
@@ -170,8 +172,25 @@ function Comision({ email, com, pcts, onCambio }: { email: string; com: Comision
         <span className="text-[#4B5565]">Sin llamada: sin comisión</span>
       )}
       <span className="block text-[12.5px] text-[#8A93A3]">
-        {com.pagada ? `${dia(com.pagada.cuando)}${com.pagada.por ? ` · la apuntó ${nombreCorto(com.pagada.por)}` : ''}` : `${textoPct(com.pct)} de ${euros(com.base_cents)}`}
+        {com.pagada
+          ? `${dia(com.pagada.cuando)}${com.pagada.por ? ` · la apuntó ${nombreCorto(com.pagada.por)}` : ''}`
+          : `${textoPct(com.pct)} de ${euros(com.base_cents)}${com.pct_elegido ? ' · puesto a mano' : ''}`}
       </span>
+      {/* El % de esta venta (24/11/2026): 18 % si el closer la seteó. */}
+      {!com.pagada && verPct ? (
+        <div className="mt-2">
+          <ComisionPct
+            email={email}
+            com={com}
+            pcts={lista}
+            compacto
+            onCambio={() => {
+              setVerPct(false)
+              onCambio()
+            }}
+          />
+        </div>
+      ) : null}
       {abierta ? (
         <div className="mt-2 space-y-2">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -200,9 +219,16 @@ function Comision({ email, com, pcts, onCambio }: { email: string; com: Comision
           </div>
         </div>
       ) : (
-        <button onClick={abrir} className={`${ENLACE} mt-0.5`}>
-          {com.pagada ? 'Cambiar' : 'Marcar como pagada'}
-        </button>
+        <div className="flex flex-wrap gap-x-3 mt-0.5">
+          <button onClick={abrir} className={ENLACE}>
+            {com.pagada ? 'Cambiar' : 'Marcar como pagada'}
+          </button>
+          {!com.pagada && !verPct ? (
+            <button onClick={() => setVerPct(true)} className={ENLACE}>
+              Cambiar el %
+            </button>
+          ) : null}
+        </div>
       )}
     </div>
   )

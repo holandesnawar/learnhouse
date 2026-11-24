@@ -23,6 +23,14 @@ ficha ni en la línea de tiempo.
   llamada del equipo en su ficha), igual que la comisión de Visión. Las demás
   salen como «sin llamada»; se pueden marcar igual si hace falta.
 - Se marca y se desmarca: un error se deshace con un clic.
+- **El % de cada venta se puede elegir** (24/11/2026, usuario: «si Belén mete
+  a alguien seteando, quiero poder meter 18 % de comisión, no 15… que se
+  ajuste automáticamente en cifras»): `comision_closer.pct`. Elegido, manda
+  sobre el tramo en lo que le toca, en el pendiente por closer y en las
+  cuentas de Visión (`pcts_elegidos` → `dinero_de_ventas`). Una fila puede
+  llevar solo el % sin estar pagada (`pagada_at` vacío): quitar la marca de
+  pagada conserva el %. Los botones son los de los tramos más el 18 %
+  (`PCT_SETEO`); también se escribe otro.
 """
 
 from datetime import datetime, timezone
@@ -34,6 +42,9 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.comision_closer import ComisionCloser
 
 SIN_CLOSER = "Sin closer asignado"
+#: El % cuando el closer ha seteado la venta él mismo (24/11/2026).
+PCT_SETEO = 18.0
+PCT_MAX = 50.0
 # Lo que en la ficha dice que hubo llamada (además de Calendly y «¿Qué pasó?»).
 _KINDS_DE_LLAMADA = ("reunion", "llamada-equipo")
 
@@ -61,8 +72,17 @@ def base_de(cliente: dict) -> int:
 def porcentajes(tramos: list[dict]) -> list[float]:
     """Los % que se pueden elegir al marcar: los de los tramos de Visión
     (10 y 15). Sin tramos guardados, esos dos. Función pura."""
-    vistos = sorted({float(t.get("pct") or 0) for t in (tramos or []) if float(t.get("pct") or 0) > 0})
-    return vistos or [10.0, 15.0]
+    vistos = {float(t.get("pct") or 0) for t in (tramos or []) if float(t.get("pct") or 0) > 0} or {10.0, 15.0}
+    return sorted(vistos | {PCT_SETEO})
+
+
+def pct_ok(valor) -> float:
+    """Un % válido (0 = el del tramo). Función pura."""
+    try:
+        v = round(float(valor or 0), 2)
+    except (TypeError, ValueError):
+        return 0.0
+    return v if 0 < v <= PCT_MAX else 0.0
 
 
 def estado_de(
@@ -71,12 +91,14 @@ def estado_de(
     con_llamada: set[str],
     closers: dict[str, str],
     tramos: list[dict],
+    elegidos: Optional[dict[str, float]] = None,
 ) -> tuple[dict[str, dict], list[dict]]:
     """La comisión de cada cliente y el resumen por closer. Función pura.
 
     clientes: los de `listar_clientes` (email, total_cents, primer_pago y,
     si paga a plazos, `plazos.total_cents`).
     pagadas: {email: {importe_cents, cuando, por}} de `comision_closer`.
+    elegidos: {email: %} elegido a mano para esa venta (manda sobre el tramo).
     Devuelve ({email: comision}, [resumen por closer, el más pendiente arriba]).
     """
     from src.services.vision.calculo import pct_closer
@@ -91,11 +113,16 @@ def estado_de(
         llamada = email in con_llamada or bool(closer)
         pagada = pagadas.get(email)
         base = base_de(c)
+        elegido = pct_ok((elegidos or {}).get(email))
+        pct_tramo = pct_closer((c.get("primer_pago") or "")[:10], tramos or [])
+        pct = elegido or pct_tramo
         com = {
             "pagada": pagada,
             "base_cents": base,
-            "pct": pct_closer((c.get("primer_pago") or "")[:10], tramos or []),
-            "estimada_cents": estimada(base, c.get("primer_pago") or "", tramos),
+            "pct": pct,
+            "pct_elegido": bool(elegido),
+            "pct_tramo": pct_tramo,
+            "estimada_cents": round(max(0, base) * pct / 100),
             "con_llamada": llamada,
             "closer": closer,
         }
@@ -118,12 +145,57 @@ def estado_de(
 
 
 async def pagadas(db_session: AsyncSession) -> dict[str, dict]:
+    """Las ventas con la comisión ya pagada (una fila con solo el % elegido no
+    cuenta como pagada)."""
     salida: dict[str, dict] = {}
     for f in (await db_session.execute(select(ComisionCloser))).scalars().all():
         email = (f.email or "").strip().lower()
-        if email:
+        if email and f.pagada_at:
             salida[email] = {"importe_cents": f.importe_cents or 0, "cuando": f.pagada_at or "", "por": f.pagada_por or "", "nota": f.nota or ""}
     return salida
+
+
+async def pcts_elegidos(db_session: AsyncSession) -> dict[str, float]:
+    """{correo: %} de las ventas con el % puesto a mano. En blando: sin la
+    columna (antes de desplegar), vacío."""
+    try:
+        filas = (await db_session.execute(select(ComisionCloser.email, ComisionCloser.pct))).all()
+    except Exception:  # noqa: BLE001
+        await db_session.rollback()
+        return {}
+    salida: dict[str, float] = {}
+    for email, pct in filas:
+        p = pct_ok(pct)
+        if email and p:
+            salida[email.strip().lower()] = p
+    return salida
+
+
+async def elegir_pct(email: str, pct, db_session: AsyncSession) -> dict:
+    """Pone (o quita, con 0) el % de comisión de esa venta. No la marca
+    pagada ni cambia lo ya pagado."""
+    clave = (email or "").strip().lower()
+    if "@" not in clave:
+        return {"ok": False, "motivo": "Falta el correo de la venta"}
+    valor = pct_ok(pct)
+    if pct not in (None, "", 0, "0") and not valor:
+        return {"ok": False, "motivo": f"El % tiene que estar entre 0 y {int(PCT_MAX)}"}
+    filas = await _filas(clave, db_session)
+    fila = filas[0] if filas else None
+    for sobra in filas[1:]:
+        await db_session.delete(sobra)
+    if fila is None:
+        if not valor:
+            await db_session.commit()
+            return {"ok": True, "pct": 0}
+        fila = ComisionCloser(email=clave)
+    fila.pct = valor
+    if not valor and not fila.pagada_at:
+        await db_session.delete(fila)
+    else:
+        db_session.add(fila)
+    await db_session.commit()
+    return {"ok": True, "pct": valor}
 
 
 async def _filas(email: str, db_session: AsyncSession) -> list[ComisionCloser]:
@@ -132,9 +204,13 @@ async def _filas(email: str, db_session: AsyncSession) -> list[ComisionCloser]:
     )
 
 
-async def marcar(email: str, importe_cents: Optional[int], autor: str, db_session: AsyncSession, nota: str = "") -> dict:
+async def marcar(
+    email: str, importe_cents: Optional[int], autor: str, db_session: AsyncSession, nota: str = "", pct=None
+) -> dict:
     """Marca la comisión de esa venta como pagada (o cambia lo apuntado). Una
-    fila por correo: si había otra, se reescribe."""
+    fila por correo: si había otra, se reescribe. Con `pct`, guarda además el
+    % con el que se pagó (así Visión cuenta lo mismo); sin él, se queda el que
+    hubiera."""
     clave = (email or "").strip().lower()
     if "@" not in clave:
         return {"ok": False, "motivo": "Falta el correo de la venta"}
@@ -148,16 +224,22 @@ async def marcar(email: str, importe_cents: Optional[int], autor: str, db_sessio
     fila.pagada_at = _ahora()
     fila.pagada_por = (autor or "")[:120]
     fila.nota = (nota or "").strip()[:300]
+    if pct is not None:
+        fila.pct = pct_ok(pct)
     db_session.add(fila)
     await db_session.commit()
     return {"ok": True, "pagada": {"importe_cents": importe, "cuando": fila.pagada_at, "por": fila.pagada_por, "nota": fila.nota}}
 
 
 async def desmarcar(email: str, db_session: AsyncSession) -> dict:
+    """Quita la marca de pagada. Si la venta tenía un % elegido, se queda."""
     clave = (email or "").strip().lower()
     filas = await _filas(clave, db_session)
+    pct = next((pct_ok(f.pct) for f in filas if pct_ok(f.pct)), 0.0)
     for f in filas:
         await db_session.delete(f)
+    if pct:
+        db_session.add(ComisionCloser(email=clave, pct=pct))
     await db_session.commit()
     return {"ok": True, "quitadas": len(filas)}
 
@@ -207,7 +289,9 @@ async def para_clientes(clientes: list[dict], org_id: int, db_session: AsyncSess
         tramos = (await leer_ajustes(org_id, db_session)).get("closer") or []
     except Exception:  # noqa: BLE001
         tramos = []
-    por_email, resumen = estado_de(clientes, await pagadas(db_session), await con_llamada(db_session), closers, tramos)
+    por_email, resumen = estado_de(
+        clientes, await pagadas(db_session), await con_llamada(db_session), closers, tramos, await pcts_elegidos(db_session)
+    )
     for c in clientes:
         c["comision"] = por_email.get((c.get("email") or "").strip().lower())
     return resumen, porcentajes(tramos)
