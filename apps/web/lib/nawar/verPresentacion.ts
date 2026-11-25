@@ -14,7 +14,7 @@ import type { Semana } from '@services/tareas/tareas'
 export type OpcionPresentacion = {
   id: string
   /** antes = la que los alumnos ven antes de la clase; clase = la versión guardada desde la pizarra; equipo = solo del equipo. */
-  tipo: 'antes' | 'clase' | 'equipo'
+  tipo: 'antes' | 'clase' | 'limpia' | 'equipo'
   titulo: string
   detalle: string
   /** La clase PDF del curso (para pedirla y para marcarla como vista). */
@@ -38,16 +38,21 @@ export function opcionesDe(semana: Semana, equipo: boolean): OpcionPresentacion[
   const pres = (semana.clases || []).filter((c) => c.tipo === 'presentacion')
   const notas = semana.notas_clase
   if (!equipo) {
-    if (notas)
-      return [
+    if (notas) {
+      const out: OpcionPresentacion[] = [
         {
           id: 'clase',
           tipo: 'clase',
-          titulo: 'La presentación de tu clase',
+          titulo: notas.limpia ? 'Con las notas de la clase' : 'La presentación de tu clase',
           detalle: `Con lo que se escribió en ella${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`,
           semanaPdf: notas.semana_id || semana.id,
         },
       ]
+      // También sin las notas (25/11/2026, Spreek Club): para repasarla limpia.
+      if (notas.limpia)
+        out.push({ id: 'limpia', tipo: 'limpia', titulo: 'Sin notas', detalle: 'La misma presentación, limpia, sin lo que se escribió en la clase', semanaPdf: notas.semana_id || semana.id })
+      return out
+    }
     return pres.map((c) => ({ id: `antes:${c.activity_uuid}`, tipo: 'antes' as const, titulo: 'La presentación', detalle: 'Para mirar antes de la clase', actividad: c.activity_uuid, hecha: c.hecha }))
   }
   const out: OpcionPresentacion[] = []
@@ -76,6 +81,14 @@ export function opcionesDe(semana: Semana, equipo: boolean): OpcionPresentacion[
       tipo: 'clase',
       titulo: 'La versión de la clase',
       detalle: `Lo que ven los alumnos después de la clase, con lo escrito en la pizarra${pub.paginas ? ` · ${pub.paginas} páginas` : ''}`,
+      semanaPdf: semana.id,
+    })
+  if ((pub as any)?.limpia || notas?.limpia)
+    out.push({
+      id: 'limpia',
+      tipo: 'limpia',
+      titulo: 'La versión sin notas',
+      detalle: 'Los alumnos también la tienen sin lo escrito en la pizarra',
       semanaPdf: semana.id,
     })
   return out

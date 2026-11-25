@@ -174,11 +174,20 @@ def leer(material: dict) -> dict:
                 # era la de la pizarra de entonces).
                 "fuente": str(pub.get("fuente") if pub.get("fuente") is not None else fuente),
                 "nombre": str(pub.get("nombre") or ""),
+                # La misma presentación SIN lo escrito (25/11/2026, Spreek Club).
+                "limpia": _limpia(pub.get("limpia")),
             }
             if pub
             else None
         ),
     }
+
+
+def _limpia(v: Any) -> Optional[dict]:
+    """La versión sin notas guardada junto a la de los alumnos, o None."""
+    if not isinstance(v, dict) or not v.get("ruta"):
+        return None
+    return {"ruta": str(v.get("ruta") or ""), "paginas": int(v.get("paginas") or 0), "tam": int(v.get("tam") or 0)}
 
 
 def _con_compat(p: dict) -> dict:
@@ -196,7 +205,12 @@ def ultima_escritura(p: dict) -> str:
 def publicada_para_la_pantalla(p: dict) -> Optional[dict]:
     """Sin la ruta en disco."""
     pub = p.get("publicada")
-    return {k: v for k, v in pub.items() if k != "ruta"} if pub else None
+    if not pub:
+        return None
+    out = {k: v for k, v in pub.items() if k not in ("ruta", "limpia")}
+    limpia = pub.get("limpia")
+    out["limpia"] = {"paginas": limpia.get("paginas") or 0} if isinstance(limpia, dict) and limpia.get("ruta") else None
+    return out
 
 
 def fuentes(material: dict, clases: list[dict]) -> list[dict]:
@@ -646,8 +660,7 @@ def es_pdf(datos: bytes) -> bool:
     return datos[:5] == b"%PDF-" and b"%%EOF" in datos[-2048:]
 
 
-def publicar(org_id: int, p: dict, datos: bytes, paginas: int, por: str, ahora: str, fuente: str = "", nombre: str = "") -> dict:
-    """Guarda el PDF de después de clase (sustituye al anterior)."""
+def _guardar_pdf(org_id: int, datos: bytes) -> str:
     if not datos:
         raise TareaError("La presentación llegó vacía")
     if len(datos) > MAX_PDF:
@@ -659,9 +672,43 @@ def publicar(org_id: int, p: dict, datos: bytes, paginas: int, por: str, ahora: 
     ruta = ruta_segura(relativa)
     assert ruta is not None
     ruta.write_bytes(datos)
-    viejo = (p.get("publicada") or {}).get("ruta")
-    if viejo:
-        _borrar(viejo)
+    return relativa
+
+
+def _borrar_publicada(p: dict) -> None:
+    pub = p.get("publicada") or {}
+    for r in (pub.get("ruta"), (pub.get("limpia") or {}).get("ruta") if isinstance(pub.get("limpia"), dict) else None):
+        if r:
+            _borrar(r)
+
+
+def publicar(
+    org_id: int,
+    p: dict,
+    datos: bytes,
+    paginas: int,
+    por: str,
+    ahora: str,
+    fuente: str = "",
+    nombre: str = "",
+    limpia: Optional[bytes] = None,
+    paginas_limpia: int = 0,
+) -> dict:
+    """Guarda el PDF de después de clase (sustituye al anterior).
+
+    `limpia` (25/11/2026, Spreek Club; usuario: «mucha gente quiere ver la
+    presentación sin las notas que añadimos en clase»): la misma presentación
+    sin lo escrito, montada a la vez por la pizarra. Se guarda al lado y el
+    alumno elige entre las dos. Sin ella, solo la de las notas (lo de siempre)."""
+    relativa = _guardar_pdf(org_id, datos)
+    extra = None
+    if limpia:
+        try:
+            extra = {"ruta": _guardar_pdf(org_id, limpia), "paginas": max(0, int(paginas_limpia or 0)), "tam": len(limpia)}
+        except TareaError:
+            _borrar(relativa)
+            raise
+    _borrar_publicada(p)
     return {
         **p,
         "publicada": {
@@ -673,18 +720,19 @@ def publicar(org_id: int, p: dict, datos: bytes, paginas: int, por: str, ahora: 
             # De qué presentación salió (22/11/2026), para decirlo en la lista.
             "fuente": fuente or p.get("fuente") or "",
             "nombre": (nombre or "")[:160],
+            "limpia": extra,
         },
     }
 
 
 def quitar_publicada(p: dict) -> dict:
-    viejo = (p.get("publicada") or {}).get("ruta")
-    if viejo:
-        _borrar(viejo)
+    _borrar_publicada(p)
     return {**p, "publicada": None}
 
 
-def pdf_publicado(p: dict) -> Optional[Path]:
-    pub = p.get("publicada")
+def pdf_publicado(p: dict, limpia: bool = False) -> Optional[Path]:
+    pub = p.get("publicada") or {}
+    if limpia:
+        pub = pub.get("limpia") if isinstance(pub.get("limpia"), dict) else {}
     ruta = ruta_segura((pub or {}).get("ruta") or "")
     return ruta if ruta and ruta.is_file() else None

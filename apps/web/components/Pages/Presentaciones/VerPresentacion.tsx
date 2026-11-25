@@ -132,8 +132,8 @@ export default function VerPresentacion({ semanaId }: { semanaId: string }) {
     let vivo = true
     let hecha = ''
     const pedir =
-      abierta.tipo === 'clase'
-        ? urlPdfConNotas(abierta.semanaPdf || id, token)
+      abierta.tipo === 'clase' || abierta.tipo === 'limpia'
+        ? urlPdfConNotas(abierta.semanaPdf || id, token, abierta.tipo === 'limpia')
         : equipo && abierta.fuente
           ? urlPdfFuente(id, abierta.fuente, token)
           : urlPdfAntes(id, token, abierta.actividad || '')
@@ -184,7 +184,7 @@ export default function VerPresentacion({ semanaId }: { semanaId: string }) {
   const profe = (semana?.material_profe?.profe || ajustesDirecto(org?.config?.config, courseUuid).banner?.teacher || '').trim()
   const titulo = semana ? t(tituloDeClase(semana.tema, semana.fecha)) : clase.data?.tema || ''
   const cuando = [diaDeSesion(semana?.fecha || clase.data?.fecha || '', hoy), profe ? `con ${profe}` : ''].filter(Boolean).join(' · ')
-  const nombreArchivo = `${(semana?.tema || 'Presentación').trim()}${abierta?.tipo === 'clase' ? ' - notas de la clase' : ''}.pdf`
+  const nombreArchivo = `${(semana?.tema || 'Presentación').trim()}${abierta?.tipo === 'clase' ? ' - notas de la clase' : abierta?.tipo === 'limpia' ? ' - sin notas' : ''}.pdf`
 
   return (
     <div className="min-h-[calc(100dvh-3.5rem)] bg-[#F4F6FB]">
@@ -255,6 +255,27 @@ export default function VerPresentacion({ semanaId }: { semanaId: string }) {
               {t(abierta.detalle)}
               {abierta.enPizarra ? ' · en la pizarra' : ''}
             </p>
+          ) : !equipo && opciones.length > 1 ? (
+            // El alumno: con las notas de la clase o sin ellas (25/11/2026, Spreek Club).
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <div className="inline-flex w-fit rounded-lg border border-[#E2E7F0] bg-[#F4F6FB] p-0.5" role="tablist" aria-label={t('Versión de la presentación')}>
+                {opciones.map((o) => {
+                  const activa = abierta?.id === o.id
+                  return (
+                    <button
+                      key={o.id}
+                      role="tab"
+                      aria-selected={activa}
+                      onClick={() => setElegida(o.id)}
+                      className={`h-8 rounded-md px-3 text-[13px] font-semibold transition-colors ${activa ? 'bg-white text-[#0B1033] shadow-[0_0_0_1px_#E2E7F0]' : 'text-[#6B7393] hover:text-[#0B1033]'}`}
+                    >
+                      {t(o.titulo)}
+                    </button>
+                  )
+                })}
+              </div>
+              {abierta ? <p className="text-[12.5px] text-[#6B7393]">{t(abierta.detalle)}</p> : null}
+            </div>
           ) : !equipo && abierta ? (
             <p className="text-[12.5px] text-[#6B7393]">{t(abierta.detalle)}</p>
           ) : null}

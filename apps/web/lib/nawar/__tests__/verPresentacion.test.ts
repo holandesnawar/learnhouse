@@ -67,3 +67,17 @@ describe('anterior y siguiente', () => {
     expect(vecinas(semanas, 3, true, true, '2026-11-20').siguiente?.id).toBe(4)
   })
 })
+
+describe('Spreek Club: con notas y sin notas (25/11/2026)', () => {
+  test('el alumno elige entre las dos, de la misma semana', () => {
+    const o = opcionesDe(S(1, '2026-11-18', { notas_clase: { at: 't', paginas: 9, limpia: true, semana_id: 77 } }), false)
+    expect(o.map((x) => [x.tipo, x.semanaPdf])).toEqual([
+      ['clase', 77],
+      ['limpia', 77],
+    ])
+  })
+  test('sin la versión limpia, como siempre: una sola', () => {
+    const o = opcionesDe(S(1, '2026-11-18', { notas_clase: { at: 't', paginas: 9, limpia: false } }), false)
+    expect(o.map((x) => x.tipo)).toEqual(['clase'])
+  })
+})

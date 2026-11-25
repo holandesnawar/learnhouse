@@ -378,17 +378,22 @@ async def api_publicar(
     pdf: UploadFile = File(...),
     paginas: int = Form(0),
     fuente: str = Form(""),
+    limpia: Optional[UploadFile] = File(None),
+    paginas_limpia: int = Form(0),
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
     s, _admin = await _semana_equipo(semana_id, current_user, db_session)
     datos = await pdf.read(PZ.MAX_PDF + 1)
+    datos_limpia = await limpia.read(PZ.MAX_PDF + 1) if limpia is not None else None
     material = MP.leer(s.material_profe)
     disponibles = PZ.fuentes(material, await _clases_de(s, db_session))
     p = PZ.leer(material)
     de = (fuente or "").strip() or PZ.fuente_valida(p["fuente"], disponibles)
     try:
-        p = PZ.publicar(s.org_id, p, datos, paginas, _nombre(current_user), MP._ahora(), de, PZ.nombre_de(de, disponibles))
+        p = PZ.publicar(
+            s.org_id, p, datos, paginas, _nombre(current_user), MP._ahora(), de, PZ.nombre_de(de, disponibles), datos_limpia or None, paginas_limpia
+        )
     except T.TareaError as exc:
         raise _error(exc)
     await _guardar(s, material, p, db_session)
@@ -431,6 +436,7 @@ async def api_pdf(
     request: Request,
     semana_id: int,
     descargar: Optional[int] = None,
+    limpia: Optional[int] = None,
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
@@ -442,10 +448,10 @@ async def api_pdf(
         raise _error(exc)
     if not await _puede_verla(request, s, current_user, db_session):
         raise HTTPException(status_code=403, detail="Se abre el día de la clase")
-    ruta = PZ.pdf_publicado(PZ.leer(MP.leer(s.material_profe)))
+    ruta = PZ.pdf_publicado(PZ.leer(MP.leer(s.material_profe)), limpia=bool(limpia))
     if ruta is None:
-        raise HTTPException(status_code=404, detail="Esta clase aún no tiene la presentación con notas")
-    nombre = f"{(s.tema or 'Clase').strip()} - notas de la clase.pdf"
+        raise HTTPException(status_code=404, detail="Esta clase aún no tiene la presentación sin notas" if limpia else "Esta clase aún no tiene la presentación con notas")
+    nombre = f"{(s.tema or 'Clase').strip()} - {'sin notas' if limpia else 'notas de la clase'}.pdf"
     return FileResponse(
         ruta,
         media_type="application/pdf",
@@ -506,6 +512,7 @@ async def api_pdf_antes(
     semana_id: int,
     actividad: str = "",
     descargar: Optional[int] = None,
+    limpia: Optional[int] = None,
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):

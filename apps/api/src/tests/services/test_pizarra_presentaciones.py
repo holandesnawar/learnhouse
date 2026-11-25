@@ -151,7 +151,7 @@ def test_la_version_de_los_alumnos_dice_de_que_presentacion_salio(tmp_path, monk
     lista = PZ.lista(_material(**p), CLASES)
     assert lista["presentaciones"][0]["publicada"] == {"at": "t2", "por": "Rida", "paginas": 4}
     assert lista["presentaciones"][1]["publicada"] is None
-    assert lista["publicada"] == {"at": "t2", "por": "Rida", "paginas": 4, "tam": len(pdf), "fuente": "profe:buena", "nombre": "Mijn huis.pdf"}
+    assert lista["publicada"] == {"at": "t2", "por": "Rida", "paginas": 4, "tam": len(pdf), "fuente": "profe:buena", "nombre": "Mijn huis.pdf", "limpia": None}
     # Lo publicado antes del 22/11 no decía de cuál: era la de la pizarra de entonces.
     viejo = {"fuente": "profe:buena", "anotaciones": "x.json", "publicada": {"ruta": "y.pdf", "at": "t0", "por": "Paul", "paginas": 13, "tam": 9}}
     assert PZ.lista(_material(**viejo), CLASES)["presentaciones"][0]["publicada"] == {"at": "t0", "por": "Paul", "paginas": 13}
@@ -369,3 +369,40 @@ def test_la_presentacion_de_antes_es_una_clase_pdf_de_esa_semana():
     assert presentacion_de_antes(clases, "activity_otra") == ""
     assert presentacion_de_antes(clases, "activity_e") == ""
     assert presentacion_de_antes([]) == ""
+
+
+def test_la_version_sin_notas_se_guarda_al_lado_y_se_quita_con_ella(tmp_path, monkeypatch):
+    """Spreek Club (25/11/2026): «quieren ver la presentación sin las notas que
+    añadimos en clase». Se guardan las dos; el alumno elige."""
+    monkeypatch.chdir(tmp_path)
+    _disco(tmp_path, monkeypatch)
+    con = b"%PDF-1.4\n" + b"c" * 50 + b"\n%%EOF\n"
+    sin = b"%PDF-1.4\n" + b"s" * 40 + b"\n%%EOF\n"
+    p = PZ.guardar_anotaciones(1, PZ.leer({}), "profe:buena", {"paginas": [{"origen": 1, "trazos": [TRAZO]}]}, "Rida", "t1")
+    p = PZ.publicar(1, p, con, 4, "Rida", "t2", "profe:buena", "Mijn huis.pdf", sin, 3)
+    p = PZ.leer({"pizarra": p})  # lo que se guarda y se vuelve a leer
+    assert PZ.pdf_publicado(p).read_bytes() == con
+    assert PZ.pdf_publicado(p, limpia=True).read_bytes() == sin
+    # A la pantalla, sin rutas del disco.
+    assert PZ.publicada_para_la_pantalla(p)["limpia"] == {"paginas": 3}
+    assert "ruta" not in str(PZ.publicada_para_la_pantalla(p))
+    # Al alumno le llega que la hay.
+    assert T._notas_clase(json.dumps({"pizarra": p}))["limpia"] is True
+    # Volver a guardar SIN la versión limpia quita la de antes (no se queda una vieja).
+    viejas = [PZ.pdf_publicado(p), PZ.pdf_publicado(p, limpia=True)]
+    p2 = PZ.leer({"pizarra": PZ.publicar(1, p, con, 4, "Rida", "t3", "profe:buena", "Mijn huis.pdf")})
+    assert PZ.pdf_publicado(p2, limpia=True) is None
+    assert not any(v.exists() for v in viejas)
+    assert T._notas_clase(json.dumps({"pizarra": p2}))["limpia"] is False
+    # Quitarla quita las dos.
+    p3 = PZ.leer({"pizarra": PZ.publicar(1, p2, con, 4, "Rida", "t4", "", "", sin, 3)})
+    limpia = PZ.pdf_publicado(p3, limpia=True)
+    PZ.quitar_publicada(p3)
+    assert not limpia.exists()
+    # Una limpia que no es un PDF no deja nada a medias.
+    p5 = PZ.leer({"pizarra": PZ.publicar(1, PZ.leer({}), con, 4, "Rida", "t5")})
+    antes = sorted(x.name for x in tmp_path.rglob("*.pdf"))
+    with pytest.raises(T.TareaError):
+        PZ.publicar(1, p5, con, 4, "Rida", "t6", "", "", b"nada", 1)
+    assert sorted(x.name for x in tmp_path.rglob("*.pdf")) == antes
+    assert PZ.pdf_publicado(p5) is not None

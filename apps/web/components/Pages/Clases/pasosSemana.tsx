@@ -69,7 +69,7 @@ function pasosSinPalabra(semana: Semana, courseUuid: string, ruta: (p: string) =
     out.push({
       key: 'notas-clase',
       titulo: 'Repasa la presentación de la clase',
-      detalle: `La de tu clase, con lo que se escribió en ella${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`,
+      detalle: `La de tu clase, con lo que se escribió en ella${notas.limpia ? ' (y también sin notas)' : ''}${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`,
       estado: 'pendiente',
       // En su propia página, no «como un curso» (22/11/2026): /presentacion/<semana>.
       href: ruta(`/presentacion/${semana.id}`),

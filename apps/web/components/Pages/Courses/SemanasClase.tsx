@@ -215,7 +215,7 @@ function ContenidoSemana({
     <FilaVersionClase
       key="version-clase"
       href={getUriWithOrg(orgslug, `/presentacion/${semana.id}`)}
-      detalle={t(`${admin ? 'La que ven los alumnos de este grupo' : 'La de tu clase'}, con lo que se escribió en ella${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`)}
+      detalle={t(`${admin ? 'La que ven los alumnos de este grupo' : 'La de tu clase'}, con lo que se escribió en ella${notas.limpia ? ' (y también sin notas)' : ''}${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`)}
     />
   ) : null
   // El equipo ve la MISMA lista que en la pizarra y en la ficha de la clase

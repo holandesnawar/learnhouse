@@ -682,7 +682,13 @@ def _notas_clase(material: Any) -> Optional[dict]:
         return None
     if not pub.get("ruta"):
         return None
-    return {"at": str(pub.get("at") or ""), "paginas": int(pub.get("paginas") or 0)}
+    limpia = pub.get("limpia") if isinstance(pub.get("limpia"), dict) else None
+    return {
+        "at": str(pub.get("at") or ""),
+        "paginas": int(pub.get("paginas") or 0),
+        # También guardada sin las notas (25/11/2026, Spreek Club): el alumno elige.
+        "limpia": bool(limpia and limpia.get("ruta")),
+    }
 
 
 async def semanas_para_alumno(
