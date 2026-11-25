@@ -227,6 +227,24 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
       /* sin almacenamiento */
     }
   }
+  // El panel de color y grosor tapa la presentación: nace plegado en un botón
+  // pequeño con el color elegido, y se recuerda abierto o plegado.
+  const [verPropiedades, setVerPropiedades] = useState(false)
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('nawar.pizarra.propiedades') === 'si') setVerPropiedades(true)
+    } catch {
+      /* sin almacenamiento */
+    }
+  }, [])
+  const cambiarPropiedades = (v: boolean) => {
+    setVerPropiedades(v)
+    try {
+      localStorage.setItem('nawar.pizarra.propiedades', v ? 'si' : 'no')
+    } catch {
+      /* sin almacenamiento */
+    }
+  }
   const zoomRef = useRef(1)
   zoomRef.current = zoom
 
@@ -1941,7 +1959,33 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
                 {/* Color, grosor y tipo de letra: un panel a la izquierda, solo cuando sirven (como en Excalidraw) */}
                 {conPropiedades && (
                   <div className="absolute left-4 top-1/2 z-[4] -translate-y-1/2 @max-[860px]:left-3">
+                    {!verPropiedades ? (
+                      <Flotante propiedades>
+                        <button
+                          onClick={() => cambiarPropiedades(true)}
+                          title="Color y grosor"
+                          aria-label="Abrir color y grosor"
+                          aria-expanded={false}
+                          className="flex h-8 items-center gap-1 rounded-lg px-1.5 transition-colors hover:bg-[#F2F4F8]"
+                        >
+                          <span
+                            className="block h-4 w-4 rounded-full ring-1 ring-[#0B1033]/15"
+                            style={{ background: elegido && 'color' in elegido ? elegido.color : trazoColor }}
+                          />
+                          <CaretRight size={12} weight="bold" className="text-[#4B5565]" />
+                        </button>
+                      </Flotante>
+                    ) : (
                     <Flotante propiedades vertical>
+                      <button
+                        onClick={() => cambiarPropiedades(false)}
+                        title="Esconder"
+                        aria-label="Esconder color y grosor"
+                        aria-expanded
+                        className="mb-0.5 flex h-6 items-center justify-center gap-1 rounded-md text-[11px] font-medium text-[#4B5565] transition-colors hover:bg-[#F2F4F8]"
+                      >
+                        <CaretLeft size={11} weight="bold" /> Esconder
+                      </button>
                       <div className="grid grid-cols-2 gap-0.5">
                         {(elegido ? elegido.t === 'rotulador' : herramienta === 'rotulador')
                           ? COLORES_ROTULADOR.map((c) => <Color key={c} c={c} elegido={(elegido ? elegido.color : colorRot) === c} onClick={() => elegirColor(c)} />)
@@ -2003,6 +2047,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
                         </>
                       )}
                     </Flotante>
+                    )}
                   </div>
                 )}
 
