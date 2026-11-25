@@ -2629,6 +2629,7 @@ function CajaDeTexto({
         ev.stopPropagation()
       }}
       rows={lineas.length}
+      data-no-crecer
       spellCheck={false}
       placeholder="Escribe…"
       className="absolute m-0 resize-none overflow-hidden border-0 outline-dashed outline-1 outline-offset-2 outline-[#4da3ff] placeholder:text-[#0a1656]/35 focus:ring-0"

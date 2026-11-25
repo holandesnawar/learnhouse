@@ -27,6 +27,20 @@ export function ajustarCaja(el: HTMLTextAreaElement | null, tope = topeDeCaja())
 
 export function useCajaQueCrece(ref: RefObject<HTMLTextAreaElement | null>, valor: string, fraccion = 0.4, maximo = 320) {
   useAlPintar(() => {
+    // Esta caja la lleva su pantalla: el ajuste de toda la escuela
+    // (`CajasQueCrecen`) se la salta.
+    if (ref.current) ref.current.dataset.crece = 'propia'
     ajustarCaja(ref.current, topeDeCaja(fraccion, maximo))
   }, [valor, fraccion, maximo])
+}
+
+/**
+ * El alto que una caja tiene que tener con su texto, sin tocar nada: nunca
+ * menos de lo que medía al empezar (`minimo`, sus filas o su clase de alto) ni
+ * más del tope, salvo que ya naciera más alta. Pura, para el test.
+ */
+export function altoDeCaja(contenido: number, minimo: number, tope: number): { alto: number; scroll: boolean } {
+  const techo = Math.max(tope, minimo)
+  const alto = Math.max(minimo, Math.min(contenido, techo))
+  return { alto, scroll: contenido > techo }
 }
