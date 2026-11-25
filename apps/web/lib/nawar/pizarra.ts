@@ -125,9 +125,13 @@ export function paginasSinNotas(doc: DocPizarra): PaginaPizarra[] {
     .map((p) => ({ ...p, trazos: [] }))
 }
 
-/** En qué clases se guarda también la versión sin notas: de momento, el Spreek Club. */
-export function conVersionSinNotas(nombreCurso: string): boolean {
-  return /spreek|spreken|conversaci/i.test(nombreCurso || '')
+/**
+ * En qué clases se guarda también la versión sin notas. Empezó el 25/11/2026
+ * solo en el Spreek Club; el mismo día, en TODAS (usuario: «quiero 2 PDF, uno
+ * con las notas y que el simple, sin notas, también sea visible»).
+ */
+export function conVersionSinNotas(_nombreCurso?: string): boolean {
+  return true
 }
 
 export function hayAlgoEscrito(doc: DocPizarra): boolean {

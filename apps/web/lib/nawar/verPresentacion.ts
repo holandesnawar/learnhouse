@@ -48,9 +48,15 @@ export function opcionesDe(semana: Semana, equipo: boolean): OpcionPresentacion[
           semanaPdf: notas.semana_id || semana.id,
         },
       ]
-      // También sin las notas (25/11/2026, Spreek Club): para repasarla limpia.
+      // También sin las notas (25/11/2026): para repasarla limpia.
       if (notas.limpia)
         out.push({ id: 'limpia', tipo: 'limpia', titulo: 'Sin notas', detalle: 'La misma presentación, limpia, sin lo que se escribió en la clase', semanaPdf: notas.semana_id || semana.id })
+      // Guardada antes de que hubiera versión limpia: la de antes de la clase hace de «sin notas».
+      else if (pres.length) {
+        out[0].titulo = 'Con las notas de la clase'
+        for (const c of pres)
+          out.push({ id: `antes:${c.activity_uuid}`, tipo: 'antes' as const, titulo: 'Sin notas', detalle: 'La presentación de antes de la clase', actividad: c.activity_uuid, hecha: c.hecha })
+      }
       return out
     }
     return pres.map((c) => ({ id: `antes:${c.activity_uuid}`, tipo: 'antes' as const, titulo: 'La presentación', detalle: 'Para mirar antes de la clase', actividad: c.activity_uuid, hecha: c.hecha }))

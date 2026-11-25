@@ -9,9 +9,13 @@ describe('qué presentación se abre', () => {
     const o = opcionesDe(S(1, '2026-11-25', { clases: [PDF('activity_1', true)] }), false)
     expect(o.map((x) => [x.tipo, x.actividad, x.hecha])).toEqual([['antes', 'activity_1', true]])
   })
-  test('el alumno, con la versión de su clase guardada, SOLO esa', () => {
+  test('el alumno, con la versión de su clase guardada antes de que hubiera «sin notas»: con notas y la de antes como «Sin notas»', () => {
     const o = opcionesDe(S(1, '2026-11-18', { clases: [PDF('activity_1')], notas_clase: { at: 't', paginas: 9 } }), false)
-    expect(o.map((x) => [x.tipo, x.semanaPdf])).toEqual([['clase', 1]])
+    expect(o.map((x) => [x.tipo, x.titulo])).toEqual([['clase', 'Con las notas de la clase'], ['antes', 'Sin notas']])
+  })
+  test('el alumno, con la versión limpia guardada: con notas y sin notas, sin la de antes', () => {
+    const o = opcionesDe(S(1, '2026-11-18', { clases: [PDF('activity_1')], notas_clase: { at: 't', paginas: 9, limpia: true } }), false)
+    expect(o.map((x) => x.tipo)).toEqual(['clase', 'limpia'])
   })
   test('el alumno que esa semana fue a la clase del otro grupo ve la de esa clase', () => {
     const o = opcionesDe(S(1, '2026-11-18', { notas_clase: { at: 't', paginas: 9, semana_id: 77 } }), false)

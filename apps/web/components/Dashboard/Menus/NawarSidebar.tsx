@@ -53,40 +53,28 @@ import {
   ChartBar,
   ChatsCircle,
   EnvelopeSimple,
-  FolderSimple,
   GearSix,
   House,
   Lightning,
   MagnifyingGlass,
   Question,
-  Receipt,
   SidebarSimple,
   SignOut,
   Star,
   UserCircle,
   UsersThree,
-  AddressBook,
   Kanban,
-  ListChecks,
-  Megaphone,
-  UserCheck,
   Globe,
   LinkSimple,
-  PhoneCall,
   Wallet,
   ChartLineUp,
-  Binoculars,
   Gauge,
   CalendarDots,
-  Tag,
   Path,
-  ClipboardText,
   X,
   Lightbulb,
   BookOpenText,
-  VideoCamera,
   Pulse,
-  Flag,
 } from '@phosphor-icons/react'
 
 export type Item = {
@@ -128,71 +116,61 @@ const PROCESOS: Item = {
   claves: 'sop manual instrucciones procedimientos como se hace equipo asignar',
 }
 
+/**
+ * Cada bloque, UNA entrada con sus pestañas arriba (25/11/2026, usuario:
+ * «tengo toda la barra llena y tengo que ir siempre buscando lo que quiero…
+ * todo debería ir en una página y ahí elegir subpáginas»). Las pestañas de
+ * cada entrada están en `PAQUETES` (EstadisticasPage.tsx); aquí, en `tambien`,
+ * para que la entrada salga encendida en cualquiera de ellas. Las direcciones
+ * de siempre (`?tab=…`) siguen valiendo.
+ */
+const VENTAS: Item = {
+  href: '/dash/estadisticas?tab=matriculas',
+  label: 'Ventas',
+  icon: I(Kanban),
+  tambien: ['llamadas', 'contactos', 'tareas', 'guion', 'enfoque', 'recursos'].map((t) => `/dash/estadisticas?tab=${t}`),
+  claves: 'matriculas llamadas calendly agenda whatsapp contactos leads tareas guion enfoque recursos material de venta crm tablero',
+}
+const NUMEROS: Item = {
+  href: '/dash/estadisticas',
+  label: 'Números',
+  icon: I(ChartBar),
+  tambien: ['kpis', 'vision', 'anuncios'].map((t) => `/dash/estadisticas?tab=${t}`),
+  es: (p, s) => p.includes('/dash/estadisticas') && (!s.includes('tab=') || s.includes('tab=numeros')),
+  claves: 'estadisticas ventas embudo kpis cierre no show vision mapa campañas anuncios meta coste lead',
+}
+const DINERO: Item = {
+  href: '/dash/estadisticas?tab=clientes',
+  label: 'Dinero',
+  icon: I(Wallet),
+  tambien: ['plazos', 'facturas', 'gastos'].map((t) => `/dash/estadisticas?tab=${t}`),
+  claves: 'clientes pagos comisiones plazos cuotas facturas stripe gastos margen dar de alta a mano',
+}
+const ALUMNOS: Item = {
+  href: '/dash/estadisticas?tab=progreso',
+  label: 'Alumnos',
+  icon: I(ChartLineUp),
+  tambien: ['seguimiento', 'camino', 'resenas', 'tandas'].map((t) => `/dash/estadisticas?tab=${t}`),
+  claves: 'progreso recordatorio sin entrar seguimiento tareas corregir check-in camino 16 semanas reseñas video testimonio grupos tandas beta programa nuevo quien ve que',
+}
+const CLASES: Item = {
+  href: '/dash/estadisticas?tab=profes',
+  label: 'Clases y ejercicios',
+  icon: I(ChalkboardTeacher),
+  tambien: ['/dash/estadisticas?tab=fallos'],
+  claves: 'profesores masterclass spreekclub presentacion grabacion fallos errores ejercicios avisan',
+}
+
 export const GRUPOS_DEL_PANEL: Grupo[] = [
   { titulo: '', items: [INICIO, ESTUDIO, PROCESOS] },
+  { titulo: 'Negocio', items: [VENTAS, NUMEROS, DINERO] },
   {
-    titulo: 'Vender',
+    titulo: 'Escuela',
     items: [
-      { href: '/dash/estadisticas?tab=matriculas', label: 'Matrículas', icon: I(Kanban), claves: 'tablero leads ventas kanban crm' },
-      { href: '/dash/estadisticas?tab=llamadas', label: 'Llamadas', icon: I(PhoneCall), claves: 'calendly agenda whatsapp citas' },
-      { href: '/dash/estadisticas?tab=contactos', label: 'Contactos', icon: I(AddressBook), claves: 'leads personas lista' },
-      { href: '/dash/estadisticas?tab=tareas', label: 'Tareas', icon: I(ListChecks), claves: 'pendientes equipo' },
-      {
-        // Guion, Enfoque y Recursos en una entrada (04/11): eran tres sueltas.
-        href: '/dash/estadisticas?tab=guion',
-        label: 'Material de venta',
-        icon: I(FolderSimple),
-        tambien: ['/dash/estadisticas?tab=enfoque', '/dash/estadisticas?tab=recursos'],
-        claves: 'guion enfoque recursos llamada pdf',
-      },
-    ],
-  },
-  {
-    titulo: 'Números',
-    items: [
-      {
-        href: '/dash/estadisticas',
-        label: 'Estadísticas',
-        icon: I(ChartBar),
-        es: (p, s) => p.includes('/dash/estadisticas') && (!s.includes('tab=') || s.includes('tab=numeros')),
-        claves: 'ventas embudo resumen numeros',
-      },
-      { href: '/dash/estadisticas?tab=kpis', label: 'KPIs', icon: I(Gauge), claves: 'cierre no show embudo visitas' },
-      { href: '/dash/estadisticas?tab=vision', label: 'Visión', icon: I(Binoculars), claves: 'mapa campañas tablero trabajo' },
-      { href: '/dash/estadisticas?tab=anuncios', label: 'Anuncios', icon: I(Megaphone), claves: 'meta facebook instagram campañas utm coste lead' },
-    ],
-  },
-  {
-    // El dinero aparte de las ventas: lo cobrado (facturas) y lo gastado.
-    titulo: 'Dinero',
-    items: [
-      // Clientes y Pagos a plazos en una entrada, con sus pestañas (08/11/2026).
-      {
-        href: '/dash/estadisticas?tab=clientes',
-        label: 'Clientes',
-        icon: I(UserCheck),
-        tambien: ['/dash/estadisticas?tab=plazos'],
-        claves: 'pagos comisiones alumnos que pagaron plazos cuotas suscripcion fallidos',
-      },
-      { href: '/dash/estadisticas?tab=facturas', label: 'Facturas', icon: I(Receipt), claves: 'stripe dar de alta a mano gestoria' },
-      { href: '/dash/estadisticas?tab=gastos', label: 'Gastos', icon: I(Wallet), claves: 'margen coste software' },
-    ],
-  },
-  {
-    titulo: 'Alumnos',
-    items: [
-      { href: '/dash/estadisticas?tab=progreso', label: 'Progreso', icon: I(ChartLineUp), claves: 'recordatorio sin entrar modulos' },
-      // Seguimiento semanal y Camino de 16 semanas en una entrada (08/11/2026).
-      {
-        href: '/dash/estadisticas?tab=seguimiento',
-        label: 'Seguimiento',
-        icon: I(ClipboardText),
-        tambien: ['/dash/estadisticas?tab=camino'],
-        claves: 'tareas corregir check-in deberes camino 16 semanas asistencia directo',
-      },
-      { href: '/dash/estadisticas?tab=tandas', label: 'Tandas y grupos', icon: I(Tag), claves: 'beta programa nuevo quien ve que' },
-      { href: '/dash/estadisticas?tab=resenas', label: 'Reseñas', icon: I(VideoCamera), claves: 'video testimonio opinion invitar regalo' },
+      ALUMNOS,
       { href: '/dash/users/settings/users', label: 'Usuarios', icon: I(UserCircle), es: (p) => p.includes('/dash/users') && !p.includes('/usergroups'), claves: 'cuentas roles' },
+      { href: '/dash/courses', label: 'Cursos', icon: I(BookOpen), claves: 'formacion clases modulos' },
+      CLASES,
     ],
   },
   {
@@ -201,8 +179,6 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
       { href: '/dash/communities', label: 'Comunidad', icon: I(ChatsCircle), claves: 'canales chat' },
       { href: '/dash/consultas', label: 'Consultas', icon: I(Question), claves: 'dudas responder' },
       {
-        // Una sola entrada para los correos (04/11): antes «Avisos y correos»
-        // (Alumnos) y «Correos» (Captación) eran dos.
         href: '/dash/avisos',
         label: 'Correos y avisos',
         icon: I(EnvelopeSimple),
@@ -210,25 +186,8 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
         es: (p) => p.includes('/dash/avisos'),
         claves: 'email newsletter black friday ebook campaña systeme reserva',
       },
-    ],
-  },
-  {
-    titulo: 'Formación',
-    items: [
-      { href: '/dash/courses', label: 'Cursos', icon: I(BookOpen), claves: 'formacion clases modulos' },
-      // El tablero de los profes (04/11), el mismo que ven ellos en la escuela.
-      { href: '/dash/estadisticas?tab=profes', label: 'Clases de los profes', icon: I(ChalkboardTeacher), claves: 'profesores masterclass spreekclub presentacion grabacion' },
-      // «¿Ves un fallo? Avísanos» de cada ejercicio (23/11/2026).
-      { href: '/dash/estadisticas?tab=fallos', label: 'Fallos avisados', icon: I(Flag), claves: 'errores ejercicios leccion alumnos avisan corregir courseData' },
-      { href: '/dash/workflows', label: 'Automatizaciones', icon: I(Lightning), claves: 'workflows' },
-    ],
-  },
-  {
-    titulo: 'Web',
-    items: [
       {
-        // Una sola entrada para la web (08/11/2026): las páginas, los enlaces
-        // cortos, la lista técnica y los UTM, como pestañas de /dash/webs.
+        // La web entera (08/11/2026): analítica, páginas, enlaces y UTM.
         href: '/dash/webs',
         label: 'Web',
         icon: I(Globe),
@@ -239,9 +198,10 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
     ],
   },
   {
-    titulo: 'Escuela',
+    titulo: 'Ajustes',
     items: [
       { href: '/dash/users/settings/usergroups', label: 'Equipo y grupos', icon: I(UsersThree), es: (p) => p.includes('/usergroups'), claves: 'profes closers testers' },
+      { href: '/dash/workflows', label: 'Automatizaciones', icon: I(Lightning), claves: 'workflows' },
       { href: '/dash/estadisticas?tab=estado', label: 'Estado de la escuela', icon: I(Pulse), claves: 'errores fallos lento caida algo salio mal velocidad' },
       { href: '/dash/org/settings/general', label: 'Ajustes', icon: I(GearSix), es: (p) => p.includes('/dash/org'), claves: 'logo favicon organizacion' },
     ],
@@ -254,17 +214,17 @@ export const GRUPOS_DEL_PANEL: Grupo[] = [
  * entrada delante no sabía qué era cada cosa.
  */
 export function gruposDelCloser(veNumeros: boolean): Grupo[] {
-  const todos = GRUPOS_DEL_PANEL.flatMap((g) => g.items)
-  const por = (label: string) => todos.find((i) => i.label === label) as Item
-  // Contactos otra vez (03/11, usuario: "lo deberían ver los closers
-  // también"), los mismos que el administrador. Del 08/10 al 03/11 no lo tenía.
-  const numeros: Item[] = [por('KPIs')]
+  // Lo de vender en UNA entrada con sus pestañas (25/11/2026), como el
+  // administrador; las pestañas que no le tocan no le salen. Contactos lo ve
+  // desde el 03/11; los Números, solo si el administrador se los abre.
+  const kpis: Item = { href: '/dash/estadisticas?tab=kpis', label: 'KPIs', icon: I(Gauge), claves: 'cierre no show embudo visitas' }
+  const numeros: Item[] = [kpis]
   if (veNumeros) {
-    numeros.push({ ...por('Estadísticas'), href: '/dash/estadisticas?tab=numeros', label: 'Números', es: undefined })
+    numeros.push({ href: '/dash/estadisticas?tab=numeros', label: 'Números', icon: I(ChartBar), claves: 'ventas embudo resumen' })
   }
   return [
     { titulo: '', items: [INICIO, PROCESOS] },
-    { titulo: 'Vender', items: [por('Matrículas'), por('Llamadas'), por('Contactos'), por('Tareas'), por('Material de venta'), { ...ESTUDIO, label: 'Apuntes de ventas' }] },
+    { titulo: 'Vender', items: [VENTAS, { ...ESTUDIO, label: 'Apuntes de ventas' }] },
     { titulo: 'Números', items: numeros },
     // El closer no entra en /dash/webs: ve solo las páginas de la web, en Estadísticas.
     { titulo: 'Web', items: [{ href: '/dash/estadisticas?tab=paginas', label: 'Páginas de la web', icon: I(Globe), claves: 'landing embudo admision' }] },

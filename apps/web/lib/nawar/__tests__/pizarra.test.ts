@@ -205,10 +205,9 @@ describe('la versión sin notas (25/11/2026)', () => {
     ])
     expect(doc.paginas[0].trazos.length).toBe(1)
   })
-  test('solo en el Spreek Club', () => {
+  test('en todas las clases', () => {
     expect(conVersionSinNotas('Spreek Club')).toBe(true)
-    expect(conVersionSinNotas('Spreek Club · primera convocatoria')).toBe(true)
-    expect(conVersionSinNotas('Conversatieles')).toBe(false)
-    expect(conVersionSinNotas('Masterclass')).toBe(false)
+    expect(conVersionSinNotas('Conversatieles')).toBe(true)
+    expect(conVersionSinNotas('Masterclass')).toBe(true)
   })
 })
