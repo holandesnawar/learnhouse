@@ -1395,7 +1395,7 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     }
     const ya = info.publicada
     const grupo = info.semana.curso || 'esta clase'
-    // En el Spreek Club se guarda también SIN las notas (25/11/2026): el alumno elige.
+    // Se guarda también SIN las notas (25/11/2026, todas las clases): el alumno elige.
     const limpias = conVersionSinNotas(info.semana.curso) ? paginasSinNotas(docRef.current) : []
     const tambien = limpias.length ? '\n\nTambién se guarda sin las notas, para quien quiera repasarla limpia.' : ''
     const ok = await confirmar(

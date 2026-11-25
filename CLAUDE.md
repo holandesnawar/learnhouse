@@ -8705,6 +8705,34 @@ esquina, ese alto queda como mínimo. Se salta las que ya crecen solas
 texto de la pizarra). Cálculo puro `altoDeCaja` en `lib/nawar/cajaQueCrece.ts`,
 con test. Una caja nueva en la escuela no tiene que hacer nada para crecer.
 
+## La barra del panel, un bloque = una entrada (25/11/2026)
+Usuario: «la barra admin está toda separada en subpáginas… debería ir en una
+página y ahí elegir subpáginas… tengo que ir siempre buscando». Ahora cada
+bloque es UNA entrada con sus pestañas arriba (`PAQUETES` en
+`EstadisticasPage.tsx`; en la barra, `tambien` con sus pestañas para que se
+encienda en todas): **Ventas** (Matrículas, Llamadas, Contactos, Tareas, Guion,
+Enfoque, Recursos), **Números** (Estadísticas, KPIs, Visión, Anuncios),
+**Dinero** (Clientes, Pagos a plazos, Facturas, Gastos), **Alumnos** (Progreso,
+Semana a semana, Camino, Reseñas, Grupos) y **Clases y ejercicios** (Clases de
+los profes, Fallos avisados). Barra del administrador: Inicio · Estudio ·
+Procesos · Negocio (Ventas, Números, Dinero) · Escuela (Alumnos, Usuarios,
+Cursos, Clases y ejercicios) · Comunicación (Comunidad, Consultas, Correos y
+avisos, Web) · Ajustes (Equipo y grupos, Automatizaciones, Estado, Ajustes).
+El título es el del bloque y la línea de debajo, la de la pestaña. El closer:
+«Ventas» con las pestañas que puede abrir (`closerPuede`), KPIs y Páginas de la
+web. Las direcciones `?tab=…` no cambian. «Tandas y grupos» se llama ahora
+**«Grupos»** (pestaña de Alumnos): desde el 31/10 los nuevos entran solos en
+«Programa nuevo»; ahí solo se mira si alguien espera grupo y «Quién ve qué».
+Los favoritos de entradas que ya no existen (Progreso, KPIs…) desaparecen solos.
+
+## La presentación con notas y sin notas, en TODAS las clases (25/11/2026)
+Usuario: «quiero 2 PDF, uno con las notas y que el simple sin notas también
+sea visible». `conVersionSinNotas` (`lib/nawar/pizarra.ts`) es ya `true` para
+todas: «Guardar para los alumnos» monta siempre los dos PDF y el alumno elige
+«Con las notas de la clase» / «Sin notas» en `/presentacion/<semana>`. Lo
+guardado antes, sin versión limpia, enseña como «Sin notas» la presentación de
+antes de la clase (`opcionesDe` en `lib/nawar/verPresentacion.ts`).
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.

@@ -118,9 +118,9 @@ const SECCIONES: Record<string, { titulo: string; icono: React.ReactNode; que: s
   llamadas: { titulo: 'Llamadas', icono: <PhoneCall {...ICONO} />, que: 'La agenda de Calendly, los WhatsApp de cada llamada y a quién toca llamar.' },
   contactos: { titulo: 'Contactos', icono: <Users {...ICONO} />, que: 'Todo el que ha dejado sus datos, con lo que ha visto y hecho.' },
   tareas: { titulo: 'Tareas', icono: <ListChecks {...ICONO} />, que: 'Lo tuyo y lo del equipo, con su fecha.' },
-  guion: { titulo: 'Guion', icono: <ScrollText {...ICONO} />, que: '' },
-  enfoque: { titulo: 'Enfoque', icono: <Compass {...ICONO} />, que: '' },
-  recursos: { titulo: 'Recursos', icono: <FolderOpen {...ICONO} />, que: '' },
+  guion: { titulo: 'Guion', icono: <ScrollText {...ICONO} />, que: 'El guion de la llamada de admisión.' },
+  enfoque: { titulo: 'Enfoque', icono: <Compass {...ICONO} />, que: 'El programa contado para vender.' },
+  recursos: { titulo: 'Recursos', icono: <FolderOpen {...ICONO} />, que: 'Los documentos para el equipo de ventas.' },
   clientes: { titulo: 'Clientes', icono: <UserCheck {...ICONO} />, que: 'Quién ha pagado, cuánto, si sigue entrando y la comisión del closer.' },
   plazos: { titulo: 'Pagos a plazos', icono: <CalendarClock {...ICONO} />, que: 'Quién paga a plazos, en qué pago va y los cobros que fallan.' },
   facturas: { titulo: 'Facturas', icono: <Receipt {...ICONO} />, que: 'Las facturas de los alumnos (Stripe) y las de la empresa.' },
@@ -128,7 +128,7 @@ const SECCIONES: Record<string, { titulo: string; icono: React.ReactNode; que: s
   progreso: { titulo: 'Progreso de los alumnos', icono: <GraduationCap {...ICONO} />, que: 'Por dónde va cada alumno y cuándo entró por última vez.' },
   seguimiento: { titulo: 'Seguimiento semanal', icono: <ClipboardCheck {...ICONO} />, que: 'Cada semana de las clases: quién va al día y qué hay por corregir.' },
   camino: { titulo: 'Camino de 16 semanas', icono: <Route {...ICONO} />, que: 'Las 16 semanas de cada alumno y las clases en directo a las que fue.' },
-  tandas: { titulo: 'Tandas y grupos', icono: <Tags {...ICONO} />, que: 'La beta y el programa nuevo: el grupo de cada alumno y quién ve qué.' },
+  tandas: { titulo: 'Grupos', icono: <Tags {...ICONO} />, que: 'En qué grupo está cada alumno y quién ve cada clase y canal. Los nuevos entran solos en «Programa nuevo»: aquí solo hay que mirar si alguien espera grupo o si algo se ve donde no debe.' },
   paginas: { titulo: 'Páginas de la web', icono: <Globe {...ICONO} />, que: 'Las páginas de la web y lo que ya sabe quien llega desde cada una.' },
   correos: { titulo: 'Correos', icono: <Mails {...ICONO} />, que: 'Quién está en cada campaña y a quién le ha llegado cada correo.' },
   resenas: { titulo: 'Reseñas', icono: <Video {...ICONO} />, que: 'Pide a tus alumnos una reseña en vídeo, revísala y bájala. El regalo es por grabarla, no por hablar bien.' },
@@ -138,29 +138,47 @@ const SECCIONES: Record<string, { titulo: string; icono: React.ReactNode; que: s
   estudio: { titulo: 'Estudio', icono: <Lightbulb {...ICONO} />, que: 'Tu pizarra para apuntar deprisa, el banco de ideas de contenido y los prompts ya preparados para Claude.' },
   profes: { titulo: 'Clases de los profes', icono: <Presentation {...ICONO} />, que: 'Las próximas clases con su presentación, lo que falta preparar y los recursos. Lo mismo que ven los profes en la escuela.' },
 }
-/** Las pestañas de «Material de venta», en este orden. */
-const MATERIAL = ['guion', 'enfoque', 'recursos']
-
 /**
  * Secciones que van juntas en una sola entrada de la barra, con sus pestañas
- * arriba (08/11/2026, limpieza del panel: «que no esté todo separado»).
- * Las direcciones (`?tab=…`) no cambian: los enlaces guardados siguen.
+ * arriba. Primero (08/11/2026) se juntaron de dos en dos; desde el 25/11/2026
+ * cada bloque de la barra es UNA entrada (usuario: «tengo toda la barra llena
+ * y tengo que ir siempre buscando… todo debería ir en una página y ahí elegir
+ * subpáginas»). Las direcciones (`?tab=…`) no cambian: los enlaces guardados
+ * siguen. El título es el del bloque; la línea de debajo, la de la pestaña.
  */
-const PAQUETES: { tabs: string[]; titulo: string; que: string; nombres?: Record<string, string> }[] = [
-  { tabs: MATERIAL, titulo: 'Material de venta', que: 'Lo que hace falta para la llamada: el guion, el enfoque del programa y los recursos.' },
+export const PAQUETES: { tabs: string[]; titulo: string; que: string; nombres?: Record<string, string> }[] = [
   {
-    tabs: ['clientes', 'plazos'],
-    titulo: 'Clientes',
-    que: 'Quién ha pagado, cuánto, la comisión del closer y quién paga a plazos.',
-    nombres: { clientes: 'Clientes', plazos: 'Pagos a plazos' },
+    tabs: ['matriculas', 'llamadas', 'contactos', 'tareas', 'guion', 'enfoque', 'recursos'],
+    titulo: 'Ventas',
+    que: 'Las matrículas, las llamadas, los contactos y el material para la llamada.',
   },
   {
-    tabs: ['seguimiento', 'camino'],
-    titulo: 'Seguimiento',
-    que: 'Cada semana de las clases (quién va al día y qué hay por corregir) y el camino de 16 semanas de cada alumno.',
-    nombres: { seguimiento: 'Semana a semana', camino: 'Camino de 16 semanas' },
+    tabs: ['numeros', 'kpis', 'vision', 'anuncios'],
+    titulo: 'Números',
+    que: 'Lo vendido, el embudo, el mapa del negocio y los anuncios.',
+  },
+  {
+    tabs: ['clientes', 'plazos', 'facturas', 'gastos'],
+    titulo: 'Dinero',
+    que: 'Quién ha pagado, los plazos, las facturas y los gastos.',
+  },
+  {
+    tabs: ['progreso', 'seguimiento', 'camino', 'resenas', 'tandas'],
+    titulo: 'Alumnos',
+    que: 'Por dónde va cada alumno, cada semana de las clases, su camino, las reseñas y los grupos.',
+    nombres: { progreso: 'Progreso', seguimiento: 'Semana a semana', camino: 'Camino de 16 semanas', tandas: 'Grupos' },
+  },
+  {
+    tabs: ['profes', 'fallos'],
+    titulo: 'Clases y ejercicios',
+    que: 'Las clases de los profes y los fallos que avisan los alumnos en los ejercicios.',
   },
 ]
+/** Lo que puede abrir un closer de esta página (el resto le devuelve a Matrículas). */
+export function closerPuede(tab: string, veNumeros: boolean): boolean {
+  if (['contactos', 'llamadas', 'guion', 'enfoque', 'recursos', 'paginas', 'matriculas', 'tareas', 'kpis', 'estudio', 'procesos'].includes(tab)) return true
+  return tab === 'numeros' && veNumeros
+}
 const paqueteDe = (t: string) => PAQUETES.find((p) => p.tabs.includes(t))
 
 /** Nombre bonito para el identificador de producto. */
@@ -309,7 +327,7 @@ export default function EstadisticasPage() {
   }, [])
   // El closer sin Números no se queda nunca en esa sección.
   useEffect(() => {
-    if (isCloser && tab !== 'contactos' && tab !== 'llamadas' && tab !== 'guion' && tab !== 'enfoque' && tab !== 'recursos' && tab !== 'paginas' && tab !== 'matriculas' && tab !== 'tareas' && tab !== 'kpis' && tab !== 'estudio' && tab !== 'procesos' && !(tab === 'numeros' && closerVeNumeros === true)) {
+    if (isCloser && !closerPuede(tab, closerVeNumeros === true)) {
       setTab('matriculas')
     }
   }, [isCloser, tab, closerVeNumeros])
@@ -368,11 +386,12 @@ export default function EstadisticasPage() {
       <CabeceraPagina
         icono={SECCIONES[tab]?.icono ?? <BarChart3 size={20} />}
         titulo={paqueteDe(tab)?.titulo ?? SECCIONES[tab]?.titulo ?? 'Estadísticas'}
-        descripcion={paqueteDe(tab)?.que ?? SECCIONES[tab]?.que}
+        descripcion={SECCIONES[tab]?.que || paqueteDe(tab)?.que}
         pestanas={(() => {
           const pq = paqueteDe(tab)
-          // El closer solo ve las pestañas que puede abrir (el Material de venta entero).
-          return pq ? pq.tabs.map((m) => ({ href: `/dash/estadisticas?tab=${m}`, label: pq.nombres?.[m] ?? SECCIONES[m].titulo, activa: tab === m })) : undefined
+          // El closer solo ve las pestañas que puede abrir.
+          const tabs = pq ? pq.tabs.filter((m) => !isCloser || closerPuede(m, closerVeNumeros === true)) : []
+          return tabs.length > 1 ? tabs.map((m) => ({ href: `/dash/estadisticas?tab=${m}`, label: pq?.nombres?.[m] ?? SECCIONES[m].titulo, activa: tab === m })) : undefined
         })()}
         acciones={
           <button
