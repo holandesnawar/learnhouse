@@ -47,6 +47,9 @@ logger = logging.getLogger(__name__)
 
 #: Cuánto se puede separar el inicio de la grabación del de la cita.
 MARGEN_MIN = 20
+#: Con la sala fija de un closer, cuánto se puede separar como mucho (se entra
+#: antes o se alarga la llamada anterior).
+MARGEN_SALA_FIJA_MIN = 60
 #: Cuántas llamadas se clasifican como mucho en una petición.
 MAXIMO = 300
 _ZOOM_ID = re.compile(r"/j/(\d{9,12})")
@@ -73,12 +76,32 @@ def emparejar(item: dict, citas: Iterable[dict]) -> Optional[dict]:
     """La cita de Calendly de una grabación de Zoom, o None. Ver la cabecera."""
     citas = [c for c in citas if c.get("email")]
     mid = re.sub(r"\D", "", str(item.get("meeting_id") or ""))
+    inicio = _fecha(item.get("inicio"))
     if mid:
         por_id = [c for c in citas if id_zoom_de(c.get("enlace")) == mid]
         if por_id:
-            activas = [c for c in por_id if c.get("estado") == "activa"]
-            return (activas or por_id)[0]
-    inicio = _fecha(item.get("inicio"))
+            # Con la sala fija de cada closer (12/11/2026: el ID personal de
+            # Zoom) TODAS sus citas llevan el mismo número: el número solo dice
+            # de quién es la sala, y la persona la dice la hora. Antes se cogía
+            # la primera cita con ese número y todas sus llamadas salían a
+            # nombre de la misma persona (25/11/2026).
+            if len(por_id) == 1:
+                return por_id[0]
+            if inicio is None:
+                return None
+            cerca = sorted(
+                (abs((ci - inicio).total_seconds()), c)
+                for c in por_id
+                for ci in [_fecha(c.get("inicio"))]
+                if ci is not None and abs((ci - inicio).total_seconds()) <= MARGEN_SALA_FIJA_MIN * 60
+            )
+            activas = [x for x in cerca if x[1].get("estado") == "activa"]
+            cerca = activas or cerca
+            if not cerca:
+                return None
+            if len(cerca) > 1 and cerca[0][0] == cerca[1][0] and cerca[0][1]["email"] != cerca[1][1]["email"]:
+                return None
+            return cerca[0][1]
     if inicio is None:
         return None
     anfitrion = str(item.get("anfitrion_email") or "").strip().lower()

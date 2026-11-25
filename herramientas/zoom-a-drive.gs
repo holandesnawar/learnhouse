@@ -31,10 +31,26 @@
  *    (Drive y conectarse a internet): acéptalo. Mira el registro: cuenta lo que
  *    haría, sin subir ni borrar nada.
  * 4. Elige «instalar» y pulsa «Ejecutar». Desde ahí va solo, cada hora.
+ *
+ * PARA SABER CÓMO VA: en la carpeta «Llamadas de Zoom» de tu Drive está el
+ * archivo «_estado (léelo).txt», que se reescribe en cada vuelta: qué falta,
+ * por qué no se ha borrado algo de Zoom y el último error de cada llamada.
+ * También puedes ejecutar «estado» (no sube ni borra nada).
+ *
+ * BORRAR EN ZOOM necesita que tu app de Zoom tenga el permiso de borrar
+ * grabaciones (Zoom App Marketplace → Manage → tu app → Scopes → añadir
+ * «cloud_recording:delete:recording_file:admin»). Sin él no borra nada y el
+ * estado lo dice.
+ *
+ * Versión 25/11/2026: los vídeos de las llamadas de venta van antes que los de
+ * las clases; las llamadas que salieron con el nombre de otra persona (la sala
+ * fija de Zoom del closer) se corrigen solas una vez.
  */
 
 const CARPETA_NOMBRE = 'Llamadas de Zoom';
 const REGISTRO_NOMBRE = '_registro (no borrar).json';
+const ESTADO_NOMBRE = '_estado (léelo).txt';
+const REVISION = 2;                      // Sube si hay que volver a mirar quién era cada llamada.
 const ZONA = 'Europe/Amsterdam';
 const LIMITE_MS = 3.5 * 60 * 1000;       // Google corta a los 6 min y da 90 min al día: se sigue en la siguiente hora.
 const MAX_BYTES = 48 * 1024 * 1024;      // Hasta aquí, de una vez; más grande, a trozos.
@@ -47,6 +63,17 @@ const PREFERENCIA_VIDEO = ['gallery_view', 'shared_screen_with_gallery_view', 'a
 // ── Lo que se ejecuta ─────────────────────────────────────────────────────────
 
 function probar() { ejecutar_(true); }
+
+/** Escribe y enseña cómo va todo, sin subir ni borrar nada. */
+function estado() {
+  comprobarAjustes_();
+  const z = tokenZoom_(true);
+  const raiz = carpetaRaiz_();
+  const reg = leerRegistro_(raiz);
+  const texto = resumen_(reg, null, z.borrar);
+  escribirTexto_(raiz, ESTADO_NOMBRE, texto);
+  Logger.log(texto);
+}
 function pasarLlamadas() { ejecutar_(false); }
 
 function instalar() {
@@ -75,7 +102,8 @@ function ejecutar_(prueba) {
     const t0 = Date.now();
     const queda = function () { return Date.now() - t0 < LIMITE_MS; };
     comprobarAjustes_();
-    const tok = tokenZoom_();
+    const z = tokenZoom_(true);
+    const tok = z.token;
     const desde = ajuste_('DESDE') || Utilities.formatDate(new Date(Date.now() - 365 * 864e5), 'UTC', 'yyyy-MM-dd');
     const reuniones = grabaciones_(tok, desde).filter(function (m) { return (m.recording_files || []).length; });
     const porUuid = {};
@@ -88,17 +116,46 @@ function ejecutar_(prueba) {
                 gb_liberados: 0, errores: 0 };
 
     // Quién era cada una (las nuevas) y si ha comprado (las que aún no).
-    const items = [];
+    const items = [], aRevisar = {};
+    let revisar = 0;
     reuniones.forEach(function (m) {
-      if (!reg.llamadas[m.uuid]) {
+      const e = reg.llamadas[m.uuid];
+      // Las nuevas, y una vez las ya copiadas: con la sala fija de Zoom del
+      // closer, antes del 25/11 varias salieron a nombre de otra persona. Esas,
+      // como mucho 40 por vuelta, para no pedirle a la escuela un año entero.
+      if (e && (e.revisada || 0) < REVISION) { if (revisar >= 40) return; revisar++; aRevisar[m.uuid] = true; }
+      if (!e || aRevisar[m.uuid]) {
         items.push({ clave: m.uuid, inicio: m.start_time, meeting_id: String(m.id || ''), anfitrion_email: m.host_email || '' });
       }
     });
     Object.keys(reg.llamadas).forEach(function (u) {
       const e = reg.llamadas[u];
+      if (aRevisar[u]) return;  // ya va arriba
       if (e.email && e.compro !== 'si') items.push({ clave: u, email: e.email, nombre: e.nombre || '' });
     });
     const quien = clasificar_(items);
+
+    // Las ya copiadas que salieron con otra persona: nombre, ficha y carpeta buenos.
+    Object.keys(reg.llamadas).forEach(function (u) {
+      const e = reg.llamadas[u], q = quien[u];
+      if (!q || !aRevisar[u]) return;
+      if (prueba) { if ((q.email || '') !== (e.email || '')) c.corregidas = (c.corregidas || 0) + 1; return; }
+      try {
+        if ((q.email || '') !== (e.email || '') || !!q.identificada !== !!e.identificada) {
+          e.identificada = !!q.identificada; e.nombre = q.nombre || ''; e.email = q.email || '';
+          e.closer = q.closer || ''; e.pagado_eur = q.pagado_eur || 0;
+          e.resultado = q.resultado || ''; e.nota = q.nota || '';
+          e.compro = q.identificada ? (q.compro ? 'si' : 'no') : '?';
+          const f = DriveApp.getFolderById(e.carpeta);
+          const inicio = new Date(porUuid[u].start_time);
+          f.setName(Utilities.formatDate(inicio, ZONA, 'yyyy-MM-dd HH.mm') + ' · ' + (limpio_(e.nombre) || limpio_(e.tema) || 'Llamada'));
+          f.moveTo(subcarpeta_(subcarpeta_(raiz, e.mes), CATEGORIA[e.compro]));
+          escribirTexto_(f, 'datos.txt', ficha_(e));
+          c.corregidas = (c.corregidas || 0) + 1;
+        }
+        e.revisada = REVISION;
+      } catch (err) { c.errores++; Logger.log('No se pudo corregir una carpeta: ' + err); }
+    });
 
     // Las que ya estaban y ahora han comprado: a «Compraron».
     Object.keys(reg.llamadas).forEach(function (u) {
@@ -139,7 +196,7 @@ function ejecutar_(prueba) {
           closer: q.closer || '', pagado_eur: q.pagado_eur || 0,
           resultado: q.resultado || '', nota: q.nota || '',
           compro: q.identificada ? (q.compro ? 'si' : 'no') : '?',
-          audio_bytes: 0, video_borrado: false,
+          audio_bytes: 0, video_borrado: false, revisada: REVISION,
           audio: { zoom_id: audio.id || '', bytes: audio.file_size || 0, estado: 'pendiente' },
           video: video ? { zoom_id: video.id, tipo: video.recording_type || '', bytes: video.file_size || 0, estado: 'pendiente' }
                        : { estado: 'no' },
@@ -161,8 +218,17 @@ function ejecutar_(prueba) {
     });
 
     // 2) Los audios que faltan, y 3) los vídeos (a trozos, se siguen otra vez).
+    // Primero las llamadas de venta (las identificadas), de la más vieja a la
+    // más nueva: son las que se pueden borrar de Zoom. Las clases y reuniones
+    // sin identificar, después (sus vídeos son los más grandes).
+    const orden = Object.keys(reg.llamadas).sort(function (a, b) {
+      const ea = reg.llamadas[a], eb = reg.llamadas[b];
+      if (!!ea.identificada !== !!eb.identificada) return ea.identificada ? -1 : 1;
+      const ma = porUuid[a], mb = porUuid[b];
+      return String(ma ? ma.start_time : ea.mes).localeCompare(String(mb ? mb.start_time : eb.mes));
+    });
     ['audio', 'video'].forEach(function (cual) {
-      Object.keys(reg.llamadas).forEach(function (u) {
+      orden.forEach(function (u) {
         const e = reg.llamadas[u];
         if (prueba || !queda()) return;
         const m = porUuid[u];
@@ -184,6 +250,7 @@ function ejecutar_(prueba) {
           const antes = est.subido || 0;
           const id = copiar_(tok, f.download_url, est.bytes, carpeta, nombre, mime, est, queda,
                              function () { guardarRegistro_(raiz, reg); });
+          est.error = '';
           if (id) {
             const tam = DriveApp.getFileById(id).getSize();
             est.drive_id = id; est.drive_bytes = tam; est.sesion = '';
@@ -195,7 +262,11 @@ function ejecutar_(prueba) {
             c.videos_a_medias++; c.gb_subidos += Math.max(0, (est.subido || 0) - antes) / 1e9;
           }
           guardarRegistro_(raiz, reg);
-        } catch (err) { c.errores++; Logger.log('No se pudo copiar un ' + cual + ': ' + err); guardarRegistro_(raiz, reg); }
+        } catch (err) {
+          c.errores++; Logger.log('No se pudo copiar un ' + cual + ': ' + err);
+          est.error = String(err).slice(0, 240); est.error_at = Utilities.formatDate(new Date(), ZONA, 'dd/MM HH:mm');
+          guardarRegistro_(raiz, reg);
+        }
       });
     });
     if (prueba) {
@@ -221,26 +292,94 @@ function ejecutar_(prueba) {
         if (ident && mes < esteMes) c.videos_por_borrar += videos.length;
         return;
       }
-      if (!e || !e.identificada || e.video_borrado || !(e.mes < esteMes)) return;
-      if (!videoSeguro_(e, archivos)) return;
+      if (!e || e.video_borrado) return;
+      e.borrar = porQueNoSeBorra_(e, archivos, esteMes);
+      if (e.borrar) return;
       if (!videos.length) { e.video_borrado = true; return; }
+      if (!z.borrar) { e.borrar = 'a tu app de Zoom le falta el permiso de borrar grabaciones'; return; }
       let todos = true;
       videos.forEach(function (v) {
         const r = UrlFetchApp.fetch('https://api.zoom.us/v2/meetings/' + uuidUrl(m.uuid) + '/recordings/' + v.id + '?action=delete',
           { method: 'delete', headers: { Authorization: 'Bearer ' + tok }, muteHttpExceptions: true });
         if (r.getResponseCode() === 204 || r.getResponseCode() === 200) {
           c.videos_borrados++; c.gb_liberados += (v.file_size || 0) / 1e9;
-        } else { todos = false; c.errores++; Logger.log('Zoom no dejó borrar un vídeo (' + r.getResponseCode() + '): ' + r.getContentText().slice(0, 200)); }
+        } else {
+          todos = false; c.errores++;
+          e.borrar = 'Zoom no dejó borrarlo (' + r.getResponseCode() + '): ' + r.getContentText().slice(0, 160);
+          Logger.log('Zoom no dejó borrar un vídeo (' + r.getResponseCode() + '): ' + r.getContentText().slice(0, 200));
+        }
       });
-      if (todos) e.video_borrado = true;
+      if (todos) { e.video_borrado = true; e.borrar = ''; }
     });
     if (!prueba) guardarRegistro_(raiz, reg);
 
     ['gb_liberados', 'gb_subidos', 'gb_por_subir'].forEach(function (k) { c[k] = Math.round(c[k] * 100) / 100; });
     Logger.log((prueba ? 'PRUEBA (no se ha subido ni borrado nada): ' : 'Hecho: ') + JSON.stringify(c, null, 1));
+    if (!prueba) { try { escribirTexto_(raiz, ESTADO_NOMBRE, resumen_(reg, c, z.borrar)); } catch (err) { Logger.log('No se pudo escribir el estado: ' + err); } }
   } finally {
     lock.releaseLock();
   }
+}
+
+/** Por qué aún no se borra el vídeo de Zoom de una llamada ('' = se puede). */
+function porQueNoSeBorra_(e, archivos, esteMes) {
+  if (!(e.mes < esteMes)) return 'es de este mes (se borra el mes que viene)';
+  if (!e.identificada) return 'sin identificar (no es una llamada de venta con cita): no se borra';
+  const a = e.audio, v = e.video;
+  if (a ? a.estado !== 'hecho' : !e.audio_bytes) return 'el audio aún no está en Drive';
+  if (!v) return 'el vídeo aún no está en Drive';
+  if (v.estado !== 'hecho' && v.estado !== 'no') {
+    const pct = v.bytes ? Math.floor(100 * (v.subido || 0) / v.bytes) : 0;
+    return 'el vídeo aún no está entero en Drive' + (pct ? ' (' + pct + ' %)' : '');
+  }
+  if (!videoSeguro_(e, archivos)) return 'el vídeo de Drive no pesa lo mismo que el de Zoom';
+  return '';
+}
+
+/** El archivo «_estado (léelo).txt»: cómo va todo, en cristiano. */
+function resumen_(reg, c, puedeBorrar) {
+  const ahora = Utilities.formatDate(new Date(), ZONA, "dd/MM/yyyy 'a las' HH:mm");
+  const filas = ['Llamadas de Zoom → Drive · estado del ' + ahora + ' (hora de Países Bajos)', ''];
+  if (!puedeBorrar) {
+    filas.push('⚠ NO SE PUEDE BORRAR NADA EN ZOOM: a tu app de Zoom le falta el permiso.',
+      '  Zoom App Marketplace → Manage → tu app (Server-to-Server) → Scopes → Add Scopes →',
+      '  «cloud_recording:delete:recording_file:admin» → Done → Continue. Luego, nada más: la próxima vuelta ya borra.', '');
+  }
+  if (c) filas.push('Última vuelta: ' + JSON.stringify(c), '');
+  const meses = {};
+  Object.keys(reg.llamadas).forEach(function (u) {
+    const e = reg.llamadas[u];
+    const m = meses[e.mes] || (meses[e.mes] = { n: 0, venta: 0, audio: 0, video: 0, sinVideo: 0, borrados: 0, gb: 0 });
+    m.n++; if (e.identificada) m.venta++;
+    if (e.audio ? e.audio.estado === 'hecho' : e.audio_bytes) m.audio++;
+    if (e.video && e.video.estado === 'hecho') m.video++;
+    if (e.video && e.video.estado === 'no') m.sinVideo++;
+    if (e.video_borrado) m.borrados++;
+    if (e.video && e.video.estado !== 'hecho' && e.video.estado !== 'no') m.gb += Math.max(0, (e.video.bytes || 0) - (e.video.subido || 0)) / 1e9;
+  });
+  filas.push('POR MES');
+  Object.keys(meses).sort().forEach(function (k) {
+    const m = meses[k];
+    filas.push('  ' + k + ': ' + m.n + ' grabaciones (' + m.venta + ' de venta) · audio ' + m.audio + '/' + m.n +
+      ' · vídeo en Drive ' + m.video + '/' + (m.n - m.sinVideo) +
+      (m.gb ? ' (faltan ' + (Math.round(m.gb * 10) / 10) + ' GB por subir)' : '') +
+      ' · borrados de Zoom ' + m.borrados);
+  });
+  const pendientes = [];
+  Object.keys(reg.llamadas).forEach(function (u) {
+    const e = reg.llamadas[u], cosas = [];
+    if (e.audio && e.audio.estado !== 'hecho' && e.audio.estado !== 'no') cosas.push('audio pendiente' + (e.audio.error ? ' · error: ' + e.audio.error : ''));
+    if (e.video && e.video.estado !== 'hecho' && e.video.estado !== 'no') {
+      const pct = e.video.bytes ? Math.floor(100 * (e.video.subido || 0) / e.video.bytes) : 0;
+      cosas.push('vídeo ' + (pct ? 'a medias (' + pct + ' %)' : 'pendiente') + (e.video.error ? ' · error: ' + e.video.error + (e.video.error_at ? ' (' + e.video.error_at + ')' : '') : ''));
+    }
+    if (!e.video_borrado && e.borrar && !/^es de este mes/.test(e.borrar)) cosas.push('no se borra de Zoom: ' + e.borrar);
+    if (cosas.length) pendientes.push('  ' + e.mes + ' · ' + (e.nombre || e.tema || 'Llamada') + ' (' + (e.cuando || '') + '): ' + cosas.join(' · '));
+  });
+  filas.push('', 'LO QUE FALTA, Y POR QUÉ (' + pendientes.length + ')');
+  pendientes.sort().forEach(function (p) { filas.push(p); });
+  if (!pendientes.length) filas.push('  Nada: todo copiado y borrado lo que se podía.');
+  return filas.join('\n') + '\n';
 }
 
 /** ¿Se puede borrar ya el vídeo de Zoom? Solo con el audio y el vídeo en Drive,
@@ -384,13 +523,18 @@ function comprobarAjustes_() {
 
 // ── Zoom ──────────────────────────────────────────────────────────────────────
 
-function tokenZoom_() {
+function tokenZoom_(conPermisos) {
   const r = UrlFetchApp.fetch('https://zoom.us/oauth/token?grant_type=account_credentials&account_id=' + encodeURIComponent(ajuste_('ZOOM_ACCOUNT_ID')), {
     method: 'post', muteHttpExceptions: true,
     headers: { Authorization: 'Basic ' + Utilities.base64Encode(ajuste_('ZOOM_CLIENT_ID') + ':' + ajuste_('ZOOM_CLIENT_SECRET')) },
   });
   if (r.getResponseCode() !== 200) throw new Error('Zoom no da acceso (' + r.getResponseCode() + '): revisa ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID y ZOOM_CLIENT_SECRET, y que la app esté activada. ' + r.getContentText().slice(0, 200));
-  return JSON.parse(r.getContentText()).access_token;
+  const d = JSON.parse(r.getContentText());
+  if (!conPermisos) return d.access_token;
+  const alcance = String(d.scope || '');
+  // Sin la lista de permisos no se sabe: se intenta y Zoom dirá si no.
+  const borrar = !alcance || /cloud_recording:delete|recording:write/.test(alcance);
+  return { token: d.access_token, borrar: borrar };
 }
 
 function zoomGet_(tok, ruta, params) {

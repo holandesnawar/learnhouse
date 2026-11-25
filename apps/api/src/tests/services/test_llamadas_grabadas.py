@@ -23,6 +23,19 @@ def test_emparejar_por_numero_de_reunion():
     assert LG.emparejar(item, citas)["email"] == "ana@x.com"
 
 
+def test_con_la_sala_fija_del_closer_manda_la_hora():
+    """25/11/2026: con el ID personal de Zoom todas las citas llevan el mismo
+    número; antes todas las grabaciones salían a nombre de la primera."""
+    sala = "https://zoom.us/j/86012345678"
+    citas = [_cita("ana@x.com", "2026-11-03T17:00:00Z", sala),
+             _cita("sebastian@x.com", "2026-11-20T17:00:00Z", sala),
+             _cita("luis@x.com", "2026-11-20T18:00:00Z", sala)]
+    assert LG.emparejar({"meeting_id": "86012345678", "inicio": "2026-11-20T17:04:00Z"}, citas)["email"] == "sebastian@x.com"
+    assert LG.emparejar({"meeting_id": "86012345678", "inicio": "2026-11-20T17:58:00Z"}, citas)["email"] == "luis@x.com"
+    # Ninguna cita de esa sala cerca de esa hora: sin identificar, no la primera.
+    assert LG.emparejar({"meeting_id": "86012345678", "inicio": "2026-11-25T10:00:00Z"}, citas) is None
+
+
 def test_emparejar_por_hora_y_anfitrion():
     citas = [_cita("ana@x.com", "2026-11-10T17:00:00Z", anfitrion="belen@nawar.es"),
              _cita("luis@x.com", "2026-11-10T17:00:00Z", anfitrion="diego@nawar.es"),
