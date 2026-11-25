@@ -8,6 +8,8 @@ import { CalendarDays, Clock, ArrowRight } from 'lucide-react'
 import { CalendarBlank } from '@phosphor-icons/react'
 import { useMisGrupos } from '@/hooks/queries/useMisGrupos'
 import { eventoParaMi } from '@/lib/nawar/eventosGrupo'
+import { esVacaciones, rangoCorto, sigue } from '@/lib/nawar/vacaciones'
+import { Sun } from 'lucide-react'
 
 interface LhEvent {
   id: string
@@ -16,6 +18,8 @@ interface LhEvent {
   time?: string
   link?: string
   grupos?: number[]
+  tipo?: 'vacaciones'
+  hasta?: string
 }
 
 const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -35,7 +39,7 @@ export default function UpcomingEvents({ orgslug }: { orgslug: string }) {
   const upcoming = useMemo(() => {
     return readEvents(org)
       .filter((e) => eventoParaMi(e, yo))
-      .filter((e) => e?.date && e.date >= todayStr)
+      .filter((e) => e?.date && sigue(e, todayStr))
       .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
       .slice(0, 4) // los cuatro siguientes: el Inicio no es el calendario
   }, [org, todayStr, yo])
@@ -55,7 +59,21 @@ export default function UpcomingEvents({ orgslug }: { orgslug: string }) {
         <ul className="pb-2">
           {upcoming.map((ev) => {
             const d = dayjs(ev.date)
-            const dentro = (
+            const vac = esVacaciones(ev)
+            const dentro = vac ? (
+              <>
+                <span className="shrink-0 w-11 flex justify-center">
+                  <Sun size={20} className="text-[#8A6A2A]" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-semibold text-[#0B1033] leading-snug line-clamp-2">{ev.title || 'Vacaciones'}</span>
+                  <span className="block text-[12.5px] text-[#8A91AD]">
+                    {rangoCorto(ev)}
+                    {ev.date <= todayStr ? ' · ahora' : ''}
+                  </span>
+                </span>
+              </>
+            ) : (
               <>
                 <span className="shrink-0 w-11 text-center">
                   <span className="block text-[11px] font-bold text-[#0b2da0] uppercase leading-none">{MONTHS_SHORT[d.month()]}</span>

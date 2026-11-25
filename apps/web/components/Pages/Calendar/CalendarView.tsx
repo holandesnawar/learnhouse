@@ -22,9 +22,11 @@ import {
   ExternalLink,
   CalendarDays,
   Mail,
+  Sun,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@lib/nawar/confirmar'
+import { cubre, esVacaciones, finDe, rangoCorto, sigue, textoRango } from '@/lib/nawar/vacaciones'
 
 interface LhEvent {
   id: string
@@ -35,6 +37,9 @@ interface LhEvent {
   description?: string
   /** Solo para estos grupos de usuarios (25/10/2026). Vacío = para todos. */
   grupos?: number[]
+  /** Vacaciones (25/11/2026): de `date` a `hasta`, los dos incluidos. */
+  tipo?: 'vacaciones'
+  hasta?: string
 }
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -151,11 +156,13 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
   const eventsByDay = useMemo(() => {
     const map: Record<string, LhEvent[]> = {}
     for (const ev of visibles) {
-      if (!ev?.date) continue
+      if (!ev?.date || esVacaciones(ev)) continue
       ;(map[ev.date] ||= []).push(ev)
     }
     return map
   }, [visibles])
+  // Las vacaciones van aparte: pintan de otro color todos sus días.
+  const vacaciones = useMemo(() => visibles.filter((e) => esVacaciones(e)), [visibles])
 
   const gridDays = useMemo(() => {
     const first = cursor.startOf('month')
@@ -170,7 +177,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
   const upcoming = useMemo(
     () =>
       [...visibles]
-        .filter((e) => e.date && e.date >= todayStr)
+        .filter((e) => e.date && sigue(e, todayStr))
         .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
         .slice(0, 8),
     [visibles, todayStr]
@@ -194,12 +201,13 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
       toast.error('Pon al menos un título y una fecha')
       return
     }
+    if (esVacaciones(ev)) ev = { ...ev, hasta: finDe(ev), time: '', link: '' }
     const exists = events.some((e) => e.id === ev.id)
     const next = exists ? events.map((e) => (e.id === ev.id ? ev : e)) : [...events, ev]
     try {
       await persist(next)
       setEditing(null)
-      toast.success('Evento guardado')
+      toast.success(esVacaciones(ev) ? 'Vacaciones guardadas' : 'Evento guardado')
     } catch {
       /* toast already shown */
     }
@@ -216,6 +224,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
 
   const openNew = (date?: string) =>
     setEditing({ id: newId(), title: '', date: date || todayStr, time: '', link: '', description: '' })
+  const openVacaciones = () => setEditing({ id: newId(), tipo: 'vacaciones', title: 'Vacaciones', date: todayStr, hasta: todayStr, description: '' })
 
   return (
     <GeneralWrapperStyled>
@@ -225,12 +234,20 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
           <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>Eventos</h1>
         </div>
         {canEdit && (
-          <button
-            onClick={() => openNew()}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#0b2da0] hover:bg-[#0a2690] text-white text-sm font-semibold transition-colors"
-          >
-            <Plus size={16} /> Añadir evento
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openVacaciones}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-[#E2E7F0] bg-white hover:bg-[#F7F9FD] text-[#0B1033] text-sm font-semibold transition-colors"
+            >
+              <Sun size={16} /> Añadir vacaciones
+            </button>
+            <button
+              onClick={() => openNew()}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#0b2da0] hover:bg-[#0a2690] text-white text-sm font-semibold transition-colors"
+            >
+              <Plus size={16} /> Añadir evento
+            </button>
+          </div>
         )}
       </div>
 
@@ -267,13 +284,17 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
             const inMonth = day.month() === monthIndex
             const isToday = dStr === todayStr
             const dayEvents = eventsByDay[dStr] || []
+            const vac = vacaciones.find((v) => cubre(v, dStr))
+            // El nombre de las vacaciones, el primer día y cada lunes (en la semana se lee de un vistazo).
+            const rotulo = vac && (dStr === vac.date || day.day() === 1)
             return (
               <div
                 key={dStr}
                 onClick={canEdit ? () => openNew(dStr) : undefined}
                 className={`min-h-[84px] border-b border-r border-gray-100 p-1.5 ${
-                  inMonth ? 'bg-white' : 'bg-gray-50/50'
+                  vac ? (inMonth ? 'bg-[#FFFBF2]' : 'bg-[#FFFBF2]/60') : inMonth ? 'bg-white' : 'bg-gray-50/50'
                 } ${canEdit ? 'cursor-pointer hover:bg-[#0b2da0]/5' : ''}`}
+                title={vac ? `${vac.title || 'Vacaciones'} · ${rangoCorto(vac)}` : undefined}
               >
                 <div className="flex justify-end">
                   <span
@@ -285,6 +306,18 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                   </span>
                 </div>
                 <div className="mt-1 space-y-1">
+                  {rotulo ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (canEdit) setEditing(vac)
+                      }}
+                      className={`w-full flex items-center gap-1.5 text-left rounded px-1 py-0.5 text-[12px] text-[#8A6A2A] ${canEdit ? 'hover:bg-[#FBF1DC]' : 'cursor-default'}`}
+                    >
+                      <Sun size={12} className="shrink-0" />
+                      <span className="hidden sm:inline truncate font-semibold">{vac!.title || 'Vacaciones'}</span>
+                    </button>
+                  ) : null}
                   {dayEvents.slice(0, 3).map((ev) => (
                     <button
                       key={ev.id}
@@ -332,14 +365,22 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                 }`}
               >
                 <div className="shrink-0 w-12 text-center">
-                  <div className="text-[11px] font-semibold text-[#0b2da0] uppercase">{MONTHS[dayjs(ev.date).month()].slice(0, 3)}</div>
-                  <div className="text-xl font-bold text-gray-900 leading-none">{dayjs(ev.date).date()}</div>
+                  {esVacaciones(ev) ? (
+                    <Sun size={22} className="mx-auto mt-1 text-[#8A6A2A]" />
+                  ) : (
+                    <>
+                      <div className="text-[11px] font-semibold text-[#0b2da0] uppercase">{MONTHS[dayjs(ev.date).month()].slice(0, 3)}</div>
+                      <div className="text-xl font-bold text-gray-900 leading-none">{dayjs(ev.date).date()}</div>
+                    </>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-semibold text-gray-900">{ev.title}</h3>
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                    <span>
-                      {WEEKDAYS_FULL[(dayjs(ev.date).day() + 6) % 7]} {dayjs(ev.date).date()} de {MONTHS[dayjs(ev.date).month()]}
+                    <span className="first-letter:uppercase">
+                      {esVacaciones(ev)
+                        ? `${textoRango(ev)}${ev.date <= todayStr ? ' · ahora' : ''}`
+                        : `${WEEKDAYS_FULL[(dayjs(ev.date).day() + 6) % 7]} ${dayjs(ev.date).date()} de ${MONTHS[dayjs(ev.date).month()]}`}
                     </span>
                     {ev.time && (
                       <span className="inline-flex items-center gap-1">
@@ -362,7 +403,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
                 </div>
                 {canEdit && (
                   <div className="shrink-0 flex items-center gap-1">
-                    {canNotify ? (
+                    {canNotify && !esVacaciones(ev) ? (
                     <>
                     <button
                       onClick={() => notifyEvent(ev)}
@@ -429,13 +470,14 @@ function EventModal({
 }) {
   const [form, setForm] = useState<LhEvent>(event)
   const set = (k: keyof LhEvent, v: string) => setForm((f) => ({ ...f, [k]: v }))
+  const vac = esVacaciones(form)
 
   return (
     <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4" style={{ zIndex: 60 }}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md bg-white rounded-xl nice-shadow p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-gray-900">{onDelete ? 'Editar evento' : 'Nuevo evento'}</h3>
+          <h3 className="text-lg font-bold text-gray-900">{vac ? (onDelete ? 'Editar vacaciones' : 'Nuevas vacaciones') : onDelete ? 'Editar evento' : 'Nuevo evento'}</h3>
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100">
             <X size={18} />
           </button>
@@ -443,8 +485,28 @@ function EventModal({
         <div className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Título *</label>
-            <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Clase semanal A0-A1" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30" />
+            <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder={vac ? 'Vacaciones de Navidad' : 'Clase semanal A0-A1'} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30" />
           </div>
+          {vac ? (
+            <>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Desde *</label>
+                  <input
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => setForm((f) => ({ ...f, date: e.target.value, hasta: f.hasta && f.hasta >= e.target.value ? f.hasta : e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hasta *</label>
+                  <input type="date" min={form.date} value={form.hasta || ''} onChange={(e) => set('hasta', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30" />
+                </div>
+              </div>
+              {form.date ? <p className="-mt-1 text-[12.5px] text-[#6B7393] first-letter:uppercase">{textoRango(form)}, los dos días incluidos.</p> : null}
+            </>
+          ) : (
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
@@ -455,10 +517,13 @@ function EventModal({
               <input type="time" value={form.time || ''} onChange={(e) => set('time', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30" />
             </div>
           </div>
+          )}
+          {vac ? null : (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Enlace (Zoom, Meet…)</label>
             <input value={form.link || ''} onChange={(e) => set('link', e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30" />
           </div>
+          )}
           {grupos.length ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Para quién</label>
@@ -478,7 +543,7 @@ function EventModal({
           ) : null}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-            <textarea value={form.description || ''} onChange={(e) => set('description', e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30 resize-y" />
+            <textarea value={form.description || ''} onChange={(e) => set('description', e.target.value)} placeholder={vac ? 'No hay clases en directo. La formación y la comunidad siguen abiertas.' : ''} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0b2da0]/30 resize-y" />
           </div>
         </div>
         <div className="flex items-center justify-between pt-1">
