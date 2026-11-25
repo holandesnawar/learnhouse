@@ -20,6 +20,8 @@ export interface Publicada {
   /** De qué presentación salió (22/11/2026) y cómo se llamaba. */
   fuente?: string
   nombre?: string
+  /** La misma presentación SIN lo escrito (25/11/2026, Spreek Club): el alumno elige. */
+  limpia?: { paginas: number } | null
 }
 
 /** Las notas de una presentación: cuándo, quién y en cuántas páginas (null = no se sabe). */
@@ -230,11 +232,15 @@ export async function guardarNotas(semanaId: number, fuente: string, doc: DocPiz
 export const nombrarPresentacion = (semanaId: number, fuente: string, nombre: string, token: string) =>
   pedir<ListaPresentaciones>(`${base()}/semana/${semanaId}/nombre`, token, 'PUT', { fuente, nombre })
 
-export function publicarPizarra(semanaId: number, pdf: Blob, paginas: number, token: string, fuente = '') {
+export function publicarPizarra(semanaId: number, pdf: Blob, paginas: number, token: string, fuente = '', limpia?: { pdf: Blob; paginas: number }) {
   const f = new FormData()
   f.append('pdf', pdf, 'clase.pdf')
   f.append('paginas', String(paginas))
   f.append('fuente', fuente)
+  if (limpia) {
+    f.append('limpia', limpia.pdf, 'sin-notas.pdf')
+    f.append('paginas_limpia', String(limpia.paginas))
+  }
   return pedir<Publicada>(`${base()}/semana/${semanaId}/publicar`, token, 'POST', f)
 }
 
@@ -247,9 +253,9 @@ const curso = (uuid: string) => encodeURIComponent(String(uuid || '').replace(/^
 export const getConNotas = (courseUuid: string, token: string) =>
   pedir<{ semanas: ConNotas[] }>(`${base()}/course/${curso(courseUuid)}`, token)
 
-/** La presentación con notas, como dirección que se puede abrir (va con la sesión). */
-export async function urlPdfConNotas(semanaId: number, token: string): Promise<string> {
-  const res = await fetch(`${base()}/semana/${semanaId}/pdf`, {
+/** La presentación con notas (o, con `limpia`, la misma sin notas), como dirección que se puede abrir (va con la sesión). */
+export async function urlPdfConNotas(semanaId: number, token: string, limpia = false): Promise<string> {
+  const res = await fetch(`${base()}/semana/${semanaId}/pdf${limpia ? '?limpia=1' : ''}`, {
     headers: { Authorization: `Bearer ${token}` },
     credentials: 'include',
     cache: 'no-store',

@@ -113,6 +113,23 @@ export function paraLosAlumnos(doc: DocPizarra): PaginaPizarra[] {
   return doc.paginas.filter((p) => !p.oculta)
 }
 
+/**
+ * La misma presentación SIN lo escrito (25/11/2026, Spreek Club; usuario:
+ * «mucha gente quiere ver la presentación sin las notas que añadimos en
+ * clase»): las páginas que ven los alumnos, sin trazos y sin las páginas en
+ * blanco que se añadieron para escribir (sin notas, saldrían vacías).
+ */
+export function paginasSinNotas(doc: DocPizarra): PaginaPizarra[] {
+  return paraLosAlumnos(doc)
+    .filter((p) => p.origen != null)
+    .map((p) => ({ ...p, trazos: [] }))
+}
+
+/** En qué clases se guarda también la versión sin notas: de momento, el Spreek Club. */
+export function conVersionSinNotas(nombreCurso: string): boolean {
+  return /spreek|spreken|conversaci/i.test(nombreCurso || '')
+}
+
 export function hayAlgoEscrito(doc: DocPizarra): boolean {
   return doc.paginas.some((p) => p.trazos.length > 0 || p.origen == null || p.oculta)
 }

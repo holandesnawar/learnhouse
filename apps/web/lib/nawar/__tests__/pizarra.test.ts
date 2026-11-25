@@ -185,3 +185,30 @@ describe('cambiar lo ya escrito (18/11/2026)', () => {
     expect(e.no.fija).toEqual({ x: 0.4, y: 0.30000000000000004 })
   })
 })
+
+import { conVersionSinNotas, paginasSinNotas } from '../pizarra'
+
+describe('la versión sin notas (25/11/2026)', () => {
+  test('mismas páginas que los alumnos, sin trazos ni páginas en blanco', () => {
+    const doc: any = {
+      v: 1,
+      paginas: [
+        { origen: 1, trazos: [{ t: 'lapiz', p: [0, 0, 1, 1] }] },
+        { origen: 2, oculta: true, trazos: [] },
+        { origen: null, titulo: 'Notas de la clase', trazos: [{ t: 'lapiz', p: [0, 0] }] },
+        { origen: 3, trazos: [] },
+      ],
+    }
+    expect(paginasSinNotas(doc).map((p) => [p.origen, p.trazos.length])).toEqual([
+      [1, 0],
+      [3, 0],
+    ])
+    expect(doc.paginas[0].trazos.length).toBe(1)
+  })
+  test('solo en el Spreek Club', () => {
+    expect(conVersionSinNotas('Spreek Club')).toBe(true)
+    expect(conVersionSinNotas('Spreek Club · primera convocatoria')).toBe(true)
+    expect(conVersionSinNotas('Conversatieles')).toBe(false)
+    expect(conVersionSinNotas('Masterclass')).toBe(false)
+  })
+})

@@ -59,6 +59,8 @@ import {
   moverTrazo,
   recolorear,
   paraLosAlumnos,
+  paginasSinNotas,
+  conVersionSinNotas,
   simplificar,
   tocaLinea,
   trazoEnPunto,
@@ -1393,19 +1395,26 @@ export default function PizarraClase({ semanaId, enSala }: { semanaId: string; e
     }
     const ya = info.publicada
     const grupo = info.semana.curso || 'esta clase'
+    // En el Spreek Club se guarda también SIN las notas (25/11/2026): el alumno elige.
+    const limpias = conVersionSinNotas(info.semana.curso) ? paginasSinNotas(docRef.current) : []
+    const tambien = limpias.length ? '\n\nTambién se guarda sin las notas, para quien quiera repasarla limpia.' : ''
     const ok = await confirmar(
-      ya
+      (ya
         ? `Los alumnos de ${grupo} ya tienen una versión de esta presentación. ¿Cambiarla por la de ahora, con lo que has escrito?`
-        : `¿Guardar esta presentación, con lo que has escrito, para los alumnos de ${grupo}?\n\nDesde el día de la clase la verán en su semana EN LUGAR de la presentación de antes. Los del otro grupo siguen con la suya hasta que su profe guarde la de su clase.`,
+        : `¿Guardar esta presentación, con lo que has escrito, para los alumnos de ${grupo}?\n\nDesde el día de la clase la verán en su semana EN LUGAR de la presentación de antes. Los del otro grupo siguen con la suya hasta que su profe guarde la de su clase.`) + tambien,
       { boton: 'Guardar para los alumnos', peligro: false }
     )
     if (!ok) return
     try {
       setPublicando('Guardando lo escrito…')
       await guardar()
-      const pdf = await montarPdf(paginas, (n) => setPublicando(`Preparando la página ${n} de ${paginas.length}…`))
+      const total = paginas.length + limpias.length
+      const pdf = await montarPdf(paginas, (n) => setPublicando(`Preparando la página ${n} de ${total}…`))
+      const sinNotas = limpias.length
+        ? { pdf: await montarPdf(limpias, (n) => setPublicando(`Preparando la página ${paginas.length + n} de ${total}…`)), paginas: limpias.length }
+        : undefined
       setPublicando('Subiendo a la escuela…')
-      const pub = await publicarPizarra(id, pdf, paginas.length, token, docDe.current)
+      const pub = await publicarPizarra(id, pdf, paginas.length, token, docDe.current, sinNotas)
       setInfo((i) => (i ? { ...i, publicada: pub } : i))
       releer()
       toast.success(`Guardada: los alumnos de ${grupo} ya ven esta versión`)
