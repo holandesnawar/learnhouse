@@ -346,6 +346,10 @@ if not is_testing:
 # así que da igual ejecutarlo mil veces o que la tabla acabe de nacer con la
 # forma nueva.
 _ADDED_COLUMNS = [
+    # Reseñas por escrito, con foto (25/11/2026).
+    "ALTER TABLE IF EXISTS resena ADD COLUMN IF NOT EXISTS escrita TEXT DEFAULT ''",
+    "ALTER TABLE IF EXISTS resena ADD COLUMN IF NOT EXISTS foto VARCHAR(300) DEFAULT ''",
+    "ALTER TABLE IF EXISTS resena ADD COLUMN IF NOT EXISTS foto_mime VARCHAR(40) DEFAULT ''",
     # El % de comisión de cada venta, a mano (24/11/2026).
     "ALTER TABLE IF EXISTS comision_closer ADD COLUMN IF NOT EXISTS pct DOUBLE PRECISION DEFAULT 0",
     # Procesos del equipo (24/11/2026): el manual, para todo el equipo.

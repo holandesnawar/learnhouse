@@ -131,7 +131,7 @@ const SECCIONES: Record<string, { titulo: string; icono: React.ReactNode; que: s
   tandas: { titulo: 'Grupos', icono: <Tags {...ICONO} />, que: 'En qué grupo está cada alumno y quién ve cada clase y canal. Los nuevos entran solos en «Programa nuevo»: aquí solo hay que mirar si alguien espera grupo o si algo se ve donde no debe.' },
   paginas: { titulo: 'Páginas de la web', icono: <Globe {...ICONO} />, que: 'Las páginas de la web y lo que ya sabe quien llega desde cada una.' },
   correos: { titulo: 'Correos', icono: <Mails {...ICONO} />, que: 'Quién está en cada campaña y a quién le ha llegado cada correo.' },
-  resenas: { titulo: 'Reseñas', icono: <Video {...ICONO} />, que: 'Pide a tus alumnos una reseña en vídeo, revísala y bájala. El regalo es por grabarla, no por hablar bien.' },
+  resenas: { titulo: 'Reseñas', icono: <Video {...ICONO} />, que: 'Pide a tus alumnos su opinión, por escrito con foto o en vídeo, con su permiso. Revísala, cópiala o bájala. El regalo es por hacerla, no por hablar bien.' },
   estado: { titulo: 'Estado de la escuela', icono: <Activity {...ICONO} />, que: 'Qué ha fallado, qué va lento y qué pantallas se han roto, para enterarte antes que los alumnos.' },
   fallos: { titulo: 'Fallos avisados', icono: <Flag {...ICONO} />, que: 'Lo que los alumnos avisan con «¿Ves un fallo? Avísanos» de cada ejercicio, agrupado por ejercicio y listo para copiar.' },
   procesos: { titulo: 'Procesos del equipo', icono: <BookOpenCheck {...ICONO} />, que: 'Cómo se hace cada cosa en la escuela, por áreas: cada proceso con sus pasos, asignado a quien lo tiene que hacer y con quién lo ha leído.' },

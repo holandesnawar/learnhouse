@@ -41,6 +41,18 @@ bytes), no por la extensión del nombre: los móviles los mandan sin extensión
 (el fallo de las fotos del 08/11). Se escribe en disco a trozos, sin tener los
 150 MB en memoria.
 
+POR ESCRITO, CON FOTO (25/11/2026). Pedido del usuario: "una web con las
+preguntas buenas para darla a los de la primera cohorte que van mejor, antes
+que el vídeo, que vamos regular de tiempo… que den consentimiento y meter
+fotos". No es otra web: es la misma invitación y la misma página `/resena`,
+con dos formas de contestar, «Por escrito» (de serie) y «En vídeo». Lo
+escrito va en la columna `escrita` (JSON) con SU permiso, que es otro texto
+(`PERMISO_ESCRITA`: publicar lo escrito, se puede acortar o corregir faltas
+sin cambiar lo que dice, con el nombre como lo firma y la foto si la sube).
+La foto es opcional y se acepta por lo que es (JPG, PNG o WEBP; un HEIC del
+iPhone se rechaza con el motivo). Escrita o vídeo, la reseña pasa a
+«grabada» (por revisar) y el regalo se le debe igual.
+
 Lo que NO hace: no manda correos (la invitación va por la campana y por el
 WhatsApp que el administrador copia), no publica nada en ningún sitio y no
 recorta el vídeo.
@@ -97,9 +109,75 @@ CONSEJOS = [
 ]
 
 MENSAJE_DE_FABRICA = (
-    "Nos encantaría que nos contaras en un vídeo corto cómo te está yendo con el neerlandés. "
-    "Son cuatro preguntas y un minuto y medio, y lo grabas desde la propia escuela."
+    "Nos encantaría que nos contaras cómo te está yendo con el neerlandés. Son unas preguntas que "
+    "contestas por escrito en unos cinco minutos, desde la propia escuela (y si te animas, también en vídeo)."
 )
+
+# Las preguntas de la reseña por escrito: van del antes al después, y piden
+# cosas CONCRETAS (una situación, un momento), que es lo que hace creíble una
+# opinión. `corta` es el rótulo que ve el equipo.
+PREGUNTAS_ESCRITA = [
+    {
+        "id": "antes",
+        "corta": "Antes",
+        "pregunta": "¿Cómo estabas con el neerlandés antes de empezar?",
+        "ayuda": "Qué te costaba, qué te frustraba, qué habías probado antes.",
+        "obligatoria": True,
+    },
+    {
+        "id": "dudas",
+        "corta": "Dudas",
+        "pregunta": "¿Qué te hacía dudar antes de apuntarte?",
+        "ayuda": "El precio, el tiempo, si ibas a ser capaz… lo que fuera.",
+        "obligatoria": False,
+    },
+    {
+        "id": "decidir",
+        "corta": "Por qué Nawar",
+        "pregunta": "¿Qué te hizo decidirte por Holandés Nawar?",
+        "ayuda": "",
+        "obligatoria": False,
+    },
+    {
+        "id": "ahora",
+        "corta": "Lo que ha cambiado",
+        "pregunta": "¿Qué ha cambiado? Cuéntanos una situación concreta en la que usaste el neerlandés y antes no podías.",
+        "ayuda": "En el súper, con el médico, en el trabajo, con tus vecinos, con los profes de tus hijos…",
+        "obligatoria": True,
+    },
+    {
+        "id": "gusta",
+        "corta": "Lo que más le gusta",
+        "pregunta": "¿Qué es lo que más te gusta de la formación?",
+        "ayuda": "Las lecciones, las clases en directo, el Spreekclub, las consultas, la comunidad…",
+        "obligatoria": False,
+    },
+    {
+        "id": "recomendar",
+        "corta": "A quién se lo recomendaría",
+        "pregunta": "¿A quién se la recomendarías y por qué?",
+        "ayuda": "",
+        "obligatoria": True,
+    },
+    {
+        "id": "frase",
+        "corta": "En una frase",
+        "pregunta": "Si tuvieras que resumir tu experiencia en una frase, ¿cuál sería?",
+        "ayuda": "",
+        "obligatoria": False,
+    },
+]
+_IDS_ESCRITA = [p["id"] for p in PREGUNTAS_ESCRITA]
+
+PERMISO_ESCRITA = (
+    "Doy permiso a Holandés Nawar para publicar lo que he escrito aquí, con mi nombre tal y como lo he "
+    "puesto y, si la he subido, mi foto, en los sitios que marco abajo. Pueden acortarlo o corregir "
+    "faltas, sin cambiar lo que digo. No recibo ningún pago por ello. Puedo retirar este permiso cuando "
+    "quiera escribiendo a info@holandesnawar.com, y dejarán de usarlo."
+)
+
+MAX_FOTO = 12 * 1024 * 1024
+MAX_RESPUESTA = 2000
 
 
 class ResenaError(Exception):
@@ -193,8 +271,10 @@ def cifras(filas: Iterable[dict]) -> dict:
         "por_revisar": sum(1 for r in filas if r["estado"] == "grabada"),
         "aprobadas": sum(1 for r in filas if r["estado"] == "aprobada"),
         "descartadas": sum(1 for r in filas if r["estado"] == "descartada"),
-        # El regalo se debe a quien GRABÓ, guste o no la reseña.
-        "regalos_por_dar": sum(1 for r in filas if r["tiene_video"] and r["regalo"] and not r["regalo_dado_at"]),
+        # El regalo se debe a quien la HIZO (vídeo o por escrito), guste o no.
+        "regalos_por_dar": sum(
+            1 for r in filas if (r["tiene_video"] or r.get("tiene_escrita")) and r["regalo"] and not r["regalo_dado_at"]
+        ),
         "total": len(filas),
     }
 
@@ -207,8 +287,8 @@ def texto_whatsapp(nombre: str, regalo: str, enlace: str) -> str:
     lineas = [
         f"{saludo} soy del equipo de Holandés Nawar.",
         "",
-        "Nos encantaría que nos contaras en un vídeo corto (un minuto y medio) cómo te está yendo con el "
-        "neerlandés. Son cuatro preguntas y lo grabas desde la propia escuela, con el móvil:",
+        "Nos encantaría que nos contaras cómo te está yendo con el neerlandés. Son unas preguntas que "
+        "contestas por escrito en unos cinco minutos, desde la propia escuela (si te animas, también en vídeo):",
         enlace,
         "",
         "Cuenta lo que piensas de verdad, lo bueno y lo que mejorarías.",
@@ -228,7 +308,72 @@ def enlace_resena() -> str:
         return "/resena"
 
 
+def leer_escrita(texto: Any) -> dict:
+    """La reseña por escrito guardada, siempre con la misma forma."""
+    try:
+        d = json.loads(texto or "{}")
+    except (ValueError, TypeError):
+        d = {}
+    if not isinstance(d, dict):
+        d = {}
+    resp = d.get("respuestas") if isinstance(d.get("respuestas"), dict) else {}
+    return {
+        "respuestas": {k: str(resp.get(k) or "") for k in _IDS_ESCRITA if str(resp.get(k) or "").strip()},
+        "firma": str(d.get("firma") or ""),
+        "permiso_texto": str(d.get("permiso") or ""),
+        "permiso_at": str(d.get("permiso_at") or ""),
+        "usos": limpiar_usos(d.get("usos") or []),
+        "at": str(d.get("at") or ""),
+    }
+
+
+def limpiar_respuestas(respuestas: Any) -> dict:
+    """Las respuestas que valen (por id de pregunta), recortadas. Acepta un
+    dict o el JSON de un formulario."""
+    if isinstance(respuestas, str):
+        try:
+            respuestas = json.loads(respuestas or "{}")
+        except (ValueError, TypeError):
+            respuestas = {}
+    if not isinstance(respuestas, dict):
+        return {}
+    out = {}
+    for k in _IDS_ESCRITA:
+        v = str(respuestas.get(k) or "").strip()
+        if v:
+            out[k] = v[:MAX_RESPUESTA]
+    return out
+
+
+def faltan(respuestas: dict) -> list[str]:
+    """Las preguntas obligatorias sin contestar (por su texto)."""
+    return [p["pregunta"] for p in PREGUNTAS_ESCRITA if p["obligatoria"] and not (respuestas.get(p["id"]) or "").strip()]
+
+
+def texto_para_copiar(escrita: dict) -> str:
+    """La reseña escrita en limpio, para pegarla en la web o en un post: las
+    respuestas seguidas y la firma al final."""
+    resp = escrita.get("respuestas") or {}
+    partes = []
+    frase = (resp.get("frase") or "").strip()
+    if frase:
+        limpia = frase.strip("«»\"' ")
+        partes.append("«" + limpia + "»")
+    for p in PREGUNTAS_ESCRITA:
+        if p["id"] == "frase":
+            continue
+        v = (resp.get(p["id"]) or "").strip()
+        if v:
+            partes.append(v)
+    firma = (escrita.get("firma") or "").strip()
+    if firma:
+        partes.append(f"— {firma}")
+    return "\n\n".join(partes)
+
+
 def resena_dict(r: Resena, para_admin: bool = False) -> dict:
+    escrita = leer_escrita(r.escrita)
+    tiene_escrita = bool(escrita["respuestas"]) and bool(escrita["permiso_at"])
     d = {
         "id": r.id,
         "user_id": r.user_id,
@@ -249,6 +394,9 @@ def resena_dict(r: Resena, para_admin: bool = False) -> dict:
         "regalo": r.regalo or "",
         "regalo_dado_at": r.regalo_dado_at or "",
         "plazo": plazo_de(r.invitada_at or ""),
+        "tiene_escrita": tiene_escrita,
+        "escrita": escrita if (tiene_escrita or escrita["respuestas"]) else None,
+        "tiene_foto": bool(r.foto),
     }
     if para_admin:
         d.update(
@@ -258,6 +406,7 @@ def resena_dict(r: Resena, para_admin: bool = False) -> dict:
                 "revisada_por": r.revisada_por or "",
                 "nota": r.nota or "",
                 "whatsapp": texto_whatsapp(r.nombre, r.regalo or "", enlace_resena()),
+                "para_copiar": texto_para_copiar(escrita) if tiene_escrita else "",
             }
         )
     return d
@@ -273,6 +422,9 @@ def guia() -> dict:
         "usos": USOS,
         "plazo_dias": PLAZO_DIAS,
         "max_mb": MAX_BYTES // (1024 * 1024),
+        "preguntas_escrita": PREGUNTAS_ESCRITA,
+        "permiso_escrita": PERMISO_ESCRITA,
+        "max_foto_mb": MAX_FOTO // (1024 * 1024),
     }
 
 
@@ -336,6 +488,43 @@ async def guardar_video(org_id: int, archivo: Any) -> tuple[str, str, int]:
     return relativa, mime, total
 
 
+async def guardar_foto(org_id: int, archivo: Any) -> tuple[str, str]:
+    """La foto de la reseña, comprobada por lo que ES. (ruta relativa, tipo)."""
+    from src.services.communities.attachments import es_heic, tipo_de_foto
+
+    datos = await archivo.read(MAX_FOTO + 1)
+    if not datos:
+        raise ResenaError("La foto está vacía. Elige otra.")
+    if len(datos) > MAX_FOTO:
+        raise ResenaError(f"La foto pesa más de {MAX_FOTO // (1024 * 1024)} MB. Elige otra o haz una captura de pantalla de ella.", 413)
+    ext = tipo_de_foto(datos)
+    if ext not in ("jpg", "jpeg", "png", "webp"):
+        if es_heic(datos):
+            raise ResenaError(
+                "Esa foto está en formato HEIC del iPhone y no se puede ver. Haz una captura de pantalla de la foto y sube la captura.",
+                415,
+            )
+        raise ResenaError("Ese archivo no parece una foto (vale JPG, PNG o WEBP).", 415)
+    mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}[ext]
+    relativa = f"{CARPETA}/{org_id}/foto-{_uuid.uuid4().hex}.{ext}"
+    ruta = CONTENT_DIR / relativa
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        ruta.write_bytes(datos)
+    except OSError as exc:
+        raise ResenaError("No se pudo guardar la foto. Inténtalo otra vez.", 500) from exc
+    return relativa, mime
+
+
+def foto_de(r: Resena) -> Optional[tuple[Path, str, str]]:
+    """(ruta en disco, tipo, nombre para bajarla)."""
+    ruta = ruta_segura(r.foto or "")
+    if ruta is None or not ruta.is_file():
+        return None
+    pila = "".join(ch for ch in (r.nombre or "").split(" ")[0] if ch.isalnum()) or "alumno"
+    return ruta, r.foto_mime or "image/jpeg", f"Foto-{pila}{ruta.suffix}"
+
+
 def video_de(r: Resena) -> Optional[tuple[Path, str, str]]:
     """(ruta en disco, tipo, nombre para bajarlo)."""
     ruta = ruta_segura(r.video or "")
@@ -386,6 +575,7 @@ async def listar(org_id: int, db_session: AsyncSession) -> dict:
         "mensaje": MENSAJE_DE_FABRICA,
         "enlace": enlace_resena(),
         "usos": USOS,
+        "preguntas_escrita": PREGUNTAS_ESCRITA,
     }
 
 
@@ -539,7 +729,7 @@ async def grabar(
     r = await mia(user_id, db_session)
     # Una invitación que el equipo descartó antes de grabar es una invitación
     # retirada: como no tener ninguna.
-    if r is None or (r.estado == "descartada" and not r.video):
+    if r is None or (r.estado == "descartada" and not r.video and not r.escrita):
         raise ResenaError("Todavía no te hemos pedido una reseña. Si quieres dejarnos una, escríbenos por Mensajes.", 403)
     if r.estado == "aprobada":
         raise ResenaError("Tu reseña ya está aprobada. Si quieres cambiarla, escríbenos por Mensajes.", 409)
@@ -572,17 +762,78 @@ async def grabar(
     return {"resena": resena_dict(r), **guia()}
 
 
+async def escribir(
+    user_id: int,
+    respuestas: Any,
+    firma: str,
+    permiso: Any,
+    usos: Any,
+    foto: Any,
+    quitar_foto: Any,
+    db_session: AsyncSession,
+) -> dict:
+    """El alumno manda su reseña por escrito. Mismas reglas que el vídeo
+    (invitado, no aprobada, permiso y al menos un uso) y además las preguntas
+    obligatorias y la firma. La foto es opcional; la anterior se borra cuando
+    la nueva ya está guardada."""
+    r = await mia(user_id, db_session)
+    if r is None or (r.estado == "descartada" and not r.video and not r.escrita):
+        raise ResenaError("Todavía no te hemos pedido una reseña. Si quieres dejarnos una, escríbenos por Mensajes.", 403)
+    if r.estado == "aprobada":
+        raise ResenaError("Tu reseña ya está aprobada. Si quieres cambiarla, escríbenos por Mensajes.", 409)
+    resp = limpiar_respuestas(respuestas)
+    falta = faltan(resp)
+    if falta:
+        raise ResenaError("Contesta también: " + falta[0])
+    firma = (firma or "").strip()[:120]
+    if not firma:
+        raise ResenaError("Escribe cómo quieres que salga tu nombre (por ejemplo «María G., Rotterdam»).")
+    if not es_si(permiso):
+        raise ResenaError("Para guardarla hace falta que marques la casilla del permiso.")
+    elegidos = limpiar_usos(usos)
+    if not elegidos:
+        raise ResenaError("Marca al menos un sitio donde nos dejas usarla.")
+    nueva_foto, nuevo_mime = "", ""
+    if foto is not None and getattr(foto, "filename", None) is not None:
+        nueva_foto, nuevo_mime = await guardar_foto(r.org_id, foto)
+    vieja = r.foto
+    ahora = _ahora()
+    r.escrita = json.dumps(
+        {"respuestas": resp, "firma": firma, "permiso": PERMISO_ESCRITA, "permiso_at": ahora, "usos": elegidos, "at": ahora},
+        ensure_ascii=False,
+    )
+    if nueva_foto:
+        r.foto, r.foto_mime = nueva_foto, nuevo_mime
+    elif es_si(quitar_foto):
+        r.foto, r.foto_mime = "", ""
+    r.estado = "grabada"
+    if not r.grabada_at:
+        r.grabada_at = ahora
+    r.revisada_at, r.revisada_por = "", ""
+    try:
+        await _guardar(r, db_session)
+    except Exception:
+        if nueva_foto:
+            _borrar(nueva_foto)
+        raise
+    if vieja and vieja != r.foto:
+        _borrar(vieja)
+    return {"resena": resena_dict(r), **guia()}
+
+
 async def revisar(org_id: int, resena_id: int, estado: str, autor: str, db_session: AsyncSession) -> dict:
     """Aprobar, descartar o devolver a pendiente (`grabada` si tiene vídeo,
     `invitada` si no). Sin vídeo no se puede aprobar."""
     r = await _una(org_id, resena_id, db_session)
+    escrita = leer_escrita(r.escrita)
+    con_escrita = bool(escrita["respuestas"]) and bool(escrita["permiso_at"])
     if estado == "pendiente":
-        estado = "grabada" if r.video else "invitada"
+        estado = "grabada" if (r.video or con_escrita) else "invitada"
     if estado not in ESTADOS:
         raise ResenaError("Ese estado no existe")
-    if estado in ("aprobada", "grabada") and not r.video:
-        raise ResenaError("Todavía no ha grabado el vídeo")
-    if estado == "aprobada" and not r.permiso:
+    if estado in ("aprobada", "grabada") and not r.video and not con_escrita:
+        raise ResenaError("Todavía no ha mandado su reseña")
+    if estado == "aprobada" and not r.permiso and not con_escrita:
         raise ResenaError("No se puede aprobar sin su permiso")
     r.estado = estado
     if estado in ("aprobada", "descartada"):
@@ -605,12 +856,13 @@ async def cambiar(org_id: int, resena_id: int, datos: dict, db_session: AsyncSes
 
 
 async def borrar(org_id: int, resena_id: int, db_session: AsyncSession) -> None:
-    """Borra la reseña (o la invitación) y su vídeo del disco."""
+    """Borra la reseña (o la invitación), su vídeo y su foto del disco."""
     r = await _una(org_id, resena_id, db_session)
-    video = r.video
+    video, foto = r.video, r.foto
     await db_session.delete(r)
     await db_session.commit()
     _borrar(video)
+    _borrar(foto)
 
 
 # ── La campana ──────────────────────────────────────────────────────────────
@@ -637,8 +889,8 @@ async def avisos_para(user_id: int, org_id: int, db_session: AsyncSession) -> li
             {
                 "id": f"resena:{r.id}:{r.invitada_at}",
                 "kind": "resena",
-                "title": "Nos encantaría tu opinión en vídeo",
-                "excerpt": "Cuatro preguntas y un minuto y medio, desde la propia escuela." + regalo,
+                "title": "Nos encantaría tu opinión",
+                "excerpt": "Unas preguntas por escrito, unos cinco minutos, desde la propia escuela." + regalo,
                 "url": "/resena",
                 "date": r.invitada_at or r.created_at or "",
             }
