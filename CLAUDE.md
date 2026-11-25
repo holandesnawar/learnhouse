@@ -8691,6 +8691,20 @@ calendario: el equipo): título, desde, hasta (los dos incluidos), para quién
   recordatorios no saben de vacaciones. Si se quiere que no salgan sesiones
   esos días, no crearlas.
 
+## Todas las cajas de escribir crecen con el texto (25/11/2026)
+Usuario, corrigiendo una tarea en Seguimiento: «mismo fallo que arreglamos en
+mensajes… esto tiene que estar como en mensajes en toda la escuela». Solo
+crecían las cajas con `useCajaQueCrece` (chat, hilos, Mensajes, comentarios,
+tablón, Estudio). Ahora `components/Objects/CajasQueCrecen/CajasQueCrecen.tsx`,
+montado UNA vez en `app/layout.tsx`, escucha a todo el documento (`input`,
+`focusin` y cajas nuevas con texto) y ajusta cualquier `<textarea>`: nunca más
+pequeña de lo que nació (sus filas o su clase de alto), hasta el 60 % de la
+pantalla (560 px como mucho) y luego scroll; si se estira a mano con la
+esquina, ese alto queda como mínimo. Se salta las que ya crecen solas
+(`data-crece="propia"`, lo pone el hook) y las marcadas `data-no-crecer` (el
+texto de la pizarra). Cálculo puro `altoDeCaja` en `lib/nawar/cajaQueCrece.ts`,
+con test. Una caja nueva en la escuela no tiene que hacer nada para crecer.
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.

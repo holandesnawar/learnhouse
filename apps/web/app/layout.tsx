@@ -3,6 +3,7 @@ import { getLEARNHOUSE_TOP_DOMAIN_VAL, getLEARNHOUSE_TELEMETRY_DISABLED_VAL } fr
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import Providers from '@components/Providers'
+import CajasQueCrecen from '@components/Objects/CajasQueCrecen/CajasQueCrecen'
 import { Wix_Madefor_Text, Poppins, Inter, Noto_Color_Emoji } from 'next/font/google'
 
 const isDevEnv = getLEARNHOUSE_TOP_DOMAIN_VAL() === 'localhost'
@@ -123,6 +124,7 @@ export default function RootLayout({
                             />
         }
         <Providers>
+          <CajasQueCrecen />
           <main className="animate-fade-in">
             {children}
           </main>
