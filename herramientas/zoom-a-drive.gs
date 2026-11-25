@@ -42,6 +42,8 @@
  * «cloud_recording:delete:recording_file:admin»). Sin él no borra nada y el
  * estado lo dice.
  *
+ * Versión 25/11/2026 (b): los trozos ya no se pasan por la memoria del script
+ * (daba «Error de falta de memoria»).
  * Versión 25/11/2026: los vídeos de las llamadas de venta van antes que los de
  * las clases; las llamadas que salieron con el nombre de otra persona (la sala
  * fija de Zoom del closer) se corrigen solas una vez.
@@ -53,8 +55,8 @@ const ESTADO_NOMBRE = '_estado (léelo).txt';
 const REVISION = 2;                      // Sube si hay que volver a mirar quién era cada llamada.
 const ZONA = 'Europe/Amsterdam';
 const LIMITE_MS = 3.5 * 60 * 1000;       // Google corta a los 6 min y da 90 min al día: se sigue en la siguiente hora.
-const MAX_BYTES = 48 * 1024 * 1024;      // Hasta aquí, de una vez; más grande, a trozos.
-const TROZO = 32 * 1024 * 1024;          // Cada trozo (múltiplo de 256 KB, como pide Google).
+const MAX_BYTES = 24 * 1024 * 1024;      // Hasta aquí, de una vez; más grande, a trozos.
+const TROZO = 16 * 1024 * 1024;          // Cada trozo (múltiplo de 256 KB, como pide Google).
 const CATEGORIA = { si: 'Compraron', no: 'No compraron', '?': 'Sin identificar' };
 // Qué vídeo se guarda: el de galería primero.
 const PREFERENCIA_VIDEO = ['gallery_view', 'shared_screen_with_gallery_view', 'active_speaker', 'speaker_view',
@@ -433,10 +435,9 @@ function copiar_(tok, url, total, carpeta, nombre, mime, est, queda, guardar) {
     if (r.code !== 206 && !(r.code === 200 && desde === 0 && hasta === total - 1)) {
       throw new Error('Zoom no deja bajar el archivo a trozos (' + r.code + ')');
     }
-    const bytes = r.bytes;
-    if (bytes.length !== hasta - desde + 1) throw new Error('Zoom ha mandado un trozo incompleto.');
+    if (r.largo && r.largo !== hasta - desde + 1) throw new Error('Zoom ha mandado un trozo incompleto.');
     const s = UrlFetchApp.fetch(est.sesion, {
-      method: 'put', contentType: mime, payload: bytes, muteHttpExceptions: true,
+      method: 'put', contentType: mime, payload: r.blob, muteHttpExceptions: true,
       headers: { 'Content-Range': 'bytes ' + desde + '-' + hasta + '/' + total },
     });
     const code = s.getResponseCode();
@@ -478,7 +479,12 @@ function trozoZoom_(fuente, desde, hasta) {
   if (fuente.clave) h.Authorization = 'Bearer ' + fuente.clave;
   const r = UrlFetchApp.fetch(fuente.url, { headers: h, followRedirects: true, muteHttpExceptions: true });
   const code = r.getResponseCode();
-  return { code: code, bytes: (code === 206 || code === 200) ? r.getContent() : [] };
+  // El trozo se queda como «blob» (memoria de Google), nunca como lista de bytes:
+  // `getContent()` de 32 MB es una lista de 32 millones de números y Apps Script
+  // se queda sin memoria («Error de falta de memoria», 25/11/2026).
+  if (code !== 206 && code !== 200) return { code: code, blob: null, largo: 0 };
+  const largo = Number(cabecera_(r, 'Content-Length')) || 0;
+  return { code: code, blob: r.getBlob(), largo: largo };
 }
 
 function iniciarSubida_(carpeta, nombre, mime, total) {
