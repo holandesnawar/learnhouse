@@ -67,7 +67,7 @@ export function textoPlazo(quedan: number | null | undefined): string {
 }
 
 export const NOMBRE_ESTADO: Record<EstadoResena, string> = {
-  invitada: 'Invitada, sin grabar',
+  invitada: 'Invitada, sin contestar',
   grabada: 'Por revisar',
   aprobada: 'Aprobada',
   descartada: 'Descartada',

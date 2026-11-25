@@ -8828,3 +8828,27 @@ para decidir qué rutas sirve, así que lo que responde ahí responde en el `.co
 
 Cuando no se pueda comprobar algo por esto, **decirlo** en vez de dar por hecho
 que funciona.
+
+## Reseñas por escrito con foto, y el panel de colores de la pizarra (25/11/2026)
+- **Reseñas por escrito** (usuario: "una web con las preguntas buenas para los
+  de la primera cohorte que van mejor, antes que el vídeo… que den
+  consentimiento y meter fotos"). No es otra web: es la misma invitación de
+  Panel → Alumnos → Reseñas y la misma página `/resena`, ahora con dos formas,
+  **«Por escrito»** (de serie) y «En vídeo». Siete preguntas
+  (`PREGUNTAS_ESCRITA` en `services/resenas/resenas.py`: antes, dudas, por qué
+  Nawar, lo que ha cambiado con una situación concreta, lo que más gusta, a
+  quién se la recomendaría, una frase; obligatorias antes, lo que ha cambiado
+  y a quién), la firma («María G., Rotterdam», la elige el alumno), una foto
+  opcional (por su contenido: JPG/PNG/WEBP, HEIC rechazado con el motivo) y
+  SU permiso (`PERMISO_ESCRITA`, distinto del del vídeo: publicar lo escrito,
+  se puede acortar o corregir faltas sin cambiar lo que dice, con su nombre
+  y su foto). Columnas `resena.escrita` (JSON) y `foto`/`foto_mime`
+  (`_ADDED_COLUMNS`). Lo que va escribiendo se guarda en el navegador
+  (`nawar.resena.borrador`). En el panel: las respuestas, la foto, «Copiar el
+  texto» (`para_copiar`: la frase entre comillas, las respuestas y la firma)
+  y «Bajar foto»; se aprueba sin vídeo y el regalo se le debe igual.
+  Rutas `POST /resenas/mia/escrita`, `GET /resenas/mia/foto`,
+  `GET /resenas/org/{id}/{resena}/foto`. Test en `test_resenas.py`.
+- **Pizarra**: el panel de color y grosor nace plegado en un botón pequeño
+  con el color elegido (tapaba la presentación); se abre al tocarlo y tiene
+  «Esconder». Se recuerda en el navegador (`nawar.pizarra.propiedades`).

@@ -18,14 +18,16 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Check, Copy, Download, Gift, Loader2, Play, Search, Trash2, UserPlus, X } from 'lucide-react'
+import { Check, Copy, Download, Gift, Image as ImageIcon, Loader2, Play, Search, Trash2, UserPlus, X } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { confirmar } from '@/lib/nawar/confirmar'
 import { NOMBRE_ESTADO, haceDias, minutos, ordenarResenas, peso } from '@/lib/nawar/resenas'
 import {
+  bajarFoto,
   bajarVideo,
   borrarResena,
+  fotoResena,
   cambiarResena,
   getInvitables,
   getResenas,
@@ -33,6 +35,7 @@ import {
   revisarResena,
   videoResena,
   type AlumnoInvitable,
+  type PreguntaEscrita,
   type ResenaPanel,
   type ResenasPanelDatos,
 } from '@services/resenas/resenas'
@@ -52,8 +55,13 @@ function dia(iso: string): string {
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'Europe/Amsterdam' }).replace('.', '')
 }
 
+/** Ya mandó algo: un vídeo o la reseña por escrito. */
+function hecha(r: ResenaPanel): boolean {
+  return r.tiene_video || r.tiene_escrita
+}
+
 function regaloPorDar(r: ResenaPanel): boolean {
-  return r.tiene_video && !!r.regalo && !r.regalo_dado_at
+  return hecha(r) && !!r.regalo && !r.regalo_dado_at
 }
 
 async function copiar(texto: string, aviso: string) {
@@ -235,6 +243,7 @@ function Fila({
   orgId,
   token,
   nombreUso,
+  preguntas,
   onCambio,
   onBorrada,
 }: {
@@ -242,11 +251,13 @@ function Fila({
   orgId: number
   token: string
   nombreUso: (id: string) => string
+  preguntas: PreguntaEscrita[]
   onCambio: (r: ResenaPanel) => void
   onBorrada: (id: number) => void
 }) {
   const [video, setVideo] = useState('')
-  const [cargando, setCargando] = useState<'' | 'ver' | 'bajar' | 'estado' | 'regalo'>('')
+  const [foto, setFoto] = useState('')
+  const [cargando, setCargando] = useState<'' | 'ver' | 'bajar' | 'estado' | 'regalo' | 'foto'>('')
   const [nota, setNota] = useState(r.nota || '')
 
   useEffect(() => setNota(r.nota || ''), [r.nota])
@@ -260,6 +271,28 @@ function Fila({
   useEffect(() => () => {
     if (video) URL.revokeObjectURL(video)
   }, [video])
+  // La foto se pide sola (pesa poco) y se vuelve a pedir si la cambia.
+  const conFoto = r.tiene_foto
+  const cambioEscrita = r.escrita?.at || ''
+  useEffect(() => {
+    if (!conFoto) {
+      setFoto('')
+      return
+    }
+    let vivo = true
+    let url = ''
+    fotoResena(orgId, r.id, token)
+      .then((u) => {
+        url = u
+        if (vivo) setFoto(u)
+        else URL.revokeObjectURL(u)
+      })
+      .catch(() => {})
+    return () => {
+      vivo = false
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [conFoto, cambioEscrita, orgId, r.id, token])
 
   async function hacer<T>(que: typeof cargando, f: () => Promise<T>): Promise<T | undefined> {
     setCargando(que)
@@ -295,10 +328,10 @@ function Fila({
 
   async function borrar() {
     const ok = await confirmar(
-      r.tiene_video
-        ? `¿Borrar la reseña de ${r.nombre}? Se borra también su vídeo y no se puede recuperar.`
+      hecha(r)
+        ? `¿Borrar la reseña de ${r.nombre}? Se borra también lo que mandó (texto, foto y vídeo) y no se puede recuperar.`
         : `¿Quitar la invitación de ${r.nombre}?`,
-      { boton: r.tiene_video ? 'Sí, borrar' : 'Sí, quitar' }
+      { boton: hecha(r) ? 'Sí, borrar' : 'Sí, quitar' }
     )
     if (!ok) return
     try {
@@ -327,7 +360,8 @@ function Fila({
             className="!whitespace-normal"
             partes={[
               r.invitada_at ? `Invitada el ${dia(r.invitada_at)}${r.invitada_por ? ` por ${r.invitada_por.split(' ')[0]}` : ''}` : '',
-              r.grabada_at ? `grabada el ${dia(r.grabada_at)}` : plazo,
+              r.grabada_at ? `${r.tiene_video ? 'grabada' : 'enviada'} el ${dia(r.grabada_at)}` : plazo,
+              r.tiene_escrita ? (r.tiene_video ? 'por escrito y en vídeo' : 'por escrito') : '',
               r.tiene_video && r.video_seg ? minutos(r.video_seg) : '',
               r.tiene_video ? peso(r.video_bytes) : '',
               r.revisada_at ? `${r.estado} el ${dia(r.revisada_at)}${r.revisada_por ? ` por ${r.revisada_por.split(' ')[0]}` : ''}` : '',
@@ -337,8 +371,63 @@ function Fila({
         <Estado tono={TONO[r.estado] || 'gris'}>{NOMBRE_ESTADO[r.estado]}</Estado>
       </div>
 
+      {r.tiene_escrita && r.escrita ? (
+        <div className="mt-3 grid gap-4 sm:grid-cols-[160px_minmax(0,1fr)]">
+          <div>
+            {foto ? (
+              <img src={foto} alt={`Foto de ${r.nombre}`} className="w-full rounded-lg object-cover" style={{ aspectRatio: '4 / 5' }} />
+            ) : (
+              <div className="flex w-full items-center justify-center rounded-lg border border-dashed border-[#D5DDEC] text-[12.5px] text-[#8A93A3]" style={{ aspectRatio: '4 / 5' }}>
+                {r.tiene_foto ? <Loader2 size={18} className="animate-spin" /> : 'Sin foto'}
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 space-y-3">
+            {preguntas
+              .filter((p) => (r.escrita?.respuestas[p.id] || '').trim())
+              .map((p) => (
+                <div key={p.id}>
+                  <p className={ETIQUETA}>{p.corta}</p>
+                  <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-[#111827]">{r.escrita?.respuestas[p.id]}</p>
+                </div>
+              ))}
+            <div>
+              <p className={ETIQUETA}>Firma</p>
+              <p className="text-[14px] text-[#111827]">{r.escrita.firma}</p>
+            </div>
+            <div>
+              <p className={ETIQUETA}>Su permiso (lo escrito y la foto)</p>
+              <p className="text-[13.5px] text-[#111827]">
+                {r.escrita.usos.length ? r.escrita.usos.map(nombreUso).join(' · ') : 'Sin usos marcados'}
+                {r.escrita.permiso_at ? <span className="text-[#6B7280]"> · aceptado el {dia(r.escrita.permiso_at)}</span> : null}
+              </p>
+              {r.escrita.permiso_texto ? (
+                <details className="mt-1">
+                  <summary className="cursor-pointer text-[12.5px] text-[#025dc7] hover:underline">Ver el texto que aceptó</summary>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-[#4B5563]">{r.escrita.permiso_texto}</p>
+                </details>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => copiar(r.para_copiar, 'Reseña copiada')} className={BOTON}>
+                <Copy size={14} /> Copiar el texto
+              </button>
+              {r.tiene_foto ? (
+                <button
+                  onClick={() => hacer('foto', () => bajarFoto(orgId, r.id, `Foto-${(r.nombre.split(' ')[0] || 'alumno').replace(/[^\p{L}\p{N}]/gu, '')}.jpg`, token))}
+                  disabled={!!cargando}
+                  className={BOTON}
+                >
+                  {cargando === 'foto' ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />} Bajar foto
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {r.tiene_video ? (
-        <div className="mt-3 grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
+        <div className={`mt-3 grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)] ${r.tiene_escrita ? 'border-t border-[#EEF2F9] pt-3' : ''}`}>
           <div>
             {video ? (
               <video src={video} controls playsInline className="w-full rounded-lg bg-black" />
@@ -362,7 +451,7 @@ function Fila({
               </div>
             ) : null}
             <div>
-              <p className={ETIQUETA}>Su permiso</p>
+              <p className={ETIQUETA}>Su permiso (el vídeo)</p>
               <p className="text-[13.5px] text-[#111827]">
                 {r.usos.length ? r.usos.map(nombreUso).join(' · ') : 'Sin usos marcados'}
                 {r.permiso_at ? <span className="text-[#6B7280]"> · aceptado el {dia(r.permiso_at)}</span> : null}
@@ -374,27 +463,30 @@ function Fila({
                 </details>
               ) : null}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {r.estado !== 'aprobada' ? (
-                <button onClick={() => estado('aprobada')} disabled={!!cargando} className={BOTON_PRINCIPAL}>
-                  <Check size={14} strokeWidth={3} /> Aprobar
-                </button>
-              ) : null}
-              {r.estado !== 'descartada' ? (
-                <button onClick={() => estado('descartada')} disabled={!!cargando} className={BOTON}>
-                  Descartar
-                </button>
-              ) : null}
-              {r.estado !== 'grabada' ? (
-                <button onClick={() => estado('pendiente')} disabled={!!cargando} className={BOTON}>
-                  Volver a pendiente
-                </button>
-              ) : null}
-              <button onClick={bajar} disabled={!!cargando} className={BOTON}>
-                {cargando === 'bajar' ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Bajar vídeo
-              </button>
-            </div>
+            <button onClick={bajar} disabled={!!cargando} className={BOTON}>
+              {cargando === 'bajar' ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Bajar vídeo
+            </button>
           </div>
+        </div>
+      ) : null}
+
+      {hecha(r) ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {r.estado !== 'aprobada' ? (
+            <button onClick={() => estado('aprobada')} disabled={!!cargando} className={BOTON_PRINCIPAL}>
+              <Check size={14} strokeWidth={3} /> Aprobar
+            </button>
+          ) : null}
+          {r.estado !== 'descartada' ? (
+            <button onClick={() => estado('descartada')} disabled={!!cargando} className={BOTON}>
+              Descartar
+            </button>
+          ) : null}
+          {r.estado !== 'grabada' ? (
+            <button onClick={() => estado('pendiente')} disabled={!!cargando} className={BOTON}>
+              Volver a pendiente
+            </button>
+          ) : null}
         </div>
       ) : (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -428,7 +520,7 @@ function Fila({
               <button onClick={() => regalo(false)} disabled={!!cargando} title="Quitar la marca" className="inline-flex items-center gap-1.5 text-[12.5px] text-[#4B5563] hover:text-[#111827]">
                 <Check size={13} strokeWidth={3} className="text-[#16A34A]" /> {r.regalo} · dado el {dia(r.regalo_dado_at)}
               </button>
-            ) : r.tiene_video ? (
+            ) : hecha(r) ? (
               <button onClick={() => regalo(true)} disabled={!!cargando} className={BOTON} title={r.regalo}>
                 <Gift size={14} /> Regalo dado
               </button>
@@ -436,8 +528,8 @@ function Fila({
               <span className={META}>Regalo: {r.regalo}</span>
             )
           ) : null}
-          <button onClick={borrar} className={BOTON_PELIGRO} title={r.tiene_video ? 'Borrar la reseña y su vídeo' : 'Quitar la invitación'}>
-            <Trash2 size={14} /> {r.tiene_video ? 'Borrar' : 'Quitar'}
+          <button onClick={borrar} className={BOTON_PELIGRO} title={hecha(r) ? 'Borrar la reseña y lo que mandó' : 'Quitar la invitación'}>
+            <Trash2 size={14} /> {hecha(r) ? 'Borrar' : 'Quitar'}
           </button>
         </div>
       </div>
@@ -492,8 +584,8 @@ export default function ResenasPanel() {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        <Cifra n={c.por_revisar} nombre="Grabadas, por revisar" activa={ver === 'grabada'} onClick={() => alternar('grabada')} />
-        <Cifra n={c.invitadas} nombre="Invitadas, sin grabar" activa={ver === 'invitada'} onClick={() => alternar('invitada')} />
+        <Cifra n={c.por_revisar} nombre="Recibidas, por revisar" activa={ver === 'grabada'} onClick={() => alternar('grabada')} />
+        <Cifra n={c.invitadas} nombre="Invitadas, sin contestar" activa={ver === 'invitada'} onClick={() => alternar('invitada')} />
         <Cifra n={c.aprobadas} nombre="Aprobadas" activa={ver === 'aprobada'} onClick={() => alternar('aprobada')} />
         <Cifra n={c.regalos_por_dar} nombre="Regalos por dar" activa={ver === 'regalo'} onClick={() => alternar('regalo')} />
       </div>
@@ -523,7 +615,7 @@ export default function ResenasPanel() {
         <div className={`${TARJETA} px-5 py-8 text-center`}>
           <p className="text-[15px] font-semibold text-[#0a1656]">Todavía no has pedido ninguna reseña</p>
           <p className="mx-auto mt-1.5 max-w-md text-[13.5px] leading-relaxed text-[#6B7280]">
-            Elige a unos pocos alumnos que estén avanzando. Les sale un aviso en la escuela, graban un vídeo de un minuto y medio desde su móvil y
+            Elige a unos pocos alumnos que estén avanzando. Les sale un aviso en la escuela, contestan unas preguntas por escrito (con su foto, si quieren) o graban un vídeo corto, y
             te llega aquí para verlo.
           </p>
           <button onClick={() => setInvitando(true)} className={`${BOTON_PRINCIPAL} mt-4`}>
@@ -541,6 +633,7 @@ export default function ResenasPanel() {
               orgId={org.id}
               token={token}
               nombreUso={nombreUso}
+              preguntas={datos.preguntas_escrita || []}
               onCambio={(nueva) => {
                 setDatos((d) => (d ? { ...d, resenas: d.resenas.map((x) => (x.id === nueva.id ? nueva : x)) } : d))
                 cargar()
@@ -555,8 +648,8 @@ export default function ResenasPanel() {
       )}
 
       <p className={`${META} !whitespace-normal`}>
-        Los vídeos son privados: solo los ves tú y quien los grabó. Para publicarlos, bájalos y súbelos donde toque, siempre dentro de los usos que
-        marcó cada alumno.
+        Los textos, las fotos y los vídeos son privados: solo los ves tú y el alumno. Para publicarlos, cópialos o bájalos y súbelos donde toque,
+        siempre dentro de los usos que marcó cada alumno.
       </p>
 
       {invitando ? (

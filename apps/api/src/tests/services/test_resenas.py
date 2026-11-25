@@ -228,7 +228,7 @@ async def test_avisos_de_la_campana(db):
     await R.invitar(1, [10, 11], "", "Un mes de Spreekclub", "Rida", db)
     aviso = await R.avisos_para(10, 1, db)
     assert len(aviso) == 1 and aviso[0]["kind"] == "resena" and aviso[0]["url"] == "/resena"
-    assert aviso[0]["title"] == "Nos encantaría tu opinión en vídeo" and "Un mes de Spreekclub" in aviso[0]["excerpt"]
+    assert aviso[0]["title"] == "Nos encantaría tu opinión" and "Un mes de Spreekclub" in aviso[0]["excerpt"]
     assert set(aviso[0]) == {"id", "kind", "title", "excerpt", "url", "date"}
     # Nadie ha grabado: al administrador, nada.
     assert await R.avisos_para(1, 1, db) == []
@@ -244,3 +244,48 @@ async def test_avisos_de_la_campana(db):
     r = await R.mia(10, db)
     await R.revisar(1, r.id, "aprobada", "Rida", db)
     assert await R.avisos_para(1, 1, db) == []
+
+
+JPG = b"\xff\xd8\xff\xe0" + b"\x00" * 300
+HEIC = b"\x00\x00\x00\x18ftypheic" + b"\x00" * 200
+RESP = {"antes": "No entendía nada en el médico.", "ahora": "Pedí cita sola por teléfono.", "recomendar": "A quien acaba de llegar.", "frase": "Por fin me atrevo"}
+
+
+async def test_resena_por_escrito_con_foto(db, _carpeta):
+    await _escuela(db)
+    await R.invitar(1, [10], "", "Un mes de Spreekclub", "Rida", db)
+    # Faltan preguntas obligatorias.
+    with pytest.raises(R.ResenaError) as e:
+        await R.escribir(10, {"antes": "algo"}, "Marta G.", "true", "web", None, "", db)
+    assert "Contesta también" in e.value.mensaje
+    # Sin firma, sin permiso o sin uso: no se guarda.
+    for firma, permiso, usos in (("", "true", "web"), ("Marta G.", "", "web"), ("Marta G.", "true", "")):
+        with pytest.raises(R.ResenaError):
+            await R.escribir(10, RESP, firma, permiso, usos, None, "", db)
+    # Un HEIC del iPhone se rechaza con el motivo.
+    with pytest.raises(R.ResenaError) as e:
+        await R.escribir(10, RESP, "Marta G.", "true", "web", Archivo(HEIC, filename="x"), "", db)
+    assert "HEIC" in e.value.mensaje
+
+    d = await R.escribir(10, RESP, "Marta G., Rotterdam", "true", "web,redes", Archivo(JPG, filename="image"), "", db)
+    r = d["resena"]
+    assert r["estado"] == "grabada" and r["tiene_escrita"] and r["tiene_foto"] and not r["tiene_video"]
+    assert r["escrita"]["usos"] == ["web", "redes"] and r["escrita"]["permiso_texto"] == R.PERMISO_ESCRITA
+    fila = (await db.execute(select(Resena).where(Resena.user_id == 10))).scalars().first()
+    foto_vieja = R.ruta_segura(fila.foto)
+    assert foto_vieja and foto_vieja.is_file()
+
+    # El panel: se puede aprobar sin vídeo, el texto para copiar y el regalo pendiente.
+    lista = await R.listar(1, db)
+    fila_panel = lista["resenas"][0]
+    assert fila_panel["para_copiar"].startswith("«Por fin me atrevo»") and fila_panel["para_copiar"].endswith("— Marta G., Rotterdam")
+    assert lista["cifras"]["regalos_por_dar"] == 1 and lista["cifras"]["por_revisar"] == 1
+
+    # Cambiarla quitando la foto: la foto se borra del disco.
+    await R.escribir(10, RESP, "Marta G.", "true", "web", None, "true", db)
+    assert not foto_vieja.exists()
+
+    aprobada = await R.revisar(1, fila.id, "aprobada", "Rida", db)
+    assert aprobada["estado"] == "aprobada"
+    with pytest.raises(R.ResenaError):
+        await R.escribir(10, RESP, "Marta G.", "true", "web", None, "", db)

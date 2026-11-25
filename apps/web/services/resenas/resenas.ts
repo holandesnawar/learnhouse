@@ -35,6 +35,28 @@ export interface Resena {
   regalo: string
   regalo_dado_at: string
   plazo: { hasta: string; quedan: number | null }
+  /** La reseña por escrito (25/11/2026). */
+  tiene_escrita: boolean
+  escrita: Escrita | null
+  tiene_foto: boolean
+}
+
+export interface Escrita {
+  /** Por id de pregunta. */
+  respuestas: Record<string, string>
+  firma: string
+  permiso_texto: string
+  permiso_at: string
+  usos: string[]
+  at: string
+}
+
+export interface PreguntaEscrita {
+  id: string
+  corta: string
+  pregunta: string
+  ayuda: string
+  obligatoria: boolean
 }
 
 /** Lo que además ve el administrador. */
@@ -45,6 +67,8 @@ export interface ResenaPanel extends Resena {
   nota: string
   /** La invitación para WhatsApp, ya escrita. */
   whatsapp: string
+  /** La reseña escrita en limpio, para pegarla en la web. */
+  para_copiar: string
 }
 
 export interface Uso {
@@ -60,6 +84,9 @@ export interface MiResena {
   usos: Uso[]
   plazo_dias: number
   max_mb: number
+  preguntas_escrita: PreguntaEscrita[]
+  permiso_escrita: string
+  max_foto_mb: number
 }
 
 export interface CifrasResenas {
@@ -81,6 +108,7 @@ export interface ResenasPanelDatos {
   mensaje: string
   enlace: string
   usos: Uso[]
+  preguntas_escrita: PreguntaEscrita[]
 }
 
 export interface AlumnoInvitable {
@@ -176,6 +204,34 @@ export function mandarResena(
   return { promesa, cancelar: () => xhr.abort() }
 }
 
+/** Mi propia foto, como dirección local del navegador. */
+export async function miFoto(token: string): Promise<string> {
+  return URL.createObjectURL(await comoBlob(`${base()}/mia/foto`, token))
+}
+
+/** Manda la reseña por escrito (con la foto, si la hay). */
+export async function mandarEscrita(
+  datos: { respuestas: Record<string, string>; firma: string; usos: string[]; foto?: File | null; quitarFoto?: boolean },
+  token: string
+): Promise<MiResena> {
+  const f = new FormData()
+  f.append('respuestas', JSON.stringify(datos.respuestas))
+  f.append('firma', datos.firma)
+  f.append('permiso', 'true')
+  f.append('usos', datos.usos.join(','))
+  if (datos.quitarFoto) f.append('quitar_foto', 'true')
+  if (datos.foto) f.append('foto', datos.foto, datos.foto.name || 'foto')
+  const res = await fetch(`${base()}/mia/escrita`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include',
+    body: f,
+  })
+  const cuerpo = await res.json().catch(() => null)
+  if (!res.ok) throw new Error(motivo(cuerpo, res.status))
+  return cuerpo as MiResena
+}
+
 // ── El panel (administradores) ──────────────────────────────────────────────
 
 export const getResenas = (orgId: number, token: string) => pedir<ResenasPanelDatos>(`${base()}/org/${orgId}`, token)
@@ -203,6 +259,24 @@ export async function videoResena(orgId: number, id: number, token: string): Pro
 /** Baja el vídeo al ordenador con su nombre («Resena-Marta.mp4»). */
 export async function bajarVideo(orgId: number, id: number, nombre: string, token: string): Promise<void> {
   const blob = await comoBlob(`${base()}/org/${orgId}/${id}/video?bajar=1`, token)
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = nombre
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
+}
+
+/** La foto de una reseña, como dirección local del navegador. */
+export async function fotoResena(orgId: number, id: number, token: string): Promise<string> {
+  return URL.createObjectURL(await comoBlob(`${base()}/org/${orgId}/${id}/foto`, token))
+}
+
+/** Baja la foto al ordenador. */
+export async function bajarFoto(orgId: number, id: number, nombre: string, token: string): Promise<void> {
+  const blob = await comoBlob(`${base()}/org/${orgId}/${id}/foto?bajar=1`, token)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

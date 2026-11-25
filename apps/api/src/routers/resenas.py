@@ -56,6 +56,20 @@ def _video(r, bajar: bool = False) -> FileResponse:
     )
 
 
+def _foto(r, bajar: bool = False) -> FileResponse:
+    encontrada = R.foto_de(r)
+    if encontrada is None:
+        raise HTTPException(status_code=404, detail="No hay foto")
+    ruta, mime, nombre = encontrada
+    return FileResponse(
+        path=str(ruta),
+        media_type=mime,
+        filename=nombre,
+        content_disposition_type="attachment" if bajar else "inline",
+        headers={"Cache-Control": "private, no-store"},
+    )
+
+
 # ── El alumno ───────────────────────────────────────────────────────────────
 
 
@@ -95,6 +109,36 @@ async def api_mi_video(
     if r is None or not R.puede_ver_video(r, current_user.id, False):
         raise HTTPException(status_code=404, detail="No hay vídeo")
     return _video(r)
+
+
+@router.post("/mia/escrita", summary="Mandar mi reseña por escrito (con el permiso marcado y, si quiero, mi foto).")
+async def api_escribir(
+    respuestas: str = Form(default="{}"),
+    firma: str = Form(default=""),
+    permiso: str = Form(default=""),
+    usos: str = Form(default=""),
+    quitar_foto: str = Form(default=""),
+    foto: Optional[UploadFile] = File(default=None),
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _con_sesion(current_user)
+    try:
+        return await R.escribir(current_user.id, respuestas, firma, permiso, usos, foto, quitar_foto, db_session)
+    except R.ResenaError as exc:
+        raise _error(exc)
+
+
+@router.get("/mia/foto", summary="Ver mi propia foto.")
+async def api_mi_foto(
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    _con_sesion(current_user)
+    r = await R.mia(current_user.id, db_session)
+    if r is None:
+        raise HTTPException(status_code=404, detail="No hay foto")
+    return _foto(r)
 
 
 # ── Administradores ─────────────────────────────────────────────────────────
@@ -201,6 +245,23 @@ async def api_video(
     except R.ResenaError as exc:
         raise _error(exc)
     return _video(r, bajar=bool(bajar))
+
+
+@router.get("/org/{org_id}/{resena_id}/foto", summary="Ver o bajar la foto de una reseña.")
+async def api_foto(
+    request: Request,
+    org_id: int,
+    resena_id: int,
+    bajar: int = 0,
+    current_user: PublicUser = Depends(get_current_user),
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    await _admin(request, org_id, current_user, db_session)
+    try:
+        r = await R._una(org_id, resena_id, db_session)
+    except R.ResenaError as exc:
+        raise _error(exc)
+    return _foto(r, bajar=bool(bajar))
 
 
 @router.delete("/org/{org_id}/{resena_id}", summary="Borrar una reseña (o una invitación) y su vídeo.")

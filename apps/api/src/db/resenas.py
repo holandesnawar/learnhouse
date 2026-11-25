@@ -46,6 +46,15 @@ class Resena(SQLModel, table=True):
     permiso_at: str = Field(default="", max_length=40)
     usos: str = Field(default="[]", max_length=120)
 
+    # La reseña POR ESCRITO (25/11/2026), en JSON: {"respuestas": {id: texto},
+    # "firma": cómo quiere salir, "permiso": el texto que aceptó, "permiso_at",
+    # "usos": [...], "at": cuándo la mandó}. Tiene su propio permiso: no es el
+    # del vídeo.
+    escrita: str = Field(default="", sa_column=Column(Text, default=""))
+    # Su foto (opcional), en content/privado/resenas/<org>/.
+    foto: str = Field(default="", max_length=300)
+    foto_mime: str = Field(default="", max_length=40)
+
     # La invitación.
     invitada_por: str = Field(default="", max_length=120)
     invitada_at: str = Field(default="", max_length=40)
