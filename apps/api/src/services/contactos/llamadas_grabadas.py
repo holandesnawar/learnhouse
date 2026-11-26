@@ -89,12 +89,12 @@ def emparejar(item: dict, citas: Iterable[dict]) -> Optional[dict]:
                 return por_id[0]
             if inicio is None:
                 return None
-            cerca = sorted(
+            cerca = sorted((
                 (abs((ci - inicio).total_seconds()), c)
                 for c in por_id
                 for ci in [_fecha(c.get("inicio"))]
                 if ci is not None and abs((ci - inicio).total_seconds()) <= MARGEN_SALA_FIJA_MIN * 60
-            )
+            ), key=lambda x: x[0])
             activas = [x for x in cerca if x[1].get("estado") == "activa"]
             cerca = activas or cerca
             if not cerca:
@@ -224,7 +224,11 @@ async def clasificar(items: list[dict], db_session: AsyncSession) -> dict:
         if i.get("email"):
             emparejadas[i["clave"]] = {"email": str(i["email"]).strip().lower(), "nombre": str(i.get("nombre") or "")}
             continue
-        c = emparejar(i, citas)
+        try:
+            c = emparejar(i, citas)
+        except Exception as exc:  # noqa: BLE001 — una llamada rara no tira las demás
+            logger.warning("Llamadas grabadas: no se pudo emparejar una llamada. %s", exc)
+            c = None
         if c:
             emparejadas[i["clave"]] = {
                 "email": c["email"], "nombre": c.get("nombre") or "", "cita_id": c.get("id") or "",
