@@ -25,14 +25,24 @@
  *   de un minuto nacen fuera (casi siempre, alguien que entró antes).
  * - Arriba, los tres pasos; junto a la línea, «Empieza aquí» y «Termina aquí».
  *
- * Teclas: espacio (reproducir), ← → (5 s; con Mayús, 1 s), I y O (inicio y fin
- * del trozo a quitar), + y − (zoom).
+ * 26/11/2026, usuario: "mejor UX para editar: darle pausa, quitar lo de parte 1
+ * de 2, poner la clase en pantalla completa… un mejor editor". Ahora es una
+ * pantalla de editor sin bajar: el vídeo ocupa lo que haya arriba, los mandos
+ * y la línea van fijos debajo y lo demás (pasos, grabaciones del día, lo que se
+ * quita, teclas) en una columna a la derecha. Sobre el vídeo: un botón grande de
+ * reproducir cuando está en pausa y «Pantalla completa» (doble clic o F), con su
+ * propia barra para moverse sin salir. Velocidad 1× a 2× para repasar rápido, y
+ * al pasar el ratón por la línea se ve el minuto. Fuera «Parte 1 de 2»: las
+ * grabaciones del día se nombran por su hora.
+ *
+ * Teclas: espacio o K (reproducir), ← → (5 s; con Mayús, 1 s), J y L (10 s),
+ * I y O (inicio y fin del trozo a quitar), + y − (zoom), F (pantalla completa).
  */
 
 import { useFuenteSala } from './useFuenteSala'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import EnElCuerpo from '@components/Objects/EnElCuerpo'
-import { ChevronsLeft, ChevronsRight, Loader2, Minus, Pause, Play, Plus, RotateCcw, Scissors, SkipBack, SkipForward, Undo2, X } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, Loader2, Maximize2, Minimize2, Minus, Pause, Play, Plus, RotateCcw, Scissors, SkipBack, SkipForward, Undo2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmar } from '@/lib/nawar/confirmar'
 import {
@@ -72,6 +82,8 @@ const VENTANAS: { texto: string; seg: number | null }[] = [
   { texto: '10 s', seg: 10 },
 ]
 const REINTENTOS = 3
+/** Las velocidades del botón (se pasa de una a la siguiente). */
+const VELOCIDADES = [1, 1.25, 1.5, 2]
 /** Las partes más cortas que esto nacen fuera si no hay nada publicado. */
 const PARTE_MINIMA = 60
 
@@ -154,6 +166,11 @@ function EditorRecorteDentro({
     () => semanas.find((x) => x.id === dia.publicada?.semana_id)?.grabacion_sala?.titulo || ''
   )
   const [guardando, setGuardando] = useState(false)
+  const [vel, setVel] = useState(1)
+  const [pantalla, setPantalla] = useState(false)
+  // El minuto que hay bajo el ratón en la línea (para verlo antes de tocar).
+  const [sobre, setSobre] = useState<number | null>(null)
+  const marco = useRef<HTMLDivElement | null>(null)
 
   const parte = listas[iParte]
   // El vídeo sale de Bunny (mp4 o HLS, se salta al momento) o de Daily (18/11/2026).
@@ -369,6 +386,7 @@ function EditorRecorteDentro({
       }
       pendiente.current = null
     }
+    v.playbackRate = vel
     setCargando(false)
     setTarda(false)
     setError('')
@@ -419,6 +437,39 @@ function EditorRecorteDentro({
     setIntento((n) => n + 1)
   }
 
+  // ── Velocidad y pantalla completa ────────────────────────────────────────
+  useEffect(() => {
+    if (video.current) video.current.playbackRate = vel
+  }, [vel])
+
+  useEffect(() => {
+    const cambio = () => {
+      const d = document as any
+      setPantalla(!!marco.current && (d.fullscreenElement || d.webkitFullscreenElement) === marco.current)
+    }
+    document.addEventListener('fullscreenchange', cambio)
+    document.addEventListener('webkitfullscreenchange', cambio)
+    return () => {
+      document.removeEventListener('fullscreenchange', cambio)
+      document.removeEventListener('webkitfullscreenchange', cambio)
+    }
+  }, [])
+
+  const pantallaCompleta = useCallback(() => {
+    const d = document as any
+    if (d.fullscreenElement || d.webkitFullscreenElement) {
+      void (d.exitFullscreen?.() || d.webkitExitFullscreen?.())?.catch?.(() => undefined)
+      return
+    }
+    const el = marco.current as any
+    if (el?.requestFullscreen) void el.requestFullscreen().catch(() => undefined)
+    else if (el?.webkitRequestFullscreen) el.webkitRequestFullscreen()
+    // El iPhone solo deja poner el VÍDEO a pantalla completa (con su reproductor).
+    else (video.current as any)?.webkitEnterFullscreen?.()
+  }, [])
+
+  const otraVelocidad = () => setVel((v) => VELOCIDADES[(VELOCIDADES.indexOf(v) + 1) % VELOCIDADES.length])
+
   // ── Cortar ───────────────────────────────────────────────────────────────
   function ponerCortes(nuevos: Trozo[]) {
     setCortes(nuevos)
@@ -461,9 +512,13 @@ function EditorRecorteDentro({
       if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const k = e.key
-      if (k === ' ') {
+      if (k === ' ' || k === 'k' || k === 'K') {
         e.preventDefault()
         alternar()
+      } else if (k === 'j' || k === 'J' || k === 'l' || k === 'L') {
+        irA(t + (k === 'j' || k === 'J' ? -10 : 10))
+      } else if (k === 'f' || k === 'F') {
+        pantallaCompleta()
       } else if (k === 'ArrowLeft' || k === 'ArrowRight') {
         e.preventDefault()
         irA(t + (k === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 1 : 5))
@@ -476,7 +531,7 @@ function EditorRecorteDentro({
     return () => window.removeEventListener('keydown', tecla)
     // `ponerZoom` cambia en cada pintado; con lo que usa basta.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alternar, irA, marcarInicio, marcarFin, t, zoom, zoomMax, ancho, total])
+  }, [alternar, irA, marcarInicio, marcarFin, pantallaCompleta, t, zoom, zoomMax, ancho, total])
 
   // ── La línea de tiempo: tocar y arrastrar ────────────────────────────────
   function segundoEn(clientX: number): number {
@@ -495,7 +550,10 @@ function EditorRecorteDentro({
     setT(segundoEn(e.clientX))
   }
   function alMover(e: React.PointerEvent<HTMLDivElement>) {
-    if (!arrastrando.current) return
+    if (!arrastrando.current) {
+      if (e.pointerType === 'mouse') setSobre(segundoEn(e.clientX))
+      return
+    }
     // Con zoom, al arrastrar hasta el borde la línea se desplaza sola.
     const el = carril.current
     if (el) {
@@ -514,6 +572,12 @@ function EditorRecorteDentro({
       /* ya suelto */
     }
     irA(segundoEn(e.clientX))
+  }
+
+  // La barra de la pantalla completa: la misma línea entera, sin zoom.
+  function enBarra(e: React.PointerEvent<HTMLDivElement>) {
+    const caja = e.currentTarget.getBoundingClientRect()
+    return total && caja.width ? Math.max(0, Math.min(total, ((e.clientX - caja.left) / caja.width) * total)) : 0
   }
 
   // Solo las marcas de lo que se ve (y un poco a cada lado): con mucho zoom,
@@ -538,7 +602,7 @@ function EditorRecorteDentro({
       const x = ini[i] * px
       const cabe = p.dur * px >= 110 && x - ultima >= 120
       if (cabe) ultima = x
-      return { x, cabe, texto: `Parte ${i + 1} · ${p.hora}` }
+      return { x, cabe, texto: p.hora || `${i + 1}` }
     })
   }, [listas, ini, px])
 
@@ -596,7 +660,7 @@ function EditorRecorteDentro({
     const enteras = partesEnteras(tramos, [a, b])
     const sola = enteras.length === 1 && Math.abs(a - ini[enteras[0]]) < 0.6 && Math.abs(b - (ini[enteras[0]] + listas[enteras[0]].dur)) < 0.6
     const titulo = sola
-      ? `Parte ${enteras[0] + 1} entera`
+      ? `La grabación de las ${listas[enteras[0]]?.hora || enteras[0] + 1} entera`
       : a <= 0.01
         ? 'El principio'
         : b >= total - 0.01
@@ -604,10 +668,277 @@ function EditorRecorteDentro({
           : 'Un trozo'
     const horas = [horaDe(a), horaDe(Math.max(a, b - 0.01))].filter(Boolean)
     const enteraTxt =
-      !sola && enteras.length ? ` · incluye ${enteras.length === 1 ? `la parte ${enteras[0] + 1} entera` : `las partes ${enteras.map((i) => i + 1).join(' y ')} enteras`}` : ''
+      !sola && enteras.length ? ` · incluye ${enteras.length === 1 ? `la grabación de las ${listas[enteras[0]]?.hora} entera` : `las de las ${enteras.map((i) => listas[i]?.hora).join(' y ')} enteras`}` : ''
     const detalle = `${reloj(a, conHoras)} → ${reloj(b, conHoras)}${horas.length === 2 ? ` (${horas[0]} → ${horas[1]})` : ''} · ${duracionCorta(b - a)}${enteraTxt}`
     return { titulo, detalle }
   }
+
+  const parado = !sonando && !cargando && !error && !tarda
+
+  // ── El vídeo, con lo que va encima ─────────────────────────────────────────
+  const zonaVideo = (
+    <div ref={marco} className="group relative h-full w-full bg-[#0B1033]">
+      <video
+        ref={video}
+        key={`${parte.id}-${intento}`}
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 h-full w-full cursor-pointer object-contain"
+        onClick={alternar}
+        onDoubleClick={pantallaCompleta}
+        onLoadedMetadata={alCargar}
+        onTimeUpdate={alAvanzar}
+        onEnded={alAcabar}
+        onPlay={() => setSonando(true)}
+        onPause={() => setSonando(false)}
+        onWaiting={() => setCargando(true)}
+        onPlaying={() => setCargando(false)}
+        onSeeked={() => setCargando(false)}
+        onError={alFallar}
+      />
+      {error ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <p className="text-[14px] text-white/90">{error}</p>
+          <button
+            onClick={() => {
+              setError('')
+              setCargando(true)
+              setIntento(0)
+            }}
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-white text-[13.5px] font-semibold text-[#0B1033]"
+          >
+            <RotateCcw size={15} /> Volver a intentarlo
+          </button>
+        </div>
+      ) : tarda ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <Loader2 size={26} className="animate-spin text-white/70" />
+          <p className="max-w-md text-[14px] text-white/90">
+            {porQue
+              ? porQue.veredicto
+              : (video.current?.readyState || 0) >= 1
+                ? 'El vídeo se ha quedado parado en este punto. Puedes recortar igualmente con la línea de abajo: los tiempos valen aunque no se vea.'
+                : 'El vídeo está tardando mucho en cargar. Puedes recortar igualmente con la línea de abajo: los tiempos valen aunque no se vea.'}
+          </p>
+          {porQue && porQue.tamano ? (
+            <p className="text-[12px] text-white/60">
+              {[porQue.archivo && `.${porQue.archivo}`, porQue.tipo, porQue.acepta_rangos ? 'deja pedir trozos' : 'no deja pedir trozos', porQue.cajas?.length ? `empieza por ${porQue.cajas.slice(0, 3).join(' · ')}` : '']
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {!porQue ? (
+              <button
+                onClick={verPorQue}
+                disabled={mirando}
+                className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-white text-[13.5px] font-semibold text-[#0B1033] disabled:opacity-70"
+              >
+                {mirando ? <Loader2 size={15} className="animate-spin" /> : null} Ver por qué
+              </button>
+            ) : null}
+            <button
+              onClick={() => {
+                setTarda(false)
+                setCargando(true)
+                setIntento((n) => n + 1)
+              }}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-white/40 text-[13.5px] font-semibold text-white"
+            >
+              <RotateCcw size={15} /> Volver a intentarlo
+            </button>
+            <a
+              href={urlVideoSala(courseUuid, parte.id, 1)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center h-9 px-4 rounded-lg border border-white/40 text-[13.5px] font-semibold text-white"
+            >
+              Abrirlo en otra pestaña
+            </a>
+          </div>
+        </div>
+      ) : cargando ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <Loader2 size={32} className="animate-spin text-white/80" />
+        </div>
+      ) : null}
+
+      {/* En pausa: el botón grande en el centro */}
+      {parado ? (
+        <button
+          onClick={alternar}
+          aria-label="Reproducir"
+          className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-transform hover:scale-105"
+        >
+          <Play size={28} fill="currentColor" className="ml-1" />
+        </button>
+      ) : null}
+
+      {enCorte >= 0 && !error ? (
+        <span className="pointer-events-none absolute left-3 top-3 rounded-md bg-black/70 px-2 py-1 text-[12px] font-semibold text-white">
+          Esto está cortado: los alumnos no lo ven
+        </span>
+      ) : null}
+
+      {/* Pantalla completa: arriba a la derecha (y doble clic o F); dentro, sale en su barra */}
+      {pantalla ? null : <button
+        onClick={pantallaCompleta}
+        aria-label="Pantalla completa"
+        title="Pantalla completa (F o doble clic)"
+        className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-lg bg-black/50 text-white transition-opacity hover:bg-black/70 ${parado ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+      >
+        <Maximize2 size={17} />
+      </button>}
+
+      {/* En pantalla completa, su propia barra: moverse sin salir */}
+      {pantalla ? (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent px-5 pb-4 pt-10 opacity-100 transition-opacity">
+          <div
+            className="relative h-6 cursor-pointer"
+            style={{ touchAction: 'none' }}
+            onPointerDown={(e) => {
+              arrastrando.current = true
+              e.currentTarget.setPointerCapture(e.pointerId)
+              setT(enBarra(e))
+            }}
+            onPointerMove={(e) => {
+              if (arrastrando.current) setT(enBarra(e))
+            }}
+            onPointerUp={(e) => {
+              if (!arrastrando.current) return
+              arrastrando.current = false
+              irA(enBarra(e))
+            }}
+          >
+            <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-white/25">
+              {cortes.map(([a, b]) => (
+                <div key={`pc${a}-${b}`} className="absolute inset-y-0 bg-black/50" style={{ left: `${(a / total) * 100}%`, width: `${((b - a) / total) * 100}%` }} />
+              ))}
+              <div className="absolute inset-y-0 left-0 rounded-full bg-white" style={{ width: `${total ? (t / total) * 100 : 0}%` }} />
+            </div>
+            <div className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" style={{ left: `${total ? (t / total) * 100 : 0}%` }} />
+          </div>
+          <div className="mt-2 flex items-center gap-3 text-white">
+            <button onClick={() => irA(t - 10)} aria-label="10 segundos atrás" className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/15">
+              <SkipBack size={17} />
+            </button>
+            <button onClick={alternar} aria-label={sonando ? 'Pausar' : 'Reproducir'} className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#0B1033]">
+              {sonando ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
+            </button>
+            <button onClick={() => irA(t + 10)} aria-label="10 segundos adelante" className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/15">
+              <SkipForward size={17} />
+            </button>
+            <span className="text-[14px] font-semibold tabular-nums">
+              {reloj(t, conHoras)} <span className="font-normal text-white/60">/ {reloj(total, conHoras)}</span>
+            </span>
+            {enCorte >= 0 ? <span className="text-[12.5px] text-white/70">· cortado</span> : null}
+            <button onClick={otraVelocidad} className="ml-auto h-8 rounded-lg px-2.5 text-[13px] font-semibold tabular-nums hover:bg-white/15" title="Velocidad">
+              {String(vel).replace('.', ',')}×
+            </button>
+            <button onClick={pantallaCompleta} aria-label="Salir de pantalla completa" className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/15">
+              <Minimize2 size={17} />
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+
+  // ── La columna de al lado: los pasos, lo grabado y lo que se quita ─────────
+  const lateral = (
+    <div className="space-y-6 p-4 lg:p-5">
+      <div>
+        <p className="text-[13.5px] font-semibold text-[#0B1033]">Cómo se recorta</p>
+        <ol className="mt-2 space-y-2 text-[13px] leading-snug text-[#4B5565]">
+          {[
+            <>Busca dónde empieza la clase y pulsa <b className="font-semibold text-[#0B1033]">Empieza aquí</b>.</>,
+            <>Busca dónde acaba y pulsa <b className="font-semibold text-[#0B1033]">Termina aquí</b>.</>,
+            <>Si sobra algo en medio, márcalo con <b className="font-semibold text-[#0B1033]">Inicio</b> y <b className="font-semibold text-[#0B1033]">Fin</b> y quítalo.</>,
+            <>Elige la semana y pulsa <b className="font-semibold text-[#0B1033]">Publicar</b>, arriba.</>,
+          ].map((paso, i) => (
+            <li key={i} className="flex gap-2.5">
+              <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#EEF2FB] text-[11px] font-semibold text-[#0b2da0]">{i + 1}</span>
+              <span>{paso}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {varias ? (
+        <div>
+          <p className="text-[13.5px] font-semibold text-[#0B1033]">Lo que grabó la sala ese día</p>
+          <p className="mt-0.5 text-[12px] text-[#6B7393]">Van seguidas en la línea. Quita la marca de la que no quieras.</p>
+          <ul className="mt-2 divide-y divide-[#EEF1F6] rounded-xl border border-[#E6EAF2] bg-white">
+            {listas.map((p, i) => {
+              const dentro = seVeLaParte(cortes, tramos, i)
+              return (
+                <li key={p.id} className={`flex items-center gap-3 px-3 py-2 ${i === iParte ? 'bg-[#F5F8FF]' : ''}`}>
+                  <button onClick={() => irA(ini[i])} className="min-w-0 flex-1 text-left" title="Ir aquí">
+                    <span className={`block text-[13px] font-semibold ${dentro ? 'text-[#0B1033]' : 'text-[#9CA3AF] line-through'}`}>Desde las {p.hora}</span>
+                    <span className="block text-[11.5px] text-[#6B7393]">{duracionCorta(p.dur)}</span>
+                  </button>
+                  <label className="flex cursor-pointer items-center gap-1.5 text-[12px] text-[#5A6480]">
+                    <input type="checkbox" checked={dentro} onChange={(e) => incluirParte(i, e.target.checked)} className="h-4 w-4 accent-[#0b2da0]" />
+                    Incluir
+                  </label>
+                </li>
+              )
+            })}
+          </ul>
+          {cortasFuera ? (
+            <p className="mt-1.5 text-[12px] text-[#6B7393]">
+              {cortasFuera === 1 ? 'La de menos de 1 minuto se ha dejado fuera' : `Las ${cortasFuera} de menos de 1 minuto se han dejado fuera`} (suele ser alguien que entró antes de la
+              clase).
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div>
+        <p className="text-[13.5px] font-semibold text-[#0B1033]">Lo que se quita</p>
+        {cortes.length ? (
+          <ul className="mt-2 divide-y divide-[#EEF1F6] rounded-xl border border-[#E6EAF2] bg-white">
+            {cortes.map((c, i) => {
+              const n = nombreDelCorte(c)
+              return (
+                <li key={`${c[0]}-${c[1]}`} className="flex items-start gap-2 px-3 py-2">
+                  <button onClick={() => irA(c[0])} className="min-w-0 flex-1 text-left text-[13px] text-[#0B1033] hover:text-[#0b2da0]">
+                    <span className="block font-semibold">{n.titulo}</span>
+                    <span className="block text-[12px] tabular-nums text-[#6B7393]">{n.detalle}</span>
+                  </button>
+                  <button onClick={() => ponerCortes(sinCorte(cortes, i))} className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-[12.5px] font-semibold text-[#0b2da0] hover:underline">
+                    <Undo2 size={13} /> Deshacer
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        ) : (
+          <p className="mt-1 text-[12.5px] text-[#6B7393]">Nada todavía: los alumnos verían la grabación entera.</p>
+        )}
+      </div>
+
+      <div className="hidden lg:block">
+        <p className="text-[13.5px] font-semibold text-[#0B1033]">Teclas</p>
+        <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12.5px] text-[#4B5565]">
+          {[
+            ['Espacio o K', 'Reproducir o pausar'],
+            ['← →', '5 segundos (con Mayús, 1)'],
+            ['J  L', '10 segundos'],
+            ['I  O', 'Inicio y fin del trozo a quitar'],
+            ['+  −', 'Acercar o alejar la línea'],
+            ['F', 'Pantalla completa'],
+          ].map(([k, v]) => (
+            <React.Fragment key={k}>
+              <dt className="font-semibold text-[#0B1033]">{k}</dt>
+              <dd>{v}</dd>
+            </React.Fragment>
+          ))}
+        </dl>
+        <p className="mt-2 text-[12px] text-[#8A91AD]">Ctrl + rueda (o pellizcar el trackpad) acerca la línea donde está el ratón; con zoom, la rueda la mueve.</p>
+      </div>
+    </div>
+  )
 
   return (
     <div className="fixed inset-0 z-[95] flex flex-col bg-[#F3F5F9]">
@@ -624,7 +955,6 @@ function EditorRecorteDentro({
             </p>
             <p className="mt-0.5 truncate text-[12px] leading-tight text-[#6B7393] first-letter:uppercase">
               {diaCorto(dia.dia)} · la sala grabó {duracionCorta(total)}
-              {varias ? ` en ${listas.length} partes, aquí seguidas` : ''}
             </p>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
@@ -671,152 +1001,15 @@ function EditorRecorteDentro({
         ) : null}
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-6">
-        <div className="mx-auto w-full max-w-5xl px-3 sm:px-6 py-4 space-y-4">
-          {/* Cómo se hace, en una línea */}
-          <p className="text-[13px] leading-relaxed text-[#6B7393]">
-            <b className="font-semibold text-[#0B1033]">Cómo se hace:</b> busca dónde empieza la clase y pulsa <b className="font-semibold text-[#3B4262]">Empieza aquí</b>; busca
-            dónde acaba y pulsa <b className="font-semibold text-[#3B4262]">Termina aquí</b>. Si sobra algo en medio, márcalo con <b className="font-semibold text-[#3B4262]">Inicio</b> y{' '}
-            <b className="font-semibold text-[#3B4262]">Fin</b> y quítalo. Luego, <b className="font-semibold text-[#3B4262]">Publicar</b>, arriba.
-          </p>
+      <div className="flex min-h-0 flex-1">
+        {/* Columna principal: el vídeo arriba (lo que quepa) y los mandos fijos debajo */}
+        <div className="flex min-w-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden">
+          <div className="h-[42vh] shrink-0 lg:h-auto lg:min-h-[200px] lg:flex-1">{zonaVideo}</div>
 
-          {/* Partes */}
-          {varias ? (
-            <div>
-              <div className="flex flex-wrap gap-2">
-                {listas.map((p, i) => {
-                  const dentro = seVeLaParte(cortes, tramos, i)
-                  return (
-                    <div
-                      key={p.id}
-                      className={`flex items-center gap-2.5 rounded-lg border bg-white px-3 py-2 transition-colors ${i === iParte ? 'border-[#0b2da0] ring-[3px] ring-[#0b2da0]/10' : 'border-[#E2E7F0]'}`}
-                    >
-                      <button onClick={() => irA(ini[i])} className="text-left" title="Ir a esta parte">
-                        <span className={`block text-[13px] font-semibold ${dentro ? 'text-[#0B1033]' : 'text-[#9CA3AF] line-through'}`}>
-                          Parte {i + 1} · {p.hora}
-                        </span>
-                        <span className="block text-[11.5px] text-[#6B7393]">{duracionCorta(p.dur)}</span>
-                      </button>
-                      <label className="flex items-center gap-1.5 text-[12px] text-[#5A6480] cursor-pointer">
-                        <input type="checkbox" checked={dentro} onChange={(e) => incluirParte(i, e.target.checked)} className="h-4 w-4 accent-[#0b2da0]" />
-                        Incluir
-                      </label>
-                    </div>
-                  )
-                })}
-              </div>
-              {cortasFuera ? (
-                <p className="mt-1.5 text-[12px] text-[#6B7393]">
-                  {cortasFuera === 1 ? 'Una parte de menos de 1 minuto se ha dejado fuera' : `${cortasFuera} partes de menos de 1 minuto se han dejado fuera`}{' '}
-                  (suele ser alguien que entró antes de la clase). Márcala si la quieres.
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* Vídeo */}
-          <div className="overflow-hidden rounded-2xl bg-[#0B1033]">
-            <div className="relative mx-auto w-full max-w-3xl" style={{ aspectRatio: '16 / 9' }}>
-              <video
-                ref={video}
-                key={`${parte.id}-${intento}`}
-                playsInline
-                preload="metadata"
-                className="absolute inset-0 h-full w-full"
-                onClick={alternar}
-                onLoadedMetadata={alCargar}
-                onTimeUpdate={alAvanzar}
-                onEnded={alAcabar}
-                onPlay={() => setSonando(true)}
-                onPause={() => setSonando(false)}
-                onWaiting={() => setCargando(true)}
-                onPlaying={() => setCargando(false)}
-                onSeeked={() => setCargando(false)}
-                onError={alFallar}
-              />
-              {error ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
-                  <p className="text-[14px] text-white/90">{error}</p>
-                  <button
-                    onClick={() => {
-                      setError('')
-                      setCargando(true)
-                      setIntento(0)
-                    }}
-                    className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-white text-[13.5px] font-semibold text-[#0B1033]"
-                  >
-                    <RotateCcw size={15} /> Volver a intentarlo
-                  </button>
-                </div>
-              ) : tarda ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
-                  <Loader2 size={26} className="animate-spin text-white/70" />
-                  <p className="max-w-md text-[14px] text-white/90">
-                    {porQue
-                      ? porQue.veredicto
-                      : (video.current?.readyState || 0) >= 1
-                        ? 'El vídeo se ha quedado parado en este punto. Puedes recortar igualmente con la línea de abajo: los tiempos valen aunque no se vea.'
-                        : 'El vídeo está tardando mucho en cargar. Puedes recortar igualmente con la línea de abajo: los tiempos valen aunque no se vea.'}
-                  </p>
-                  {porQue && porQue.tamano ? (
-                    <p className="text-[12px] text-white/60">
-                      {[porQue.archivo && `.${porQue.archivo}`, porQue.tipo, porQue.acepta_rangos ? 'deja pedir trozos' : 'no deja pedir trozos', porQue.cajas?.length ? `empieza por ${porQue.cajas.slice(0, 3).join(' · ')}` : '']
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    {!porQue ? (
-                      <button
-                        onClick={verPorQue}
-                        disabled={mirando}
-                        className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-white text-[13.5px] font-semibold text-[#0B1033] disabled:opacity-70"
-                      >
-                        {mirando ? <Loader2 size={15} className="animate-spin" /> : null} Ver por qué
-                      </button>
-                    ) : null}
-                    <button
-                      onClick={() => {
-                        setTarda(false)
-                        setCargando(true)
-                        setIntento((n) => n + 1)
-                      }}
-                      className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-white/40 text-[13.5px] font-semibold text-white"
-                    >
-                      <RotateCcw size={15} /> Volver a intentarlo
-                    </button>
-                    <a
-                      href={urlVideoSala(courseUuid, parte.id, 1)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center h-9 px-4 rounded-lg border border-white/40 text-[13.5px] font-semibold text-white"
-                    >
-                      Abrirlo en otra pestaña
-                    </a>
-                  </div>
-                </div>
-              ) : cargando ? (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <Loader2 size={32} className="animate-spin text-white/80" />
-                </div>
-              ) : null}
-              {varias ? (
-                <span className="pointer-events-none absolute right-3 top-3 rounded-md bg-black/60 px-2 py-1 text-[12px] font-semibold text-white">
-                  Parte {iParte + 1} de {listas.length}
-                </span>
-              ) : null}
-              {enCorte >= 0 && !error ? (
-                <span className="pointer-events-none absolute left-3 top-3 rounded-md bg-black/70 px-2 py-1 text-[12px] font-semibold text-white">
-                  Esto está cortado: los alumnos no lo ven
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Mandos */}
-          <div className="rounded-2xl border border-[#E6EAF2] bg-white p-3 sm:p-5">
+          <div className="shrink-0 border-t border-[#E6EAF2] bg-white px-3 pb-3 pt-2.5 sm:px-5">
+            {/* Reproducir, tiempo, velocidad */}
             <div className="flex flex-wrap items-center gap-2">
-              <button onClick={() => irA(t - 5)} className={BOTON} aria-label="5 segundos atrás" title="5 segundos atrás (←)">
+              <button onClick={() => irA(t - 5)} className={`${BOTON} w-9 px-0`} aria-label="5 segundos atrás" title="5 segundos atrás (←)">
                 <SkipBack size={15} />
               </button>
               <button
@@ -825,39 +1018,44 @@ function EditorRecorteDentro({
                 aria-label={sonando ? 'Pausar' : 'Reproducir'}
                 title="Reproducir o pausar (espacio)"
               >
-                {sonando ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}
+                {sonando ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" className="ml-0.5" />}
               </button>
-              <button onClick={() => irA(t + 5)} className={BOTON} aria-label="5 segundos adelante" title="5 segundos adelante (→)">
+              <button onClick={() => irA(t + 5)} className={`${BOTON} w-9 px-0`} aria-label="5 segundos adelante" title="5 segundos adelante (→)">
                 <SkipForward size={15} />
               </button>
               <span className="mx-1.5 text-[14px] font-semibold tabular-nums text-[#0B1033]">
                 {reloj(t, conHoras)} <span className="font-normal text-[#8A91AD]">/ {reloj(total, conHoras)}</span>
               </span>
               {hora ? (
-                <span className="text-[12.5px] text-[#6B7393]" title="La hora del reloj de ese momento de la clase">
+                <span className="hidden text-[12.5px] text-[#6B7393] sm:inline" title="La hora del reloj de ese momento de la clase">
                   · en la sala eran las <b className="font-semibold text-[#3F4A61]">{hora}</b>
                 </span>
               ) : null}
-              <button
-                type="button"
-                role="switch"
-                aria-checked={previa}
-                onClick={() => setPrevia(!previa)}
-                className="ml-auto flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-[#3B4262] transition-colors hover:bg-[#F2F4F8]"
-                title="Reproduce saltando lo que has quitado, como lo verán los alumnos"
-              >
-                <span className={`relative h-5 w-9 rounded-full transition-colors ${previa ? 'bg-[#0b2da0]' : 'bg-[#D5DCE8]'}`}>
-                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${previa ? 'left-[18px]' : 'left-0.5'}`} />
-                </span>
-                Ver cómo queda
-              </button>
+              <div className="ml-auto flex items-center gap-1">
+                <button onClick={otraVelocidad} className={`${BOTON} min-w-[52px] tabular-nums`} title="Velocidad: para repasar más rápido">
+                  {String(vel).replace('.', ',')}×
+                </button>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={previa}
+                  onClick={() => setPrevia(!previa)}
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-medium text-[#3B4262] transition-colors hover:bg-[#F2F4F8]"
+                  title="Reproduce saltando lo que has quitado, como lo verán los alumnos"
+                >
+                  <span className={`relative h-5 w-9 rounded-full transition-colors ${previa ? 'bg-[#0b2da0]' : 'bg-[#D5DCE8]'}`}>
+                    <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${previa ? 'left-[18px]' : 'left-0.5'}`} />
+                  </span>
+                  Ver cómo queda
+                </button>
+                <button onClick={pantallaCompleta} className={`${BOTON} w-9 px-0`} aria-label="Pantalla completa" title="Pantalla completa (F)">
+                  <Maximize2 size={15} />
+                </button>
+              </div>
             </div>
 
-            {/* Encima de la línea: cuánto se ve y el zoom, como en un editor de vídeo */}
-            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-              <p className="text-[12.5px] text-[#6B7393]">
-                Se ve <b className="font-semibold text-[#0B1033] tabular-nums">{duracionCorta(visto)}</b> de {duracionCorta(total)}
-              </p>
+            {/* Zoom de la línea */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
               <div className="inline-flex rounded-lg border border-[#E2E7F0] bg-white p-0.5" role="group" aria-label="Cuánto se ve en la línea">
                 {VENTANAS.filter((v) => v.seg === null || v.seg < total * 0.8).map((v) => {
                   const activo = v.seg === null ? zoom <= 1.01 : Math.abs(visto - v.seg) / v.seg < 0.15
@@ -865,9 +1063,7 @@ function EditorRecorteDentro({
                     <button
                       key={v.texto}
                       onClick={() => verVentana(v.seg)}
-                      className={`h-7 rounded-md px-2.5 text-[12.5px] font-semibold transition-colors ${
-                        activo ? 'bg-[#0b2da0] text-white' : 'text-[#3B4262] hover:bg-[#F2F5FB]'
-                      }`}
+                      className={`h-7 rounded-md px-2.5 text-[12.5px] font-semibold transition-colors ${activo ? 'bg-[#0b2da0] text-white' : 'text-[#3B4262] hover:bg-[#F2F5FB]'}`}
                       title={v.seg === null ? 'Ver el día entero' : `Acercar hasta ver ${v.texto} alrededor de la línea roja`}
                     >
                       {v.texto}
@@ -875,6 +1071,9 @@ function EditorRecorteDentro({
                   )
                 })}
               </div>
+              <p className="hidden text-[12.5px] text-[#6B7393] sm:block">
+                Se ve <b className="font-semibold tabular-nums text-[#0B1033]">{duracionCorta(visto)}</b> de {duracionCorta(total)}
+              </p>
               <div className="ml-auto flex items-center gap-1.5">
                 <button onClick={() => ponerZoom(zoom / 1.6)} disabled={zoom <= 1} className={`${BOTON} h-8 w-8 px-0`} aria-label="Alejar" title="Alejar (−)">
                   <Minus size={16} strokeWidth={2.25} />
@@ -887,7 +1086,7 @@ function EditorRecorteDentro({
                   onChange={(e) => ponerZoom(Math.pow(zoomMax, Number(e.target.value) / 100))}
                   disabled={zoomMax <= 1}
                   aria-label="Zoom de la línea de tiempo"
-                  className="h-1.5 w-24 sm:w-36 cursor-pointer accent-[#0b2da0]"
+                  className="h-1.5 w-24 cursor-pointer accent-[#0b2da0] sm:w-36"
                 />
                 <button onClick={() => ponerZoom(zoom * 1.6)} disabled={zoom >= zoomMax} className={`${BOTON} h-8 w-8 px-0`} aria-label="Acercar" title="Acercar (+)">
                   <Plus size={16} strokeWidth={2.25} />
@@ -895,11 +1094,10 @@ function EditorRecorteDentro({
               </div>
             </div>
 
-            {/* El día entero en pequeño: el recuadro es lo que se ve abajo.
-                Se arrastra para ir a otra hora sin perder el zoom. */}
+            {/* El día entero en pequeño: el recuadro es lo que se ve abajo. */}
             {zoom > 1.01 ? (
               <div
-                className="relative mt-2 h-7 cursor-grab select-none overflow-hidden rounded-lg border border-[#E2E7F0] bg-[#EEF2FA] active:cursor-grabbing"
+                className="relative mt-2 h-6 cursor-grab select-none overflow-hidden rounded-lg border border-[#E2E7F0] bg-[#EEF2FA] active:cursor-grabbing"
                 style={{ touchAction: 'none' }}
                 onPointerDown={(e) => {
                   e.currentTarget.setPointerCapture(e.pointerId)
@@ -914,11 +1112,7 @@ function EditorRecorteDentro({
                 {cortes.map(([a, b]) => (
                   <div key={`m${a}-${b}`} className="absolute inset-y-1 bg-[#EEF1F7]" style={{ left: `${(a / total) * 100}%`, width: `${((b - a) / total) * 100}%`, ...RAYAS }} />
                 ))}
-                {varias
-                  ? listas.map((p, i) =>
-                      i ? <div key={`mp${p.id}`} className="absolute inset-y-0 w-px bg-[#0B1033]/60" style={{ left: `${(ini[i] / total) * 100}%` }} /> : null
-                    )
-                  : null}
+                {varias ? listas.map((p, i) => (i ? <div key={`mp${p.id}`} className="absolute inset-y-0 w-px bg-[#0B1033]/60" style={{ left: `${(ini[i] / total) * 100}%` }} /> : null)) : null}
                 <div className="absolute inset-y-0 w-0.5 bg-[#E5484D]" style={{ left: `${(t / total) * 100}%` }} />
                 <div
                   className="absolute inset-y-0 rounded-md border-2 border-[#0B1033] bg-white/25 shadow-[0_0_0_9999px_rgba(244,247,253,0.55)]"
@@ -936,12 +1130,13 @@ function EditorRecorteDentro({
             >
               <div
                 ref={pista}
-                className="relative h-[112px] cursor-pointer select-none"
+                className="relative h-[96px] cursor-pointer select-none"
                 style={{ width: anchoPista, touchAction: 'none' }}
                 onPointerDown={alPulsar}
                 onPointerMove={alMover}
                 onPointerUp={alSoltar}
                 onPointerCancel={alSoltar}
+                onPointerLeave={() => setSobre(null)}
               >
                 {/* Regla */}
                 <div className="absolute inset-x-0 top-0 h-6 border-b border-[#E2E8F4]">
@@ -952,14 +1147,12 @@ function EditorRecorteDentro({
                   ))}
                 </div>
                 {/* Lo que se ve */}
-                <div className="absolute inset-x-0 top-[50px] h-11 rounded-md" style={{ background: 'linear-gradient(180deg, #2449C2 0%, #0b2da0 100%)' }} />
-                {/* Dónde empieza cada parte */}
+                <div className="absolute inset-x-0 top-[40px] h-11 rounded-md" style={{ background: 'linear-gradient(180deg, #2449C2 0%, #0b2da0 100%)' }} />
+                {/* Dónde empieza cada grabación del día, con su hora */}
                 {varias
                   ? etiquetas.map((e, i) => (
                       <div key={listas[i].id} className="pointer-events-none absolute top-6 bottom-0 border-l-2 border-[#0B1033]/70" style={{ left: e.x }}>
-                        {e.cabe ? (
-                          <span className="absolute left-1 top-1 whitespace-nowrap rounded bg-white/90 px-1 text-[10.5px] font-semibold text-[#0B1033]">{e.texto}</span>
-                        ) : null}
+                        {e.cabe ? <span className="absolute left-1 top-0.5 whitespace-nowrap rounded bg-white/90 px-1 text-[10.5px] font-semibold text-[#0B1033]">{e.texto}</span> : null}
                       </div>
                     ))
                   : null}
@@ -967,7 +1160,7 @@ function EditorRecorteDentro({
                 {cortes.map(([a, b], i) => (
                   <div
                     key={`${a}-${b}`}
-                    className="absolute top-[50px] h-11 bg-[#EEF1F7]"
+                    className="absolute top-[40px] h-11 bg-[#EEF1F7]"
                     style={{ left: a * px, width: Math.max(2, (b - a) * px), ...RAYAS }}
                     title={`Cortado: ${reloj(a, conHoras)} → ${reloj(b, conHoras)}`}
                   >
@@ -986,20 +1179,26 @@ function EditorRecorteDentro({
                 ))}
                 {/* El trozo que se está marcando */}
                 {marcaA !== null ? (
-                  <div className="absolute top-[46px] h-[60px] border-l-2 border-[#C2362F]" style={{ left: marcaA * px }}>
+                  <div className="absolute top-[36px] h-[56px] border-l-2 border-[#C2362F]" style={{ left: marcaA * px }}>
                     <span className="absolute -top-3 left-1 text-[10px] font-bold text-[#C2362F]">INICIO</span>
                   </div>
                 ) : null}
                 {marcaB !== null ? (
-                  <div className="absolute top-[46px] h-[60px] border-l-2 border-[#C2362F]" style={{ left: marcaB * px }}>
+                  <div className="absolute top-[36px] h-[56px] border-l-2 border-[#C2362F]" style={{ left: marcaB * px }}>
                     <span className="absolute -top-3 right-1 text-[10px] font-bold text-[#C2362F]">FIN</span>
                   </div>
                 ) : null}
                 {marcado ? (
-                  <div
-                    className="absolute top-[50px] h-11 bg-[#C2362F]/35"
-                    style={{ left: Math.min(marcaA!, marcaB!) * px, width: Math.abs(marcaB! - marcaA!) * px }}
-                  />
+                  <div className="absolute top-[40px] h-11 bg-[#C2362F]/35" style={{ left: Math.min(marcaA!, marcaB!) * px, width: Math.abs(marcaB! - marcaA!) * px }} />
+                ) : null}
+                {/* Bajo el ratón: el minuto, antes de tocar */}
+                {sobre !== null ? (
+                  <div className="pointer-events-none absolute top-6 bottom-0 w-px bg-[#0B1033]/35" style={{ left: sobre * px }}>
+                    <span className="absolute bottom-1 left-1 whitespace-nowrap rounded bg-[#0B1033] px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums text-white">
+                      {reloj(sobre, conHoras)}
+                      {horaDe(sobre) ? ` · ${horaDe(sobre)}` : ''}
+                    </span>
+                  </div>
                 ) : null}
                 {/* Cabezal */}
                 <div className="pointer-events-none absolute top-0 h-full w-0.5 bg-[#E5484D]" style={{ left: Math.max(0, t * px - 1) }}>
@@ -1008,84 +1207,49 @@ function EditorRecorteDentro({
               </div>
             </div>
 
-            {/* Principio y final: lo primero que se hace */}
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <button onClick={empiezaAqui} className={BOTON_FUERTE} title="Se quita todo lo de antes de este punto">
+            {/* Cortar: el principio y el final, y un trozo de en medio */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              <button onClick={empiezaAqui} className={BOTON_FUERTE} title="Se quita todo lo de antes de la línea roja">
                 <ChevronsRight size={16} /> Empieza aquí
               </button>
-              <button onClick={terminaAqui} className={BOTON_FUERTE} title="Se quita todo lo de después de este punto">
+              <button onClick={terminaAqui} className={BOTON_FUERTE} title="Se quita todo lo de después de la línea roja">
                 Termina aquí <ChevronsLeft size={16} />
               </button>
-              <span className="text-[12px] text-[#6B7393]">
-                Donde está la línea roja{hora ? ` (${hora})` : ''}. Lo que se quita queda rayado.
-              </span>
-            </div>
-
-            <p className="mt-2 hidden text-[11.5px] text-[#8A91AD] sm:block">
-              Para afinar al segundo: acerca con <b className="font-semibold">Ctrl + rueda</b> o pellizcando el trackpad (acerca donde está el ratón), o con «1 min» y «10 s». Con zoom, la rueda mueve la línea.
-            </p>
-
-            {/* Quitar un trozo de en medio */}
-            <div className="mt-5 rounded-xl border border-[#E6EAF2] bg-[#FAFBFD] p-4">
-              <p className="text-[13.5px] font-semibold text-[#0B1033]">Quitar un trozo de en medio</p>
-              <p className="mt-0.5 text-[12.5px] text-[#6B7393]">Marca dónde empieza y dónde acaba lo que sobra (una pausa, un fallo). Puede pasar de una parte a otra.</p>
-              <div className="mt-2.5 flex flex-wrap gap-2">
-                <button onClick={marcarInicio} className={BOTON} title="Tecla I">
-                  Inicio{marcaA !== null ? ` · ${reloj(marcaA, conHoras)}` : ''}
-                </button>
-                <button onClick={marcarFin} className={BOTON} title="Tecla O">
-                  Fin{marcaB !== null ? ` · ${reloj(marcaB, conHoras)}` : ''}
-                </button>
+              <span className="mx-1 hidden h-6 w-px bg-[#E6EAF2] sm:block" />
+              <span className="text-[12.5px] font-medium text-[#4B5565]">Quitar un trozo:</span>
+              <button onClick={marcarInicio} className={BOTON} title="Tecla I">
+                Inicio{marcaA !== null ? ` · ${reloj(marcaA, conHoras)}` : ''}
+              </button>
+              <button onClick={marcarFin} className={BOTON} title="Tecla O">
+                Fin{marcaB !== null ? ` · ${reloj(marcaB, conHoras)}` : ''}
+              </button>
+              <button
+                onClick={quitarTrozo}
+                disabled={!marcado}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#C2362F] px-3 text-[13px] font-semibold text-white hover:bg-[#A92D27] disabled:opacity-40"
+              >
+                <Scissors size={14} /> Quitar
+              </button>
+              {marcaA !== null || marcaB !== null ? (
                 <button
-                  onClick={quitarTrozo}
-                  disabled={!marcado}
-                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#C2362F] text-[13px] font-semibold text-white hover:bg-[#A92D27] disabled:opacity-40"
+                  onClick={() => {
+                    setMarcaA(null)
+                    setMarcaB(null)
+                  }}
+                  className="h-9 px-2 text-[12.5px] font-semibold text-[#6B7393] hover:text-[#0B1033]"
                 >
-                  <Scissors size={14} /> Quitar este trozo
+                  Cancelar
                 </button>
-                {marcaA !== null || marcaB !== null ? (
-                  <button
-                    onClick={() => {
-                      setMarcaA(null)
-                      setMarcaB(null)
-                    }}
-                    className="h-9 px-2 text-[12.5px] font-semibold text-[#6B7393] hover:text-[#0B1033]"
-                  >
-                    Cancelar
-                  </button>
-                ) : null}
-              </div>
+              ) : null}
             </div>
-
-            {/* Los cortes */}
-            {cortes.length ? (
-              <div className="mt-3">
-                <p className="text-[13.5px] font-semibold text-[#0B1033]">Lo que se quita</p>
-                <ul className="mt-2 divide-y divide-[#EEF1F6] rounded-xl border border-[#E6EAF2]">
-                  {cortes.map((c, i) => {
-                    const n = nombreDelCorte(c)
-                    return (
-                      <li key={`${c[0]}-${c[1]}`} className="flex items-center gap-3 px-3 py-2">
-                        <button onClick={() => irA(c[0])} className="min-w-0 flex-1 text-left text-[13px] text-[#0B1033] hover:text-[#0b2da0]">
-                          <span className="font-semibold">{n.titulo}</span>
-                          <span className="tabular-nums text-[#6B7393]"> · {n.detalle}</span>
-                        </button>
-                        <button onClick={() => ponerCortes(sinCorte(cortes, i))} className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-[#0b2da0] hover:underline">
-                          <Undo2 size={13} /> Deshacer
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            ) : null}
-            <p className="mt-3 hidden sm:block text-[11.5px] text-[#8A91AD]">
-              Teclas: espacio reproduce · ← → mueven 5 s (con Mayús, 1 s) · I y O marcan el inicio y el fin del trozo · + y − cambian el zoom.
-            </p>
           </div>
-        </div>
-      </div>
 
+          {/* En el móvil, la columna de al lado va debajo */}
+          <div className="border-t border-[#E6EAF2] bg-[#F7F9FC] lg:hidden">{lateral}</div>
+        </div>
+
+        <aside className="hidden w-[320px] shrink-0 overflow-y-auto border-l border-[#E6EAF2] bg-[#F7F9FC] lg:block">{lateral}</aside>
+      </div>
     </div>
   )
 }

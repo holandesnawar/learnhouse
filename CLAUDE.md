@@ -8759,6 +8759,23 @@ cambiarla por la final, que es un archivo nuevo… y a los alumnos ni les carga�
   producción); si vuelve, el aviso dice si no llega nada o se corta.
 - Tests: `test_la_version_final_subida_a_mano` y `verPresentacion.test.ts`.
 
+## El editor de recortes, como un editor de vídeo (26/11/2026)
+Usuario: «mejor UX para editar: darle pausa, quitar lo de parte 1 de 2, poner
+la clase en pantalla completa… un mejor editor». `EditorRecorte.tsx`, sin
+cambios en lo que se publica ni en el servidor:
+- Una pantalla sin bajar: el vídeo ocupa lo que haya arriba, los mandos y la
+  línea van fijos debajo y lo demás (pasos, «Lo que grabó la sala ese día»,
+  «Lo que se quita», teclas) en una columna a la derecha (en el móvil, debajo).
+- Sobre el vídeo: botón grande de reproducir en pausa (clic en el vídeo
+  pausa) y **pantalla completa** (botón, doble clic o F) con su propia barra
+  para moverse, ±10 s, velocidad y salir. En el iPhone, el reproductor del
+  propio teléfono (`webkitEnterFullscreen`).
+- Velocidad 1×, 1,25×, 1,5× y 2× (se vuelve a poner al cambiar de vídeo).
+- Al pasar el ratón por la línea, el minuto y la hora de la sala.
+- Fuera «Parte 1 de 2»: las grabaciones del día se nombran por su hora
+  («Desde las 18:56»; en «Lo que se quita», «La grabación de las 20:15 entera»).
+- Teclas nuevas: K (reproducir), J y L (10 s), F (pantalla completa).
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.
