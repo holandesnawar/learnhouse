@@ -8931,3 +8931,29 @@ la de Daily, que se congela.
   verdad (no se alcanzan desde aquí): el registro de la tarea en GitHub
   (Actions → «Grabaciones a Bunny») dice cuántas pidió, cuántas reintentó,
   cuántas están listas y cuántas preparando.
+
+## El asistente de ventas: una sesión de Claude que lee Matrículas (26/11/2026)
+Usuario: «otro chat solo de ventas, con el contexto del Drive con las llamadas
+y las transcripciones… que tenga acceso a la escuela… no quiero dar contexto
+todo el tiempo». Es una sesión de Claude Code aparte (con este repo, así que
+lee este CLAUDE.md) y el conector de Google Drive de claude.ai, que lee la
+carpeta «Llamadas de Zoom». Para la escuela, una puerta de SOLO LECTURA:
+- `GET /api/v1/asistente-ventas/estado` (personas por columna),
+  `/leads?columna=&closer=&q=&alumnos=` (las tarjetas de Matrículas, sin
+  pruebas ni quitadas; sin alumnos salvo `alumnos=1`), `/buscar?q=` (todos los
+  contactos por nombre, correo o teléfono, para cruzar una carpeta de Drive con
+  su ficha) y `/ficha?email=` (la ficha entera, como la ve un administrador).
+- Cabecera `X-Ventas-Token` contra `LEARNHOUSE_VENTAS_TOKEN` (Railway). Sin la
+  variable, 503; mal, 401. Se revoca cambiándola. Quien tenga el secreto lee
+  nombres, teléfonos, notas y pagos de todos los leads.
+- Todo GET: no mueve, no escribe notas, no borra. Leer el tablero pone al día
+  la lista de Llamadas por dentro, igual que abrir Matrículas.
+- `routers/asistente_ventas.py`; el tablero con sus notas, señal y volver a
+  llamar sale ahora de `services/panel/tablero_datos.py::datos_tablero`, que usa
+  también la pantalla (`api_tablero`). Test `test_asistente_ventas.py`.
+- Desde una sesión en la nube la escuela se pide por
+  `https://academia.holandesnawar.nl` (el `.com` lo bloquea el proxy). El
+  secreto va en una variable de entorno de la sesión, NUNCA en el chat ni en el
+  repositorio.
+- ⚠️ En Drive solo están las llamadas de Zoom (Diego): las de Google Meet
+  (Belén) no se guardan.

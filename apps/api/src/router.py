@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo, estudio, reto, pizarra, resenas, grabaciones, estado, lecturas, produccion, fallos
+from src.routers import dev, trail, users, auth, orgs, roles, search, superadmin, exercise_attempts, student_progress, payments, notifications, community_engagement, messages, stats, consultas, automations, backup, contactos, recursos, webs, panel, vision, salas, tareas, ebook, correos, equipo, estudio, reto, pizarra, resenas, grabaciones, estado, lecturas, produccion, fallos, asistente_ventas
 from src.routers import notifications as notifications_router_module
 from src.routers import stream
 from src.routers import api_tokens
@@ -431,6 +431,14 @@ v1_router.include_router(
     grabaciones.router,
     prefix="/grabaciones",
     tags=["grabaciones"],
+)
+
+# Asistente de ventas (26/11/2026): solo lectura de Matrículas y las fichas,
+# con el secreto `LEARNHOUSE_VENTAS_TOKEN`. Ver `src/routers/asistente_ventas.py`.
+v1_router.include_router(
+    asistente_ventas.router,
+    prefix="/asistente-ventas",
+    tags=["asistente-ventas"],
 )
 
 # Estado de la escuela (10/11/2026): qué falla, qué va lento y las pantallas
