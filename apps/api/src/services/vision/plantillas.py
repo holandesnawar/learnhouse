@@ -676,6 +676,10 @@ def plan_black_friday(desde: str = "", hasta: str = "") -> dict:
             "A quien se apuntó a la lista (a mitad de campaña): la mejor oferta no se publica, se cuenta en la llamada. "
             "El botón lleva a /oferta.",
         ),
+        correo(
+            "nl_carrito", "nl-carrito", "Newsletter · Lo que nunca metemos en el carrito", EXT, F[3], "a toda la lista",
+            "A toda la lista (26 nov), en la semana de Black Friday. El botón lleva a /oferta.",
+        ),
         {"clave": "paga", "tipo": "decision", "titulo": "¿Paga el ebook de 1 €?", "x": CEN, "y": F[3]},
         cifra("compraron", "Compraron el ebook", LADO, F[3]),
         cifra("sin_comprar", "Sin comprar el ebook", NO, F[3]),
