@@ -406,3 +406,19 @@ def test_la_version_sin_notas_se_guarda_al_lado_y_se_quita_con_ella(tmp_path, mo
         PZ.publicar(1, p5, con, 4, "Rida", "t6", "", "", b"nada", 1)
     assert sorted(x.name for x in tmp_path.rglob("*.pdf")) == antes
     assert PZ.pdf_publicado(p5) is not None
+
+
+def test_la_version_final_subida_a_mano(tmp_path, monkeypatch):
+    """26/11/2026: «quiero cambiarla por la final, que es un archivo nuevo».
+    Se guarda tal cual, sin versión limpia, y al alumno le llega que es la final."""
+    monkeypatch.chdir(tmp_path)
+    _disco(tmp_path, monkeypatch)
+    pdf = b"%PDF-1.4\n" + b"f" * 60 + b"\n%%EOF\n"
+    p = PZ.leer({"pizarra": PZ.publicar(1, PZ.leer({}), pdf, 5, "Rida", "t1", PZ.FINAL, "Mijn huis final.pdf")})
+    assert PZ.pdf_publicado(p).read_bytes() == pdf
+    assert PZ.pdf_publicado(p, limpia=True) is None
+    n = T._notas_clase(json.dumps({"pizarra": p}))
+    assert n["final"] is True and n["limpia"] is False
+    # Volver a guardar desde la pizarra vuelve a mandar la pizarra.
+    p2 = PZ.leer({"pizarra": PZ.publicar(1, p, pdf, 5, "Rida", "t2", "profe:buena", "Mijn huis.pdf")})
+    assert T._notas_clase(json.dumps({"pizarra": p2}))["final"] is False

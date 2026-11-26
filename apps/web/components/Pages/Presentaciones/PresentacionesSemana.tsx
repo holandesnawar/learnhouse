@@ -17,7 +17,8 @@ import React, { useMemo } from 'react'
 import Link from 'next/link'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import ListaPresentaciones from './ListaPresentaciones'
-import { queVenLosAlumnos, sinGuardarParaAlumnos } from '@/lib/nawar/presentaciones'
+import LoQueVenLosAlumnos from './LoQueVenLosAlumnos'
+import { sinGuardarParaAlumnos } from '@/lib/nawar/presentaciones'
 import type { ListaPresentaciones as Lista } from '@services/pizarra/pizarra'
 import type { Semana } from '@services/tareas/tareas'
 
@@ -48,15 +49,16 @@ export default function PresentacionesSemana({
 
   return (
     <div className="px-4 py-3.5">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="text-[14.5px] font-semibold text-gray-900">Presentaciones</p>
+      <LoQueVenLosAlumnos semanaId={semana.id} fecha={semana.fecha} hoy={hoy} lista={inicial} token={token} ruta={ruta} onCambio={onCambio} palabra={palabra} />
+
+      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="text-[14.5px] font-semibold text-gray-900">{palabra('Para dar la clase')}</p>
         <Link href={ruta(`/equipo?vista=presentaciones&ficha=${semana.id}`)} prefetch={false} className="text-[13px] font-semibold text-[#0b2da0] hover:underline">
           Todas las opciones
         </Link>
       </div>
       <p className="mt-0.5 text-[12.5px] leading-snug text-[#6B7280]">
-        {palabra('Lo mismo que se ve en la pizarra y en la ficha de la clase.')}
-        {inicial ? <> Los alumnos ven ahora: {queVenLosAlumnos(inicial, semana.fecha, hoy)}.</> : null}
+        {palabra('Los PDF de esta semana y cuál se abre en la pizarra. Lo que escribas en la pizarra lo ven los alumnos solo al pulsar «Guardar para los alumnos».')}
       </p>
 
       {pendiente ? (

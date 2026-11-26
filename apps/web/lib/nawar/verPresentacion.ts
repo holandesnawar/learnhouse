@@ -38,6 +38,9 @@ export function opcionesDe(semana: Semana, equipo: boolean): OpcionPresentacion[
   const pres = (semana.clases || []).filter((c) => c.tipo === 'presentacion')
   const notas = semana.notas_clase
   if (!equipo) {
+    // La versión final subida por el equipo (26/11/2026): una sola, sin «notas».
+    if (notas?.final)
+      return [{ id: 'clase', tipo: 'clase', titulo: 'La presentación', detalle: `La versión final de la clase${notas.paginas ? ` · ${notas.paginas} páginas` : ''}`, semanaPdf: notas.semana_id || semana.id }]
     if (notas) {
       const out: OpcionPresentacion[] = [
         {
@@ -81,12 +84,15 @@ export function opcionesDe(semana: Semana, equipo: boolean): OpcionPresentacion[
     for (const c of pres) out.push({ id: `clase:${c.activity_uuid}`, tipo: 'antes', titulo: c.nombre || 'Presentación de los alumnos', detalle: 'Los alumnos la ven antes de la clase', actividad: c.activity_uuid, fuente: `clase:${c.activity_uuid}` })
   }
   const pub = semana.material_profe?.pizarra?.publicada || (notas ? { paginas: notas.paginas } : null)
+  const final = (pub as any)?.fuente === 'final' || !!notas?.final
   if (pub)
     out.push({
       id: 'clase',
       tipo: 'clase',
-      titulo: 'La versión de la clase',
-      detalle: `Lo que ven los alumnos después de la clase, con lo escrito en la pizarra${pub.paginas ? ` · ${pub.paginas} páginas` : ''}`,
+      titulo: final ? 'La versión final' : 'La versión de la clase',
+      detalle: final
+        ? `Lo que ven los alumnos desde el día de la clase${(pub as any)?.nombre ? ` · ${(pub as any).nombre}` : ''}`
+        : `Lo que ven los alumnos después de la clase, con lo escrito en la pizarra${pub.paginas ? ` · ${pub.paginas} páginas` : ''}`,
       semanaPdf: semana.id,
     })
   if ((pub as any)?.limpia || notas?.limpia)

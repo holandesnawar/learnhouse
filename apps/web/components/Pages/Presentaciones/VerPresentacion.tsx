@@ -123,20 +123,25 @@ export default function VerPresentacion({ semanaId }: { semanaId: string }) {
   const [url, setUrl] = useState('')
   const [fallo, setFallo] = useState('')
   const [sinVisor, setSinVisor] = useState(false)
-  const clave = abierta ? `${abierta.id}|${abierta.semanaPdf || ''}|${abierta.actividad || ''}` : ''
+  // Cuánto lleva bajado (26/11/2026: «para los alumnos ni carga, se queda así»).
+  const [bajado, setBajado] = useState<{ b: number; t: number } | null>(null)
+  const [intento, setIntento] = useState(0)
+  const clave = abierta ? `${abierta.id}|${abierta.semanaPdf || ''}|${abierta.actividad || ''}|${intento}` : ''
   useEffect(() => {
     setUrl('')
     setFallo('')
     setSinVisor(false)
+    setBajado(null)
     if (!abierta || !token) return
     let vivo = true
     let hecha = ''
+    const avance = (b: number, t: number) => vivo && setBajado({ b, t })
     const pedir =
       abierta.tipo === 'clase' || abierta.tipo === 'limpia'
-        ? urlPdfConNotas(abierta.semanaPdf || id, token, abierta.tipo === 'limpia')
+        ? urlPdfConNotas(abierta.semanaPdf || id, token, abierta.tipo === 'limpia', avance)
         : equipo && abierta.fuente
-          ? urlPdfFuente(id, abierta.fuente, token)
-          : urlPdfAntes(id, token, abierta.actividad || '')
+          ? urlPdfFuente(id, abierta.fuente, token, avance)
+          : urlPdfAntes(id, token, abierta.actividad || '', avance)
     pedir
       .then((u) => {
         hecha = u
@@ -295,9 +300,21 @@ export default function VerPresentacion({ semanaId }: { semanaId: string }) {
             </Link>
           </Aviso>
         ) : fallo ? (
-          <Aviso titulo="No se ha podido abrir" texto={fallo} />
+          <Aviso titulo="No se ha podido abrir" texto={fallo}>
+            <button onClick={() => setIntento((n) => n + 1)} className="mt-6 inline-flex h-10 items-center rounded-lg bg-[#0b2da0] px-4 text-[14px] font-semibold text-white hover:bg-[#0a2690]">
+              Volver a intentarlo
+            </button>
+          </Aviso>
         ) : !url ? (
-          <p className="animate-pulse py-24 text-center text-[14px] text-[#6B7393]">Abriendo la presentación…</p>
+          <div className="py-24 text-center">
+            <p className="animate-pulse text-[14px] text-[#6B7393]">Abriendo la presentación…</p>
+            {bajado && bajado.b > 0 ? (
+              <p className="mt-2 text-[12.5px] tabular-nums text-[#8A93A3]">
+                {(bajado.b / 1048576).toFixed(1).replace('.', ',')} MB
+                {bajado.t ? ` de ${(bajado.t / 1048576).toFixed(1).replace('.', ',')} MB` : ''}
+              </p>
+            ) : null}
+          </div>
         ) : sinVisor ? (
           <iframe src={url} title="Presentación" className="h-[calc(100dvh-14rem)] w-full rounded-lg border border-[#E6EAF2] bg-white" />
         ) : (

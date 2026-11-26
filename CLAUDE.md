@@ -8733,6 +8733,32 @@ todas: «Guardar para los alumnos» monta siempre los dos PDF y el alumno elige
 guardado antes, sin versión limpia, enseña como «Sin notas» la presentación de
 antes de la clase (`opcionesDe` en `lib/nawar/verPresentacion.ts`).
 
+## «Lo que ven los alumnos» y la versión final de la presentación (26/11/2026)
+Usuario, con la semana de Groep blauw: «¿cómo veo la presentación final que
+está subida? No sé si es la de repaso, la final, si tiene notas o no… quiero
+cambiarla por la final, que es un archivo nuevo… y a los alumnos ni les carga».
+- **Caja «Lo que ven los alumnos de este grupo»**
+  (`Pages/Presentaciones/LoQueVenLosAlumnos.tsx`), arriba de las
+  presentaciones de cada semana (página de la clase, equipo) y en la ficha de
+  la clase (sala de profes): dos líneas, «Antes de la clase» (el PDF de los
+  alumnos) y «Desde el día de la clase» (la versión final, o la de la pizarra
+  con lo escrito y también sin notas, o la de antes). La que toca hoy, en
+  negrita. Botones «Ver lo que ven» (`/presentacion/<semana>`, la misma página
+  que ellos) y **«Subir la versión final (PDF)»** / «Cambiar la versión final».
+  Debajo, la lista de siempre se llama «Para dar la clase».
+- **Versión final** = un PDF subido tal cual: `POST /pizarra/semana/{id}/publicar`
+  con `final=1` (`subirVersionFinal`), guardado como la publicada con
+  `fuente = "final"` (`PZ.FINAL`), sin versión limpia. Solo en ese grupo. Al
+  alumno le llega `notas_clase.final` y ve UNA sola, «La presentación» (sin
+  pestañas con/sin notas, `opcionesDe`). Volver a pulsar «Guardar para los
+  alumnos» en la pizarra la sustituye otra vez por la de la pizarra.
+- **La página del alumno que se quedaba en «Abriendo la presentación…»**: el
+  PDF se baja ahora con `bajarPdf` (`services/pizarra/pizarra.ts`): enseña los
+  MB que lleva, corta a los 40 s sin recibir nada con un aviso en español y
+  sale «Volver a intentarlo». La causa de verdad no se pudo ver (sin acceso a
+  producción); si vuelve, el aviso dice si no llega nada o se corta.
+- Tests: `test_la_version_final_subida_a_mano` y `verPresentacion.test.ts`.
+
 ## Notas de flujo de trabajo
 - **La rama de desarrollo cambia por sesión.** Comprobar con
   `git branch --show-current` antes de dar por buena ninguna que ponga aquí.
