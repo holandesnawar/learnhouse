@@ -195,6 +195,56 @@ def para_copiar(grabaciones: list[dict], ya: set[str], ahora: Optional[datetime]
     return [gid for _, gid in salen[:limite]]
 
 
+#: Una copia que Bunny no ha empezado a convertir en este tiempo se da por
+#: atascada (el enlace de Daily caducó o la descarga se cortó) y se vuelve a
+#: pedir. Una clase de 2-3 GB la baja en minutos.
+ATASCADA_SEG = 2 * 3600
+
+
+def atascada(video: Optional[dict], ahora: Optional[datetime] = None) -> bool:
+    """Si esa copia de Bunny hay que tirarla y volver a pedirla: con error, o
+    sin archivo todavía (status 0, 0 %) pasadas dos horas desde que se pidió."""
+    if not video:
+        return False
+    try:
+        st = int(video.get("status"))
+    except (TypeError, ValueError):
+        return False
+    try:
+        cuando = datetime.fromisoformat(str(video.get("dateUploaded") or "").replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if cuando.tzinfo is None:
+        cuando = cuando.replace(tzinfo=timezone.utc)
+    pasado = ((ahora or datetime.now(timezone.utc)) - cuando).total_seconds()
+    if pasado < ATASCADA_SEG:
+        return False
+    if st in _ERRORES:
+        return True
+    try:
+        progreso = int(video.get("encodeProgress") or 0)
+    except (TypeError, ValueError):
+        progreso = 0
+    return st == 0 and progreso == 0
+
+
+async def tirar(grabacion_id: str, video: dict) -> bool:
+    """Borra en Bunny una copia atascada para poder volver a pedirla. Solo
+    las nuestras (`daily-…`)."""
+    guid = str((video or {}).get("guid") or "")
+    if not guid or id_de_titulo(video.get("title")) != grabacion_id:
+        return False
+    try:
+        await _bunny("DELETE", f"/videos/{guid}")
+    except BunnyError as exc:
+        logger.warning("Bunny: no deja borrar la copia atascada %s. %s", guid, exc.mensaje)
+        return False
+    _cache["t"] = 0.0
+    _pidiendo.discard(grabacion_id)
+    logger.info("Bunny: la copia de la grabación %s estaba atascada; se vuelve a pedir.", grabacion_id)
+    return True
+
+
 def motivo(cuerpo: Any, status: int) -> str:
     if isinstance(cuerpo, dict):
         txt = cuerpo.get("Message") or cuerpo.get("message") or cuerpo.get("title") or cuerpo.get("error")

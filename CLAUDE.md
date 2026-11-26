@@ -8852,3 +8852,30 @@ que funciona.
 - **Pizarra**: el panel de color y grosor nace plegado en un botón pequeño
   con el color elegido (tapaba la presentación); se abre al tocarlo y tiene
   «Esconder». Se recuerda en el navegador (`nawar.pizarra.propiedades`).
+
+## Las grabaciones, a Bunny en cuanto termina la clase (26/11/2026)
+Usuario: «el editor para recortar sigue tardando mucho, a veces va bien y a
+veces no… la idea es que no empiece a subirse a Bunny cuando yo entre a
+recortar, sino unos minutos después de terminar la clase». Hasta ahora una
+grabación solo se le pedía a Bunny AL ABRIR el estudio de grabaciones (o al
+publicar), así que al ir a recortar salía «Bunny la está preparando (0 %)» y
+la de Daily, que se congela.
+- **Tarea cada 15 minutos** (`.github/workflows/grabaciones-bunny.yaml`, al
+  minuto 4, 19, 34 y 49) → `POST /api/v1/notifications/grabaciones-bunny`
+  (secreto `X-Cron-Token`) → `copiar_las_nuevas` en
+  `services/salas/estudio_grabaciones.py`: mira las salas de todas las clases
+  en directo y pide a Bunny cada grabación que Daily ya ha terminado (más de
+  1 min, últimos 30 días, hasta 10 por sala cada vez). Solo cifras en lo que
+  devuelve (registro público). ⚠️ Solo corre desde `dev` (como todos los
+  `schedule`).
+- **Copias atascadas** (`bunny.atascada`, pura con test): sin empezar
+  (status 0, 0 %) dos horas después de pedirla, o con error de Bunny → se
+  borra esa copia en Bunny (`bunny.tirar`, solo las `daily-…`) y se pide otra
+  vez con un enlace de Daily nuevo. Lo hacen la tarea y también el estudio al
+  abrirse.
+- **No hace falta apagar la sala**: Daily da la grabación por terminada unos
+  minutos después de que se quede vacía, esté encendida o apagada.
+- Tests en `test_bunny_grabaciones.py`. Sin probar contra Bunny ni Daily de
+  verdad (no se alcanzan desde aquí): el registro de la tarea en GitHub
+  (Actions → «Grabaciones a Bunny») dice cuántas pidió, cuántas reintentó,
+  cuántas están listas y cuántas preparando.

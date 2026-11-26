@@ -487,6 +487,59 @@ async def _copiar_a_bunny(course_uuid: str, ids: list[str]) -> None:
             logger.warning("Bunny: no se pudo copiar la grabación %s. %s", gid, getattr(exc, "mensaje", exc))
 
 
+async def copiar_las_nuevas(org_id: int, db_session: AsyncSession) -> dict:
+    """La tarea de cada 15 minutos (`grabaciones-bunny.yaml`, 26/11/2026).
+
+    Antes, una grabación solo se le pedía a Bunny al abrir el estudio de
+    grabaciones, así que al ir a recortar salía «Bunny la está preparando
+    (0 %)» y la de Daily, que se congela. Ahora, en cuanto Daily termina una
+    grabación (unos minutos después de quedarse la sala vacía, apagada o
+    no), esta tarea se la pide a Bunny, y una copia atascada (sin empezar en
+    2 horas, o con error) se tira y se vuelve a pedir. Al abrir el estudio,
+    la clase ya está lista. Solo cifras en lo que devuelve: el registro de
+    GitHub es público."""
+    from src.services.panel.camino import _cursos_con_sala
+    from src.services.salas import bunny
+
+    if not bunny.configurado():
+        return {"activo": False, "motivo": "sin Bunny"}
+    if not salas.clave_api():
+        return {"activo": False, "motivo": "sin Daily"}
+    cursos = await _cursos_con_sala(org_id, db_session)
+    videos = await bunny._videos(fresco=True)
+    out = {"activo": True, "salas": len(cursos), "pedidas": 0, "reintentadas": 0, "listas": 0, "preparando": 0, "errores": 0}
+    for c in cursos:
+        try:
+            grabadas = await _de_la_sala(c["uuid"])
+        except salas.SalaError as exc:
+            out["errores"] += 1
+            logger.warning("Bunny: no se pudieron leer las grabaciones de una sala. %s", exc.mensaje)
+            continue
+        ya: set[str] = set()
+        for g in grabadas:
+            v = videos.get(g["id"])
+            if not v:
+                continue
+            if bunny.atascada(v) and await bunny.tirar(g["id"], v):
+                out["reintentadas"] += 1
+                continue
+            ya.add(g["id"])
+            estado = bunny.resumen(v)["estado"]
+            if estado == "lista":
+                out["listas"] += 1
+            elif estado == "preparando":
+                out["preparando"] += 1
+        for gid in bunny.para_copiar(grabadas, ya, limite=10):
+            try:
+                olvidar_enlace(gid)
+                await bunny.copiar(gid, await enlace_daily(c["uuid"], gid))
+                out["pedidas"] += 1
+            except Exception as exc:  # noqa: BLE001 - la siguiente vuelta lo intenta otra vez
+                out["errores"] += 1
+                logger.warning("Bunny: no se pudo pedir la grabación %s. %s", gid, getattr(exc, "mensaje", exc))
+    return out
+
+
 async def _con_bunny(course_uuid: str, grabadas: list[dict], dias: list[dict]) -> dict:
     """Pone a cada parte en qué está en Bunny y pide las que faltan. Nunca
     rompe el estudio: si Bunny falla, se dice y ya."""
@@ -496,6 +549,13 @@ async def _con_bunny(course_uuid: str, grabadas: list[dict], dias: list[dict]) -
         return {"activo": False}
     try:
         ids = [p["id"] for d in dias for p in d["partes"] if not str(p["id"]).startswith(_DEMO)]
+        # Una copia atascada (sin empezar en 2 horas, o con error) se tira y
+        # se vuelve a pedir abajo, igual que hace la tarea de cada 15 minutos.
+        videos = await bunny._videos()
+        for gid in ids:
+            v = videos.get(gid)
+            if v and bunny.atascada(v):
+                await bunny.tirar(gid, v)
         est = await bunny.estados(ids)
         for d in dias:
             for p in d["partes"]:

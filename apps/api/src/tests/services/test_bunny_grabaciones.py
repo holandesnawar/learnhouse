@@ -175,3 +175,82 @@ async def test_si_bunny_falla_el_estudio_sale_igual(db, org, monkeypatch):
     assert datos["dias"][0]["partes"]
     assert "401" in datos["bunny"]["error"]
     assert (await EG.enlace_video(CURSO, "rec-aaaa-1111")).startswith("https://video.daily.co/")
+
+
+def test_una_copia_atascada_se_vuelve_a_pedir():
+    from datetime import datetime, timedelta, timezone
+
+    from src.services.salas import bunny as B
+
+    ahora = datetime(2026, 11, 26, 12, 0, tzinfo=timezone.utc)
+    hace = lambda h: (ahora - timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M:%S")  # noqa: E731
+    # Sin empezar (status 0, 0 %) hace 3 horas: atascada.
+    assert B.atascada({"status": 0, "encodeProgress": 0, "dateUploaded": hace(3)}, ahora)
+    # Recién pedida: todavía no.
+    assert not B.atascada({"status": 0, "encodeProgress": 0, "dateUploaded": hace(0.5)}, ahora)
+    # Convirtiéndose: no.
+    assert not B.atascada({"status": 3, "encodeProgress": 40, "dateUploaded": hace(5)}, ahora)
+    # Lista: no.
+    assert not B.atascada({"status": 4, "encodeProgress": 100, "dateUploaded": hace(30)}, ahora)
+    # Con error de Bunny: sí.
+    assert B.atascada({"status": 6, "encodeProgress": 0, "dateUploaded": hace(3) + "Z"}, ahora)
+    # Sin fecha: no se toca.
+    assert not B.atascada({"status": 0}, ahora)
+    assert not B.atascada(None, ahora)
+
+
+async def test_la_tarea_pide_las_nuevas_y_reintenta_las_atascadas(monkeypatch):
+    from datetime import datetime, timedelta, timezone
+
+    import src.services.panel.camino as camino
+    from src.services.salas import bunny as B
+    from src.services.salas import estudio_grabaciones as EG
+    from src.services.salas import salas as S
+
+    ahora = datetime.now(timezone.utc)
+    viejo = (ahora - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
+    grabadas = [
+        {"id": "g-nueva", "inicio": (ahora - timedelta(hours=1)).isoformat(), "duracion_seg": 3600, "estado": "finished"},
+        {"id": "g-atascada", "inicio": (ahora - timedelta(hours=6)).isoformat(), "duracion_seg": 3600, "estado": "finished"},
+        {"id": "g-lista", "inicio": (ahora - timedelta(days=2)).isoformat(), "duracion_seg": 3600, "estado": "finished"},
+        {"id": "g-en-curso", "inicio": ahora.isoformat(), "duracion_seg": 0, "estado": "in-progress"},
+    ]
+    videos = {
+        "g-atascada": {"guid": "a1", "title": "daily-g-atascada", "status": 0, "encodeProgress": 0, "dateUploaded": viejo},
+        "g-lista": {"guid": "l1", "title": "daily-g-lista", "status": 4, "encodeProgress": 100, "dateUploaded": viejo},
+    }
+    pedidas, tiradas = [], []
+
+    async def _cursos(org_id, db):
+        return [{"uuid": "abc", "nombre": "Clase", "sala": "nawar-abc"}]
+
+    async def _sala(uuid):
+        return grabadas
+
+    async def _videos(fresco=False):
+        return videos
+
+    async def _tirar(gid, v):
+        tiradas.append(gid)
+        return True
+
+    async def _copiar(gid, enlace):
+        pedidas.append((gid, enlace))
+        return {"estado": "preparando", "progreso": 0}
+
+    async def _enlace(uuid, gid):
+        return f"https://daily/{gid}.mp4"
+
+    monkeypatch.setattr(B, "configurado", lambda: True)
+    monkeypatch.setattr(S, "clave_api", lambda: "x")
+    monkeypatch.setattr(camino, "_cursos_con_sala", _cursos)
+    monkeypatch.setattr(EG, "_de_la_sala", _sala)
+    monkeypatch.setattr(EG, "enlace_daily", _enlace)
+    monkeypatch.setattr(B, "_videos", _videos)
+    monkeypatch.setattr(B, "tirar", _tirar)
+    monkeypatch.setattr(B, "copiar", _copiar)
+
+    out = await EG.copiar_las_nuevas(1, None)
+    assert tiradas == ["g-atascada"]
+    assert sorted(g for g, _ in pedidas) == ["g-atascada", "g-nueva"]
+    assert out["pedidas"] == 2 and out["reintentadas"] == 1 and out["listas"] == 1

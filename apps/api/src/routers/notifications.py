@@ -121,6 +121,30 @@ async def api_plan_recordatorio(
 
 
 @router.post(
+    "/grabaciones-bunny",
+    summary="Pide a Bunny las grabaciones de la sala recién terminadas. La llama una tarea cada 15 minutos.",
+)
+async def api_grabaciones_bunny(
+    request: Request,
+    org_id: int = 1,
+    db_session: AsyncSession = Depends(get_db_session),
+):
+    """Misma puerta que `/drip-diario`. Ver `copiar_las_nuevas` en
+    `services/salas/estudio_grabaciones.py`."""
+    esperado = (os.environ.get("LEARNHOUSE_CRON_TOKEN") or "").strip()
+    if not esperado:
+        raise HTTPException(status_code=503, detail="Cron token not configured")
+    recibido = (request.headers.get(CABECERA_SECRETO) or "").strip()
+    if not recibido or not _mismo_secreto(recibido, esperado):
+        raise HTTPException(status_code=401, detail="Bad cron token")
+    from src.services.salas.estudio_grabaciones import copiar_las_nuevas
+
+    resultado = await copiar_las_nuevas(org_id, db_session)
+    logger.info("Grabaciones a Bunny: %s", resultado)
+    return resultado
+
+
+@router.post(
     "/drip-diario",
     summary="Avisa por email de los módulos que se abren hoy. La llama una tarea diaria.",
 )
