@@ -22,7 +22,6 @@ from src.db.users import PublicUser
 from src.routers.contactos import _es_admin, _nombre
 from src.security.auth import get_current_user
 from src.services.contactos.contactos import _emails_con_cuenta, _todos_los_eventos, fusionar_contactos
-from src.services.contactos.metricas import emails_excluidos
 from src.services.orgs.acceso import exigir_acceso
 from src.services.panel import ads, pipeline, recordatorio, tareas
 from src.services.panel.cliente import ficha_cliente
@@ -41,54 +40,9 @@ async def api_tablero(
     db_session: AsyncSession = Depends(get_db_session),
 ):
     await exigir_acceso(request, org_id, current_user, "contactos", db_session)
-    fichas = fusionar_contactos(await _todos_los_eventos(db_session), await _emails_con_cuenta(db_session))
-    fuera = await emails_excluidos(db_session)
-    for f in fichas:
-        f["fuera_de_metricas"] = f["email"] in fuera
-    datos = await pipeline.tablero(fichas, db_session, await ads.leer_nombres(org_id, db_session))
-    # Volver a llamar: la fecha y el motivo, para «Llamar hoy» en la tarjeta
-    # (08/10: el closer ya no tiene Contactos, que es donde estaba).
-    from src.services.contactos.seguimiento import todos_los_recordatorios
+    from src.services.panel.tablero_datos import datos_tablero
 
-    recordatorios = await todos_los_recordatorios(db_session)
-    # Cuántas tareas pendientes tiene cada persona, para la tarjeta.
-    pendientes: dict[str, int] = {}
-    for t in await tareas.listar(db_session, current_user.id, True, solo_pendientes=True):
-        if t["email"]:
-            pendientes[t["email"]] = pendientes.get(t["email"], 0) + 1
-    # Notas del equipo: cuántas y la última, para que la tarjeta avise de que
-    # hay algo apuntado sin tener que abrirla (pedido del usuario, 28/09).
-    from sqlmodel import select as _select
-
-    from src.db.contact_seguimiento import ContactNota
-
-    notas: dict[str, dict] = {}
-    for n in (await db_session.execute(_select(ContactNota).order_by(ContactNota.created_at))).scalars().all():
-        clave = (n.email or "").strip().lower()
-        d = notas.setdefault(clave, {"n": 0, "ultima": ""})
-        d["n"] += 1
-        d["ultima"] = (n.texto or "")[:160]
-    # Plaza reservada con señal: cuánto lleva y cuánto le falta (06/10).
-    from src.services.payments.reservas import reservas_abiertas
-
-    reservas = {r["email"]: r for r in await reservas_abiertas(db_session)}
-    for c in datos["tarjetas"]:
-        r = reservas.get(c["email"])
-        c["reserva"] = (
-            {"pagado_cents": r["pagado_cents"], "total_cents": r["total_cents"], "pendiente_cents": r["pendiente_cents"]}
-            if r
-            else None
-        )
-        c["tareas"] = pendientes.get(c["email"], 0)
-        if c.get("suelta") and not c["email"]:
-            # Sin correo, las notas viven en su fila de Llamadas.
-            c["notas"] = (c.get("llamada") or {}).get("n_notas", 0)
-            c["ultima_nota"] = ((c.get("llamada") or {}).get("ultima_nota") or "")[:160]
-        else:
-            c["notas"] = notas.get(c["email"], {}).get("n", 0)
-            c["ultima_nota"] = notas.get(c["email"], {}).get("ultima", "")
-        r = recordatorios.get(c["email"]) if c["email"] else None
-        c["volver_a_llamar"] = r if r and c["etapa"] != "alumno" else None
+    datos = await datos_tablero(org_id, current_user.id, db_session)
     # Qué ve cada closer (05/11, `alcance.py`): lo suyo y, si toca, lo libre.
     from src.services.panel.alcance import filtro_de
 
