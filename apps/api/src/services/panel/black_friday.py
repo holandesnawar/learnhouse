@@ -63,6 +63,7 @@ NEWSLETTERS = {
     "nl-abrimos-2": "Este Black Friday no lo vamos a anunciar en público",
     "nl-recuerdas": "¿Recuerdas qué te compraste el Black Friday pasado?",
     "nl-lista": "Tenemos algo importante que contarte",
+    "nl-carrito": "Lo que nunca metemos en el carrito",
 }
 
 #: Dónde se edita cada correo en systeme.io: el paso de su campaña o la
@@ -72,7 +73,7 @@ SYSTEME_PASO_ID = {
     "sys-n0": 6231026, "sys-n1": 6231032, "sys-n3": 6231033, "sys-n5": 6231034, "sys-n7": 6231035,
     "sys-c1": 6231036, "sys-c3": 6231037, "sys-c5": 6231038, "sys-c7": 6231039,
 }
-SYSTEME_NEWSLETTER_ID = {"nl-abrimos-1": 5508957, "nl-abrimos-2": 5508957, "nl-recuerdas": 5508958, "nl-lista": 5508959}
+SYSTEME_NEWSLETTER_ID = {"nl-abrimos-1": 5508957, "nl-abrimos-2": 5508957, "nl-recuerdas": 5508958, "nl-lista": 5508959, "nl-carrito": 5656533}
 
 
 def enlace_systeme(ident: str) -> str:

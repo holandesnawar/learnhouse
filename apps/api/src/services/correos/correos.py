@@ -306,6 +306,7 @@ NEWSLETTERS_SYSTEME = [
     ("nl-abrimos", ("nl-abrimos-1", "nl-abrimos-2"), "A toda la lista de correo"),
     ("nl-recuerdas", ("nl-recuerdas",), "A toda la lista de correo"),
     ("nl-lista", ("nl-lista",), "A quien se apuntó a la lista prioritaria"),
+    ("nl-carrito", ("nl-carrito",), "A toda la lista de correo"),
 ]
 
 
