@@ -12,6 +12,30 @@ from src.core.ee_hooks import run_ee_startup
 logger = logging.getLogger(__name__)
 
 _cleanup_task = None
+_bunny_task = None
+
+
+async def _grabaciones_a_bunny_cada_15_min():
+    """Pide a Bunny las grabaciones de la sala recién terminadas (26/11/2026).
+
+    Lo hace la propia escuela, sin depender de GitHub Actions (que se puede
+    apagar): la primera vuelta a los 2 minutos de arrancar y luego cada 15.
+    La tarea `grabaciones-bunny.yaml` llama a lo mismo; repetirlo no pide nada
+    dos veces (Bunny es la memoria). Ver `copiar_las_nuevas` en
+    services/salas/estudio_grabaciones.py."""
+    await asyncio.sleep(120)
+    while True:
+        try:
+            from src.core.events.database import _async_session_factory
+            from src.services.salas.estudio_grabaciones import copiar_las_nuevas
+
+            async with _async_session_factory() as db_session:
+                resultado = await copiar_las_nuevas(1, db_session)
+            if resultado.get("pedidas") or resultado.get("reintentadas"):
+                logger.info("Grabaciones a Bunny: %s", resultado)
+        except Exception as e:  # noqa: BLE001 - nunca tirar la escuela por esto
+            logger.warning("Grabaciones a Bunny: %s", e)
+        await asyncio.sleep(900)
 
 
 async def _periodic_migration_cleanup():
@@ -73,6 +97,8 @@ def startup_app(app: FastAPI) -> Callable:
         cleanup_old_temp_migrations()
         global _cleanup_task
         _cleanup_task = asyncio.create_task(_periodic_migration_cleanup())
+        global _bunny_task
+        _bunny_task = asyncio.create_task(_grabaciones_a_bunny_cada_15_min())
 
         # Start Enterprise Edition Startup tasks if available
         run_ee_startup(app)
@@ -82,6 +108,8 @@ def startup_app(app: FastAPI) -> Callable:
 
 def shutdown_app(app: FastAPI) -> Callable:
     async def close_app() -> None:
+        if _bunny_task:
+            _bunny_task.cancel()
         if _cleanup_task:
             _cleanup_task.cancel()
             try:
