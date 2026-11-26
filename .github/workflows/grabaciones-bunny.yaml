@@ -1,0 +1,33 @@
+# Las grabaciones de la sala, a Bunny en cuanto terminan.
+#
+# Cada 15 minutos se le pregunta a la escuela si Daily ha terminado alguna
+# grabación nueva; si sí, la escuela se la pide a Bunny, que la baja y la
+# prepara. Así, al abrir el estudio de grabaciones para recortar, la clase ya
+# está lista y se puede saltar a cualquier minuto. Una copia atascada se
+# vuelve a pedir sola. Ver services/salas/estudio_grabaciones.py
+# (copiar_las_nuevas). Solo devuelve cifras: este registro es público.
+name: Grabaciones a Bunny
+
+on:
+  schedule:
+    # Cada 15 minutos, al minuto 4, 19, 34 y 49 (GitHub retrasa lo que cae en punto).
+    - cron: '4,19,34,49 * * * *'
+  workflow_dispatch:
+
+jobs:
+  copiar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pedirle a la escuela que copie las grabaciones nuevas
+        run: |
+          set -euo pipefail
+          respuesta=$(curl -sS --max-time 120 -w '\n%{http_code}' -X POST \
+            -H "X-Cron-Token: ${{ secrets.SCHOOL_CRON_TOKEN }}" \
+            "${{ secrets.SCHOOL_URL }}/api/v1/notifications/grabaciones-bunny")
+          cuerpo=$(echo "$respuesta" | head -n -1)
+          codigo=$(echo "$respuesta" | tail -n 1)
+          echo "$cuerpo"
+          if [ "$codigo" != "200" ]; then
+            echo "La escuela respondió $codigo" >&2
+            exit 1
+          fi
