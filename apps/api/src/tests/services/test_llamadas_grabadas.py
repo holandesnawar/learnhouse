@@ -73,3 +73,18 @@ async def test_clasificar_quien_compro(db, org, monkeypatch):
     assert ll["a"]["compro"] is True and ll["a"]["pagado_eur"] == 435.0 and ll["a"]["closer"] == "Diego"
     assert ll["b"]["identificada"] is True and ll["b"]["email"] == "luis@x.com" and ll["b"]["compro"] is False
     assert ll["c"] == {"identificada": False}
+
+
+def test_dos_citas_a_la_misma_distancia_en_la_sala_fija_no_rompen():
+    """26/11/2026: con la sala fija, dos citas a la misma distancia de la
+    grabación (9:30 y 10:30 para una de 10:00) comparaban dos dict y la
+    escuela contestaba 500. Ahora, con dos personas distintas empatadas, no se
+    elige ninguna."""
+    from src.services.contactos import llamadas_grabadas as L
+
+    citas = [
+        {"email": "a@x.com", "enlace": "https://zoom.us/j/1234567890", "inicio": "2026-11-20T09:30:00Z", "estado": "activa"},
+        {"email": "b@x.com", "enlace": "https://zoom.us/j/1234567890", "inicio": "2026-11-20T10:30:00Z", "estado": "activa"},
+    ]
+    assert L.emparejar({"meeting_id": "1234567890", "inicio": "2026-11-20T10:00:00Z"}, citas) is None
+    assert L.emparejar({"meeting_id": "1234567890", "inicio": "2026-11-20T10:25:00Z"}, citas)["email"] == "b@x.com"
