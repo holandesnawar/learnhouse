@@ -380,19 +380,31 @@ async def api_publicar(
     fuente: str = Form(""),
     limpia: Optional[UploadFile] = File(None),
     paginas_limpia: int = Form(0),
+    final: int = Form(0),
     current_user: PublicUser = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db_session),
 ):
+    """Con `final=1` (26/11/2026, usuario: «quiero cambiarla por la final, que
+    es un archivo nuevo… tiene que ser fácil y obvio»): el PDF que sube el
+    equipo, tal cual, pasa a ser lo que ven los alumnos desde el día de la
+    clase, en lugar de la versión de la pizarra. Una sola versión, sin «con
+    notas / sin notas»."""
     s, _admin = await _semana_equipo(semana_id, current_user, db_session)
     datos = await pdf.read(PZ.MAX_PDF + 1)
-    datos_limpia = await limpia.read(PZ.MAX_PDF + 1) if limpia is not None else None
+    datos_limpia = await limpia.read(PZ.MAX_PDF + 1) if limpia is not None and not final else None
+    if final and not datos.startswith(b"%PDF"):
+        raise HTTPException(status_code=415, detail="Ese archivo no es un PDF. Exporta la presentación a PDF y súbela otra vez.")
     material = MP.leer(s.material_profe)
     disponibles = PZ.fuentes(material, await _clases_de(s, db_session))
     p = PZ.leer(material)
-    de = (fuente or "").strip() or PZ.fuente_valida(p["fuente"], disponibles)
+    if final:
+        de, nombre = PZ.FINAL, (pdf.filename or "Presentación final.pdf").strip()
+    else:
+        de = (fuente or "").strip() or PZ.fuente_valida(p["fuente"], disponibles)
+        nombre = PZ.nombre_de(de, disponibles)
     try:
         p = PZ.publicar(
-            s.org_id, p, datos, paginas, _nombre(current_user), MP._ahora(), de, PZ.nombre_de(de, disponibles), datos_limpia or None, paginas_limpia
+            s.org_id, p, datos, paginas, _nombre(current_user), MP._ahora(), de, nombre, datos_limpia or None, paginas_limpia
         )
     except T.TareaError as exc:
         raise _error(exc)

@@ -453,7 +453,8 @@ export default function ListaPresentaciones(p: PropsListaPresentaciones) {
   }
 
   const filas = lista.presentaciones
-  const pubSinFila = lista.publicada && !filas.some((x) => x.publicada)
+  // La versión final subida a mano ya la cuenta la caja «Lo que ven los alumnos».
+  const pubSinFila = lista.publicada && lista.publicada.fuente !== 'final' && !filas.some((x) => x.publicada)
   const laQuePasa = pasando ? filas.find((x) => x.id === pasando) || lista.sueltas.find((x) => x.id === pasando) : null
   const nombreDeLaQuePasa = laQuePasa ? laQuePasa.nombre || 'una presentación que ya no está' : ''
 

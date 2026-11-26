@@ -202,6 +202,11 @@ def ultima_escritura(p: dict) -> str:
     return max([n.get("at") or "" for n in (p.get("notas") or {}).values() if n.get("algo", True)] or [""])
 
 
+#: La versión final subida a mano (26/11/2026): `publicada.fuente` cuando el
+#: equipo sube el PDF que ven los alumnos tras la clase, sin pizarra.
+FINAL = "final"
+
+
 def publicada_para_la_pantalla(p: dict) -> Optional[dict]:
     """Sin la ruta en disco."""
     pub = p.get("publicada")

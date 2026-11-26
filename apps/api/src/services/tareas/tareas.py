@@ -688,6 +688,8 @@ def _notas_clase(material: Any) -> Optional[dict]:
         "paginas": int(pub.get("paginas") or 0),
         # También guardada sin las notas (25/11/2026, Spreek Club): el alumno elige.
         "limpia": bool(limpia and limpia.get("ruta")),
+        # La versión final subida a mano (26/11/2026): una sola, sin «notas».
+        "final": str(pub.get("fuente") or "") == "final",
     }
 
 

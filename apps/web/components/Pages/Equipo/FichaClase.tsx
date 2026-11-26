@@ -35,6 +35,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { CalendarDays, Check, Clock3, FileText, Link2, Trash2, UploadCloud, User, X } from 'lucide-react'
 import ListaPresentaciones from '@components/Pages/Presentaciones/ListaPresentaciones'
+import LoQueVenLosAlumnos from '@components/Pages/Presentaciones/LoQueVenLosAlumnos'
 import type { ListaPresentaciones as Lista } from '@services/pizarra/pizarra'
 import {
   abrirArchivoProfe,
@@ -445,7 +446,21 @@ function FichaDentro({
         ) : null}
       </Seccion>
 
-      <Seccion ancla="presentaciones" titulo="Presentaciones" ayuda="Todos los PDF de esta clase, en un solo sitio. Cada uno guarda sus propias notas de la pizarra: cambiar de uno a otro no borra nada.">
+      <Seccion ancla="presentaciones" titulo="Presentaciones" ayuda="Arriba, lo que ven los alumnos. Debajo, todos los PDF de esta clase: cada uno guarda sus propias notas de la pizarra.">
+        <div className="mb-3">
+          <LoQueVenLosAlumnos
+            semanaId={semana.semanaId}
+            fecha={semana.fecha}
+            hoy={hoy}
+            lista={pres}
+            token={token}
+            ruta={ruta}
+            onCambio={() => {
+              setVersionPres((v) => v + 1)
+              onCambio()
+            }}
+          />
+        </div>
         <ListaPresentaciones
           semanaId={semana.semanaId}
           chapterId={semana.chapterId}

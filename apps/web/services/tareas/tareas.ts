@@ -110,7 +110,7 @@ export interface Semana {
   /** La grabación de la sala publicada en esta semana (10/11/2026). Al alumno, solo con la clase ya dada. */
   grabacion_sala?: GrabacionSala | null
   /** La presentación con lo que el profe escribió en clase (10/11/2026, la pizarra). */
-  notas_clase?: { at: string; paginas: number; semana_id?: number; limpia?: boolean } | null
+  notas_clase?: { at: string; paginas: number; semana_id?: number; limpia?: boolean; final?: boolean } | null
 }
 
 export interface ArchivoProfe {

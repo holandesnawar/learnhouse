@@ -85,3 +85,16 @@ describe('Spreek Club: con notas y sin notas (25/11/2026)', () => {
     expect(o.map((x) => x.tipo)).toEqual(['clase'])
   })
 })
+
+test('la versión final subida a mano: una sola, sin «con notas / sin notas»', () => {
+  const semana: any = {
+    id: 9,
+    fecha: '2026-11-25',
+    clases: [{ tipo: 'presentacion', activity_uuid: 'a1', nombre: 'Presentación', hecha: false }],
+    notas_clase: { at: '2026-11-26', paginas: 12, limpia: false, final: true },
+  }
+  const op = opcionesDe(semana, false)
+  expect(op.length).toBe(1)
+  expect(op[0].titulo).toBe('La presentación')
+  expect(op[0].tipo).toBe('clase')
+})

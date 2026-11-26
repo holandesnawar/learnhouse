@@ -244,6 +244,17 @@ export function publicarPizarra(semanaId: number, pdf: Blob, paginas: number, to
   return pedir<Publicada>(`${base()}/semana/${semanaId}/publicar`, token, 'POST', f)
 }
 
+/**
+ * La versión FINAL que ven los alumnos desde el día de la clase (26/11/2026):
+ * el PDF tal cual, en lugar de la versión de la pizarra. Una sola versión.
+ */
+export function subirVersionFinal(semanaId: number, archivo: File, token: string) {
+  const f = new FormData()
+  f.append('pdf', archivo, archivo.name || 'Presentación final.pdf')
+  f.append('final', '1')
+  return pedir<Publicada>(`${base()}/semana/${semanaId}/publicar`, token, 'POST', f)
+}
+
 export const quitarPublicada = (semanaId: number, token: string) =>
   pedir<{ ok: boolean }>(`${base()}/semana/${semanaId}/publicada`, token, 'DELETE')
 
@@ -254,17 +265,55 @@ export const getConNotas = (courseUuid: string, token: string) =>
   pedir<{ semanas: ConNotas[] }>(`${base()}/course/${curso(courseUuid)}`, token)
 
 /** La presentación con notas (o, con `limpia`, la misma sin notas), como dirección que se puede abrir (va con la sesión). */
-export async function urlPdfConNotas(semanaId: number, token: string, limpia = false): Promise<string> {
-  const res = await fetch(`${base()}/semana/${semanaId}/pdf${limpia ? '?limpia=1' : ''}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    credentials: 'include',
-    cache: 'no-store',
-  })
-  if (!res.ok) {
-    const datos = await res.json().catch(() => null)
-    throw new Error(datos && typeof datos.detail === 'string' ? datos.detail : `Error ${res.status}`)
+export async function urlPdfConNotas(
+  semanaId: number,
+  token: string,
+  limpia = false,
+  alAvanzar?: (bajado: number, total: number) => void
+): Promise<string> {
+  return bajarPdf(`${base()}/semana/${semanaId}/pdf${limpia ? '?limpia=1' : ''}`, token, alAvanzar)
+}
+
+/**
+ * Baja un PDF con la sesión, diciendo cuánto lleva (26/11/2026: «para los
+ * alumnos ni carga la presentación, se queda así»). Si en 40 segundos no ha
+ * llegado nada nuevo, se corta con un motivo en vez de quedarse girando.
+ */
+export async function bajarPdf(url: string, token: string, alAvanzar?: (bajado: number, total: number) => void): Promise<string> {
+  const ctrl = new AbortController()
+  let parado: any = setTimeout(() => ctrl.abort(), 40_000)
+  const reloj = () => {
+    clearTimeout(parado)
+    parado = setTimeout(() => ctrl.abort(), 40_000)
   }
-  return URL.createObjectURL(await res.blob())
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include', cache: 'no-store', signal: ctrl.signal })
+    if (!res.ok) {
+      const datos = await res.json().catch(() => null)
+      throw new Error(datos && typeof datos.detail === 'string' ? datos.detail : `Error ${res.status}`)
+    }
+    const total = Number(res.headers.get('content-length') || 0)
+    if (!res.body || !alAvanzar) return URL.createObjectURL(await res.blob())
+    const lector = res.body.getReader()
+    const trozos: Uint8Array[] = []
+    let bajado = 0
+    for (;;) {
+      const { done, value } = await lector.read()
+      if (done) break
+      if (value) {
+        trozos.push(value)
+        bajado += value.length
+        reloj()
+        alAvanzar(bajado, total)
+      }
+    }
+    return URL.createObjectURL(new Blob(trozos as BlobPart[], { type: 'application/pdf' }))
+  } catch (e: any) {
+    if (e?.name === 'AbortError') throw new Error('La presentación tarda demasiado en llegar. Comprueba la conexión y vuelve a intentarlo.')
+    throw e
+  } finally {
+    clearTimeout(parado)
+  }
 }
 
 // ── La presentación en su propia página (22/11/2026) ───────────────────────
@@ -291,9 +340,9 @@ async function comoDireccion(url: string, token: string): Promise<string> {
 }
 
 /** El PDF que los alumnos ven antes de la clase, como dirección que se puede abrir. */
-export const urlPdfAntes = (semanaId: number, token: string, actividad = '') =>
-  comoDireccion(`${base()}/semana/${semanaId}/antes${actividad ? `?actividad=${encodeURIComponent(actividad)}` : ''}`, token)
+export const urlPdfAntes = (semanaId: number, token: string, actividad = '', alAvanzar?: (bajado: number, total: number) => void) =>
+  bajarPdf(`${base()}/semana/${semanaId}/antes${actividad ? `?actividad=${encodeURIComponent(actividad)}` : ''}`, token, alAvanzar)
 
 /** Una presentación de la clase (equipo), como dirección que se puede abrir. */
-export const urlPdfFuente = (semanaId: number, fuente: string, token: string) =>
-  comoDireccion(`${base()}/semana/${semanaId}/fuente/${encodeURIComponent(fuente)}`, token)
+export const urlPdfFuente = (semanaId: number, fuente: string, token: string, alAvanzar?: (bajado: number, total: number) => void) =>
+  bajarPdf(`${base()}/semana/${semanaId}/fuente/${encodeURIComponent(fuente)}`, token, alAvanzar)
