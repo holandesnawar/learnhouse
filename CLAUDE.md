@@ -8873,6 +8873,15 @@ la de Daily, que se congela.
   borra esa copia en Bunny (`bunny.tirar`, solo las `daily-…`) y se pide otra
   vez con un enlace de Daily nuevo. Lo hacen la tarea y también el estudio al
   abrirse.
+- **La hace también la propia escuela**, cada 15 minutos (la primera a los 2
+  min de arrancar): `_grabaciones_a_bunny_cada_15_min` en
+  `core/events/events.py`, para no depender de GitHub. ⚠️ **El 26/11 GitHub
+  Actions estaba DESACTIVADO en el repo de la escuela** («Actions has been
+  disabled for this repository»; última ejecución el 06/11): sin él no corren
+  las copias de seguridad diarias a R2, la tarea diaria (`drip-diario`: correos
+  de módulo, plazos con Stripe…), el vigilante, el recordatorio del plan ni el
+  resumen semanal. Se reactiva en GitHub → el repo → Settings → Actions →
+  General → «Allow all actions» (lo hace el usuario).
 - **No hace falta apagar la sala**: Daily da la grabación por terminada unos
   minutos después de que se quede vacía, esté encendida o apagada.
 - Tests en `test_bunny_grabaciones.py`. Sin probar contra Bunny ni Daily de
