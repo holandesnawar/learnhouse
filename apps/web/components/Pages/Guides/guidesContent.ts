@@ -67,7 +67,7 @@ const GUIA_USO: Guide = {
         ['Repasar', 'Las mismas prácticas, sueltas, para volver sobre lo que ya viste. No es otro camino: es el gimnasio.'],
         ['Mi progreso', 'Tu formación de un vistazo: qué hiciste, qué nota sacaste y qué fallaste.'],
         ['Comunidad', 'Los canales donde hablas con tus compañeros de clase.'],
-        ['Eventos', 'Las clases en directo y las fechas importantes.'],
+        ['Calendario', 'Las clases en directo y las fechas importantes.'],
         ['Consultas', 'Tus dudas sobre las lecciones. Las responde el equipo y quedan a la vista.'],
         ['Mis mensajes', 'Tu línea directa con nosotros, en privado. Texto o nota de voz.'],
         ['Mis notas', 'Todo lo que subrayaste y anotaste, reunido en un sitio.'],
