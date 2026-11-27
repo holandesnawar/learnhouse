@@ -60,7 +60,7 @@ const PLANTILLA = `<h1>Novedades de esta semana</h1>
 <p>Esto es lo que ha cambiado en la formación:</p>
 <ul>
 <li><strong>Nuevo módulo disponible</strong> — ya puedes entrar a Módulo 3.</li>
-<li><strong>Clase semanal</strong> — el jueves a las 19:00, con enlace en Eventos.</li>
+<li><strong>Clase semanal</strong> — el jueves a las 19:00, con enlace en el Calendario.</li>
 <li><strong>Fallos arreglados</strong> — el progreso ya se guarda al instante.</li>
 </ul>
 <p>Nos vemos dentro.</p>`

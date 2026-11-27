@@ -231,7 +231,7 @@ export default function CalendarView({ orgslug }: { orgslug: string }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 pb-5">
         <div className="flex items-center gap-2">
-          <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>Eventos</h1>
+          <h1 className="text-[26px] sm:text-[30px] font-bold text-[#0B1033] tracking-tight" style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}>Calendario</h1>
         </div>
         {canEdit && (
           <div className="flex items-center gap-2">

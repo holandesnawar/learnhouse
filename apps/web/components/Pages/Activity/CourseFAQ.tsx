@@ -85,7 +85,7 @@ const FAQ_DIRECTO: { intro?: string; items: FAQ[] } = {
   items: [
     {
       q: '¿Cuándo es la clase?',
-      a: 'El día y la hora los tienes arriba, en el recuadro de esta página, y también en Eventos.',
+      a: 'El día y la hora los tienes arriba, en el recuadro de esta página, y también en el Calendario.',
     },
     {
       q: '¿Cómo entro?',
